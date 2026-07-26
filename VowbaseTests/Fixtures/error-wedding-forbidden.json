@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "wedding_forbidden",
+    "message": "Forbidden.",
+    "requestId": "req-1"
+  }
+}

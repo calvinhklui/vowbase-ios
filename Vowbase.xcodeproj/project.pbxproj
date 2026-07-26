@@ -13,6 +13,10 @@
 		A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */; };
 		A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */; };
 		A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */; };
+		A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */; };
+		A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */; };
+		A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */; };
+		A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001E /* BackendError.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +41,10 @@
 		A1B2C3D4E5F6000000000018 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000019 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig.example; sourceTree = "<group>"; };
 		A1B2C3D4E5F600000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendErrorTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "error-wedding-forbidden.json"; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorEnvelope.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001E /* BackendError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendError.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +79,7 @@
 		A1B2C3D4E5F6000000000031 /* Vowbase */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6000000000037 /* Backend */,
 				A1B2C3D4E5F6000000000035 /* Configuration */,
 				A1B2C3D4E5F600000000001A /* Info.plist */,
 				A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */,
@@ -92,9 +101,28 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */,
+				A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */,
+				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */,
 			);
 			path = VowbaseTests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000037 /* Backend */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */,
+				A1B2C3D4E5F600000000001E /* BackendError.swift */,
+			);
+			path = Backend;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000036 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 		A1B2C3D4E5F6000000000034 /* Configuration */ = {
@@ -213,6 +241,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,7 +252,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */,
 				A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */,
+				A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
 				A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */,
 			);
@@ -234,6 +265,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */,
+				A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
