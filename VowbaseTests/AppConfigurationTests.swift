@@ -88,6 +88,36 @@ struct AppConfigurationTests {
         }
     }
 
+    @Test("Foundation decodes a percent-encoded IPv6 scope in the host")
+    func foundationScopedIPv6HostBehavior() throws {
+        let components = try #require(
+            URLComponents(string: "https://[::1%25lo0]:443")
+        )
+
+        #expect(components.host == "[::1%lo0]")
+        #expect(components.url?.absoluteString == "https://[::1%25lo0]:443")
+    }
+
+    @Test(
+        "rejects invalid IPv6 scope syntax in every policy",
+        arguments: [
+            "https://[::1%25]:54321/api",
+            "https://[::1%25lo0%25extra]:54321/api",
+            "https://[::1%25lo%20zero]:54321/api",
+            "https://[::1%25lo%2Fzero]:54321/api",
+        ]
+    )
+    func rejectsInvalidIPv6Scope(value: String) {
+        var values = Self.validValues
+        values["VOWBASE_API_URL"] = value
+
+        for policy in [AppConfiguration.TransportPolicy.debug, .release] {
+            #expect(throws: AppConfiguration.Error.invalidURL("VOWBASE_API_URL")) {
+                try AppConfiguration(values: values, transportPolicy: policy)
+            }
+        }
+    }
+
     @Test(
         "rejects insecure non-loopback URLs in Debug",
         arguments: ["http://api.vowbase.example", "ftp://api.vowbase.example"]
@@ -119,11 +149,16 @@ struct AppConfigurationTests {
             "http://0x7f.1:54321/api/",
             "http://[::1]:54321/api/",
             "http://[0:0:0:0:0:0:0:1]:54321/api/",
+            "http://[::1%25lo0]:54321/api/",
+            "http://[0:0:0:0:0:0:0:1%25LO0_1.-]:54321/api/",
             "http://[::ffff:127.0.0.1]:54321/api/",
             "http://[::ffff:127.42.5.9]:54321/api/",
             "http://[::ffff:127.1]:54321/api/",
             "http://[::ffff:2130706433]:54321/api/",
             "http://[::ffff:0x7f000001]:54321/api/",
+            "http://[::ffff:127.0.0.1%25lo0]:54321/api/",
+            "http://[::ffff:127.1%25lo0]:54321/api/",
+            "http://[0:0:0:0:0:ffff:127.0.0.1%25lo0]:54321/api/",
         ]
     )
     func acceptsDebugLoopback(value: String) throws {
@@ -155,11 +190,16 @@ struct AppConfigurationTests {
             "0x7f.1",
             "[::1]",
             "[0:0:0:0:0:0:0:1]",
+            "[::1%25lo0]",
+            "[0:0:0:0:0:0:0:1%25LO0_1.-]",
             "[::ffff:127.0.0.1]",
             "[::ffff:127.42.5.9]",
             "[::ffff:127.1]",
             "[::ffff:2130706433]",
             "[::ffff:0x7f000001]",
+            "[::ffff:127.0.0.1%25lo0]",
+            "[::ffff:127.1%25lo0]",
+            "[0:0:0:0:0:ffff:127.0.0.1%25lo0]",
         ]
     )
     func rejectsReleaseLoopback(host: String) {
@@ -181,6 +221,7 @@ struct AppConfigurationTests {
             "https://notlocalhost:443",
             "https://128.0.0.1:443",
             "https://[::ffff:128.0.0.1]:443",
+            "https://[fe80::1%25lo0]:443",
         ]
     )
     func acceptsNonLoopbackHTTPS(value: String) throws {
