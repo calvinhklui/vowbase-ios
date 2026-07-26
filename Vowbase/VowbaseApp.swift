@@ -3,12 +3,15 @@ import SwiftUI
 @main
 struct VowbaseApp: App {
     private let dependencies: AppDependencies
+    private let authCallbackHandler: AuthCallbackHandler
 
     init() {
         do {
-            dependencies = AppDependencies.live(
+            let dependencies = AppDependencies.live(
                 configuration: try AppConfiguration.live()
             )
+            self.dependencies = dependencies
+            authCallbackHandler = AuthCallbackHandler(auth: dependencies.auth)
         } catch {
             fatalError("Invalid Vowbase backend configuration: \(error)")
         }
@@ -17,9 +20,9 @@ struct VowbaseApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onOpenURL { [auth = dependencies.auth] url in
+                .onOpenURL { [authCallbackHandler] url in
                     Task {
-                        try? await auth.handle(url: url)
+                        _ = await authCallbackHandler.enqueue(url)
                     }
                 }
         }
