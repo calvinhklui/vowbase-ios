@@ -3,6 +3,7 @@ import Foundation
 final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     enum Step: @unchecked Sendable {
         case response(statusCode: Int, headers: [String: String] = [:], body: Data)
+        case redirect(statusCode: Int, location: URL)
         case error(URLError)
         case nonHTTP(body: Data)
         case pending
@@ -146,6 +147,27 @@ final class URLProtocolStub: URLProtocol, @unchecked Sendable {
                 client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
                 client?.urlProtocol(self, didLoad: body)
                 client?.urlProtocolDidFinishLoading(self)
+            }
+
+        case .redirect(let statusCode, let location):
+            guard let url = request.url,
+                  let response = HTTPURLResponse(
+                    url: url,
+                    statusCode: statusCode,
+                    httpVersion: "HTTP/1.1",
+                    headerFields: ["Location": location.absoluteString]
+                  ) else {
+                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+                return
+            }
+            var redirectedRequest = request
+            redirectedRequest.url = location
+            deliver {
+                client?.urlProtocol(
+                    self,
+                    wasRedirectedTo: redirectedRequest,
+                    redirectResponse: response
+                )
             }
 
         case .error(let error):

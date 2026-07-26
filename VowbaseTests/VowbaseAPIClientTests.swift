@@ -81,6 +81,10 @@ struct VowbaseAPIClientTests {
             "../escape",
             "safe/%2e%2e/escape",
             "safe/%252e%252e/escape",
+            "safe/%20space",
+            "safe/%0Anewline",
+            "safe?query=%09tab",
+            "safe?query=%250Anewline",
             "safe#fragment",
             "safe\\evil",
             "safe/%",
@@ -143,6 +147,33 @@ struct VowbaseAPIClientTests {
                 APIRequest(method: .get, path: "malformed")
             )
         }
+    }
+
+    @Test(
+        "rejects redirects without following or replaying requests",
+        arguments: [APIRequest<Payload>.Method.get, .post]
+    )
+    func rejectsRedirects(method: APIRequest<Payload>.Method) async throws {
+        let transport = URLProtocolStub.State(steps: [
+            .redirect(
+                statusCode: method == .get ? 302 : 307,
+                location: URL(string: "https://evil.example/steal")!
+            ),
+            .response(statusCode: 200, body: payloadBody("must-not-follow")),
+        ])
+        let client = try makeClient(transport: transport, auth: APIClientAuthStub())
+
+        await #expect(throws: BackendError.invalidResponse) {
+            let _: Payload = try await client.send(
+                APIRequest(
+                    method: method,
+                    path: "redirect",
+                    body: method == .get ? nil : Data("{}".utf8)
+                )
+            )
+        }
+        #expect(transport.requests.count == 1)
+        #expect(transport.requests.first?.url?.host == "api.example.com")
     }
 
     @Test("maps envelope codes authoritatively and preserves safe request IDs")
@@ -517,6 +548,36 @@ struct VowbaseAPIClientTests {
         #expect(requestIDs.count == 2)
         #expect(Set(requestIDs).count == 2)
         #expect(requestIDs.allSatisfy { UUID(uuidString: $0) != nil })
+    }
+
+    @Test("separately registered sessions keep concurrent state isolated")
+    func separateSessionsStayIsolated() async throws {
+        let firstTransport = URLProtocolStub.State(steps: [
+            .response(statusCode: 200, body: payloadBody("first-only")),
+        ])
+        let secondTransport = URLProtocolStub.State(steps: [
+            .response(statusCode: 200, body: payloadBody("second-only")),
+        ])
+        let firstClient = try makeClient(
+            transport: firstTransport,
+            auth: APIClientAuthStub()
+        )
+        let secondClient = try makeClient(
+            transport: secondTransport,
+            auth: APIClientAuthStub()
+        )
+
+        async let first: Payload = firstClient.send(
+            APIRequest(method: .get, path: "first")
+        )
+        async let second: Payload = secondClient.send(
+            APIRequest(method: .get, path: "second")
+        )
+
+        #expect(try await first == Payload(value: "first-only"))
+        #expect(try await second == Payload(value: "second-only"))
+        #expect(firstTransport.requests.map { $0.url?.path } == ["/v1/first"])
+        #expect(secondTransport.requests.map { $0.url?.path } == ["/v1/second"])
     }
 
     private func makeClient(

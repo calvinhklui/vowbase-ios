@@ -30,7 +30,11 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
             try await Task<Never, Never>.sleep(for: .seconds(delay))
         }
     ) {
-        self.session = session
+        self.session = URLSession(
+            configuration: session.configuration,
+            delegate: RedirectRejectingDelegate(),
+            delegateQueue: nil
+        )
         self.configuration = configuration
         self.authService = authService
         self.now = now
@@ -174,6 +178,9 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
               requestComponents.fragment == nil,
               !requestComponents.percentEncodedPath.isEmpty,
               Self.isSafeRelativePath(requestComponents.percentEncodedPath),
+              Self.isFreeOfEncodedWhitespaceAndControls(
+                requestComponents.percentEncodedQuery ?? ""
+              ),
               var baseComponents = URLComponents(
                 url: configuration.apiBaseURL,
                 resolvingAgainstBaseURL: false
@@ -219,7 +226,8 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
         var candidate = encodedPath
         for _ in 0..<8 {
             guard let decoded = candidate.removingPercentEncoding else { return false }
-            guard !decoded.hasPrefix("/"),
+            guard isFreeOfWhitespaceAndControls(decoded),
+                  !decoded.hasPrefix("/"),
                   !decoded.contains("\\"),
                   !decoded.split(separator: "/", omittingEmptySubsequences: false)
                     .contains(where: { $0 == "." || $0 == ".." }) else {
@@ -229,6 +237,28 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
             candidate = decoded
         }
         return false
+    }
+
+    private static func isFreeOfEncodedWhitespaceAndControls(
+        _ encodedValue: String
+    ) -> Bool {
+        var candidate = encodedValue
+        for _ in 0..<8 {
+            guard isFreeOfWhitespaceAndControls(candidate),
+                  let decoded = candidate.removingPercentEncoding else {
+                return false
+            }
+            if decoded == candidate { return true }
+            candidate = decoded
+        }
+        return false
+    }
+
+    private static func isFreeOfWhitespaceAndControls(_ value: String) -> Bool {
+        value.unicodeScalars.allSatisfy {
+            !CharacterSet.whitespacesAndNewlines.contains($0)
+                && !CharacterSet.controlCharacters.contains($0)
+        }
     }
 
     private static func isSafeBasePath(_ encodedPath: String) -> Bool {
@@ -386,6 +416,19 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
         if Task.isCancelled {
             throw BackendError.cancelled
         }
+    }
+}
+
+private final class RedirectRejectingDelegate: NSObject,
+    URLSessionTaskDelegate,
+    @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        nil
     }
 }
 
