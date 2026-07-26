@@ -32,6 +32,11 @@
 		E1F2A3B4C5D6000000000002 /* workspace-membership.json in Resources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000012 /* workspace-membership.json */; };
 		E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000013 /* JSONValue.swift */; };
 		E1F2A3B4C5D6000000000004 /* DatabaseDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000014 /* DatabaseDecoding.swift */; };
+		F2A3B4C5D6E7000000000001 /* WorkspaceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */; };
+		F2A3B4C5D6E7000000000002 /* WorkspaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */; };
+		F2A3B4C5D6E7000000000003 /* SupabaseWorkspaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */; };
+		F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */; };
+		F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000015 /* session-summary.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +80,11 @@
 		E1F2A3B4C5D6000000000012 /* workspace-membership.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "workspace-membership.json"; sourceTree = "<group>"; };
 		E1F2A3B4C5D6000000000013 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		E1F2A3B4C5D6000000000014 /* DatabaseDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDecoding.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceModels.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepository.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseWorkspaceRepository.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryTests.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000015 /* session-summary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "session-summary.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +122,7 @@
 				A1B2C3D4E5F6000000000037 /* Backend */,
 				A1B2C3D4E5F6000000000035 /* Configuration */,
 				E1F2A3B4C5D6000000000038 /* Models */,
+				F2A3B4C5D6E7000000000039 /* Workspace */,
 				A1B2C3D4E5F600000000001A /* Info.plist */,
 				A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */,
 				A1B2C3D4E5F6000000000012 /* ContentView.swift */,
@@ -136,6 +147,7 @@
 				A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */,
 				A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */,
 				E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */,
+				F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -161,6 +173,16 @@
 			path = Backend;
 			sourceTree = "<group>";
 		};
+		F2A3B4C5D6E7000000000039 /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */,
+				F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */,
+				F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */,
+			);
+			path = "Features/Workspace";
+			sourceTree = "<group>";
+		};
 		E1F2A3B4C5D6000000000038 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -174,6 +196,7 @@
 			children = (
 				A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */,
 				E1F2A3B4C5D6000000000012 /* workspace-membership.json */,
+				F2A3B4C5D6E7000000000015 /* session-summary.json */,
 			);
 			path = Fixtures;
 			sourceTree = "<group>";
@@ -296,6 +319,7 @@
 			files = (
 				A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */,
 				E1F2A3B4C5D6000000000002 /* workspace-membership.json in Resources */,
+				F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -315,6 +339,9 @@
 				B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */,
 				A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */,
 				E1F2A3B4C5D6000000000004 /* DatabaseDecoding.swift in Sources */,
+				F2A3B4C5D6E7000000000001 /* WorkspaceModels.swift in Sources */,
+				F2A3B4C5D6E7000000000002 /* WorkspaceRepository.swift in Sources */,
+				F2A3B4C5D6E7000000000003 /* SupabaseWorkspaceRepository.swift in Sources */,
 				E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */,
 				B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
@@ -332,6 +359,7 @@
 				A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */,
 				A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */,
 				E1F2A3B4C5D6000000000001 /* DatabaseDecodingTests.swift in Sources */,
+				F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */,
 				C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */,
 				C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
