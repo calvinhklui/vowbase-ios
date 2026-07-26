@@ -18,7 +18,7 @@ struct DatabaseDecodingTests {
             )
         )
 
-        let membership = try DatabaseDecoding.makeDecoder().decode(
+        let membership = try DatabaseDecoding.decoder.decode(
             FixtureMembership.self,
             from: Data(contentsOf: fixtureURL)
         )
@@ -47,17 +47,25 @@ struct DatabaseDecodingTests {
             let createdAt: Date
         }
 
-        let fractional = try DatabaseDecoding.makeDecoder().decode(
+        let fractional = try DatabaseDecoding.decoder.decode(
             Timestamp.self,
             from: Data(#"{"created_at":"2026-07-25T14:23:45.678Z"}"#.utf8)
         )
-        let nonfractional = try DatabaseDecoding.makeDecoder().decode(
+        let nonfractional = try DatabaseDecoding.decoder.decode(
             Timestamp.self,
             from: Data(#"{"created_at":"2026-07-25T14:23:45Z"}"#.utf8)
         )
 
         #expect(fractional.createdAt.timeIntervalSince1970 == 1_784_989_425.678)
         #expect(nonfractional.createdAt.timeIntervalSince1970 == 1_784_989_425)
+    }
+
+    @Test("provides an independently configured decoder on every access")
+    func providesIndependentDecoderInstances() {
+        let first = DatabaseDecoding.decoder
+        let second = DatabaseDecoding.decoder
+
+        #expect(first !== second)
     }
 
     @Test("round-trips JSON objects and arrays without confusing booleans and numbers")

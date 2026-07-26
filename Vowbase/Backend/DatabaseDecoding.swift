@@ -1,6 +1,10 @@
 import Foundation
 
 enum DatabaseDecoding {
+    static var decoder: JSONDecoder {
+        makeDecoder()
+    }
+
     static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
