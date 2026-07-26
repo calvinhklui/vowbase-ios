@@ -38,6 +38,13 @@
 		F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */; };
 		F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000015 /* session-summary.json */; };
 		F2A3B4C5D6E7000000000006 /* WorkspaceRepositoryIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */; };
+		F3A3B4C5D6E7000000000001 /* ProfileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000011 /* ProfileModels.swift */; };
+		F3A3B4C5D6E7000000000002 /* ProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000012 /* ProfileRepository.swift */; };
+		F3A3B4C5D6E7000000000003 /* SupabaseProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000013 /* SupabaseProfileRepository.swift */; };
+		F3A3B4C5D6E7000000000004 /* InvitationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000014 /* InvitationModels.swift */; };
+		F3A3B4C5D6E7000000000005 /* InvitationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */; };
+		F3A3B4C5D6E7000000000006 /* SupabaseInvitationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */; };
+		F3A3B4C5D6E7000000000007 /* ProfileInvitationRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +94,13 @@
 		F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryTests.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000015 /* session-summary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "session-summary.json"; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryIntegrationTests.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000011 /* ProfileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000012 /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000013 /* SupabaseProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProfileRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000014 /* InvitationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitationModels.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitationRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseInvitationRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileInvitationRepositoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +139,8 @@
 				A1B2C3D4E5F6000000000035 /* Configuration */,
 				E1F2A3B4C5D6000000000038 /* Models */,
 				F2A3B4C5D6E7000000000039 /* Workspace */,
+				F3A3B4C5D6E7000000000039 /* People */,
+				F3A3B4C5D6E700000000003A /* Invitations */,
 				A1B2C3D4E5F600000000001A /* Info.plist */,
 				A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */,
 				A1B2C3D4E5F6000000000012 /* ContentView.swift */,
@@ -151,6 +167,7 @@
 				E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */,
 				F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */,
 				F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */,
+				F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -184,6 +201,26 @@
 				F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */,
 			);
 			path = "Features/Workspace";
+			sourceTree = "<group>";
+		};
+		F3A3B4C5D6E7000000000039 /* People */ = {
+			isa = PBXGroup;
+			children = (
+				F3A3B4C5D6E7000000000011 /* ProfileModels.swift */,
+				F3A3B4C5D6E7000000000012 /* ProfileRepository.swift */,
+				F3A3B4C5D6E7000000000013 /* SupabaseProfileRepository.swift */,
+			);
+			path = "Features/People";
+			sourceTree = "<group>";
+		};
+		F3A3B4C5D6E700000000003A /* Invitations */ = {
+			isa = PBXGroup;
+			children = (
+				F3A3B4C5D6E7000000000014 /* InvitationModels.swift */,
+				F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */,
+				F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */,
+			);
+			path = "Features/Invitations";
 			sourceTree = "<group>";
 		};
 		E1F2A3B4C5D6000000000038 /* Models */ = {
@@ -345,6 +382,12 @@
 				F2A3B4C5D6E7000000000001 /* WorkspaceModels.swift in Sources */,
 				F2A3B4C5D6E7000000000002 /* WorkspaceRepository.swift in Sources */,
 				F2A3B4C5D6E7000000000003 /* SupabaseWorkspaceRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000001 /* ProfileModels.swift in Sources */,
+				F3A3B4C5D6E7000000000002 /* ProfileRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000003 /* SupabaseProfileRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000004 /* InvitationModels.swift in Sources */,
+				F3A3B4C5D6E7000000000005 /* InvitationRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000006 /* SupabaseInvitationRepository.swift in Sources */,
 				E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */,
 				B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
@@ -364,6 +407,7 @@
 				E1F2A3B4C5D6000000000001 /* DatabaseDecodingTests.swift in Sources */,
 				F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */,
 				F2A3B4C5D6E7000000000006 /* WorkspaceRepositoryIntegrationTests.swift in Sources */,
+				F3A3B4C5D6E7000000000007 /* ProfileInvitationRepositoryTests.swift in Sources */,
 				C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */,
 				C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
