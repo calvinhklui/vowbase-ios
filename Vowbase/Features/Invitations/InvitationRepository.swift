@@ -30,6 +30,8 @@ struct InvitationRPCRequest: Equatable, Sendable {
 }
 
 protocol InvitationDatabaseAdapter: Sendable {
+    func authenticatedUserID() async throws -> UUID
+
     func select<Response: Decodable & Sendable>(
         _ request: InvitationSelectRequest,
         as: Response.Type

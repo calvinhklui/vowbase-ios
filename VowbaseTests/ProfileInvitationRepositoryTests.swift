@@ -63,7 +63,10 @@ struct ProfileInvitationRepositoryTests {
 
     @Test("acceptance delegates membership creation to accept_invitation RPC")
     func acceptCallsRPCWithoutMembershipInsert() async throws {
-        let database = InvitationDatabaseSpy(rpcResponse: acceptedWeddingData)
+        let database = InvitationDatabaseSpy(
+            authenticatedUserID: userID,
+            rpcResponse: acceptedWeddingData
+        )
         let repository = SupabaseInvitationRepository(database: database)
         let token = "unmodified-invitation-token"
 
@@ -75,11 +78,15 @@ struct ProfileInvitationRepositoryTests {
         ])
         #expect(await database.selectRequests.isEmpty)
         #expect(await database.insertedTables.isEmpty)
+        #expect(await database.authenticatedUserIDCallCount == 1)
     }
 
     @Test("wedding invitation lists never omit the wedding scope")
     func invitationsUseWeddingIDScope() async throws {
-        let database = InvitationDatabaseSpy(selectResponse: invitationsData)
+        let database = InvitationDatabaseSpy(
+            authenticatedUserID: userID,
+            selectResponse: invitationsData
+        )
         let repository = SupabaseInvitationRepository(database: database)
 
         let invitations = try await repository.invitations(weddingID: weddingID)
@@ -96,6 +103,54 @@ struct ProfileInvitationRepositoryTests {
                 singleRow: false
             ),
         ])
+        #expect(await database.authenticatedUserIDCallCount == 1)
+    }
+
+    @Test("invitation preview remains public while signed-out mutations and lists stop before data access")
+    func invitationAuthenticationPreflightProtectsMutationsAndListsOnly() async throws {
+        let previewDatabase = InvitationDatabaseSpy(rpcResponse: invitationPreviewData)
+        let preview = try await SupabaseInvitationRepository(database: previewDatabase)
+            .preview(token: "public-preview-token")
+        #expect(preview == expectedPreview)
+        #expect(await previewDatabase.authenticatedUserIDCallCount == 0)
+
+        let acceptDatabase = InvitationDatabaseSpy(
+            authenticatedUserID: userID,
+            authenticatedUserIDError: AuthError.sessionMissing
+        )
+        await #expect(
+            throws: BackendError.authenticationRequired(message: nil, requestID: nil)
+        ) {
+            _ = try await SupabaseInvitationRepository(database: acceptDatabase)
+                .accept(token: "must-not-reach-rpc")
+        }
+        #expect(await acceptDatabase.rpcRequests.isEmpty)
+        #expect(await acceptDatabase.authenticatedUserIDCallCount == 1)
+
+        let listDatabase = InvitationDatabaseSpy(
+            authenticatedUserID: userID,
+            authenticatedUserIDError: AuthError.sessionMissing
+        )
+        await #expect(
+            throws: BackendError.authenticationRequired(message: nil, requestID: nil)
+        ) {
+            _ = try await SupabaseInvitationRepository(database: listDatabase)
+                .invitations(weddingID: weddingID)
+        }
+        #expect(await listDatabase.selectRequests.isEmpty)
+        #expect(await listDatabase.authenticatedUserIDCallCount == 1)
+    }
+
+    @Test("production invitation RPC parameters encode only the exact _token argument")
+    func invitationRPCParametersEncodeExactUnderscoredToken() throws {
+        let token = "Case-sensitive token /?=value"
+        let data = try JSONEncoder().encode(InvitationTokenParameters(token: token))
+        let object = try #require(
+            JSONSerialization.jsonObject(with: data) as? [String: String]
+        )
+
+        #expect(object == ["_token": token])
+        #expect(object["token"] == nil)
     }
 
     @Test("profile and invitation adapters normalize auth, PostgREST, and cancellation failures")
@@ -229,6 +284,8 @@ private actor ProfileDatabaseSpy: ProfileDatabaseAdapter {
 }
 
 private actor InvitationDatabaseSpy: InvitationDatabaseAdapter {
+    let authenticatedUserID: UUID
+    let authenticatedUserIDError: (any Error)?
     let selectResponse: Data?
     let rpcResponse: Data?
     let selectError: (any Error)?
@@ -236,12 +293,28 @@ private actor InvitationDatabaseSpy: InvitationDatabaseAdapter {
     private(set) var selectRequests = [InvitationSelectRequest]()
     private(set) var rpcRequests = [InvitationRPCRequest]()
     private(set) var insertedTables = [String]()
+    private(set) var authenticatedUserIDCallCount = 0
 
-    init(selectResponse: Data? = nil, rpcResponse: Data? = nil, selectError: (any Error)? = nil, rpcError: (any Error)? = nil) {
+    init(
+        authenticatedUserID: UUID = UUID(),
+        authenticatedUserIDError: (any Error)? = nil,
+        selectResponse: Data? = nil,
+        rpcResponse: Data? = nil,
+        selectError: (any Error)? = nil,
+        rpcError: (any Error)? = nil
+    ) {
+        self.authenticatedUserID = authenticatedUserID
+        self.authenticatedUserIDError = authenticatedUserIDError
         self.selectResponse = selectResponse
         self.rpcResponse = rpcResponse
         self.selectError = selectError
         self.rpcError = rpcError
+    }
+
+    func authenticatedUserID() async throws -> UUID {
+        authenticatedUserIDCallCount += 1
+        if let authenticatedUserIDError { throw authenticatedUserIDError }
+        return authenticatedUserID
     }
 
     func select<Response: Decodable & Sendable>(_ request: InvitationSelectRequest, as: Response.Type) async throws -> Response {

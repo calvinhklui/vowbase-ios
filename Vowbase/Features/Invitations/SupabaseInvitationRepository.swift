@@ -35,6 +35,7 @@ final class SupabaseInvitationRepository: InvitationRepository, @unchecked Senda
     func accept(token: String) async throws -> UUID {
         do {
             try Task.checkCancellation()
+            _ = try await database.authenticatedUserID()
             let weddingID: UUID = try await database.rpc(
                 .init(functionName: "accept_invitation", token: token),
                 as: UUID.self
@@ -48,6 +49,8 @@ final class SupabaseInvitationRepository: InvitationRepository, @unchecked Senda
 
     func invitations(weddingID: UUID) async throws -> [WeddingInvitation] {
         do {
+            try Task.checkCancellation()
+            _ = try await database.authenticatedUserID()
             let request = InvitationSelectRequest(
                 table: "wedding_invitations",
                 columns: Self.invitationColumns,
@@ -73,7 +76,7 @@ final class SupabaseInvitationRepository: InvitationRepository, @unchecked Senda
     }
 }
 
-private struct InvitationTokenParameters: Encodable, Sendable {
+struct InvitationTokenParameters: Encodable, Sendable {
     let token: String
 
     private enum CodingKeys: String, CodingKey {
@@ -86,6 +89,13 @@ private final class SupabaseInvitationDatabaseAdapter: InvitationDatabaseAdapter
 
     init(provider: SupabaseProvider) {
         self.provider = provider
+    }
+
+    func authenticatedUserID() async throws -> UUID {
+        try Task.checkCancellation()
+        let user = try await provider.client.auth.user()
+        try Task.checkCancellation()
+        return user.id
     }
 
     func select<Response: Decodable & Sendable>(
