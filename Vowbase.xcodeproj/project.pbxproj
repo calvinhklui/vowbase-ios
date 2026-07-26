@@ -17,6 +17,10 @@
 		A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */; };
 		A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */; };
 		A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001E /* BackendError.swift */; };
+		A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */; };
+		B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */; };
+		B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000012 /* AuthServicing.swift */; };
+		B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000013 /* AuthService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +49,10 @@
 		A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "error-wedding-forbidden.json"; sourceTree = "<group>"; };
 		A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorEnvelope.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F600000000001E /* BackendError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendError.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProvider.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6000000000012 /* AuthServicing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServicing.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6000000000013 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */,
+				A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */,
 				A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */,
@@ -112,7 +121,10 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */,
+				B1C2D3E4F5A6000000000013 /* AuthService.swift */,
+				B1C2D3E4F5A6000000000012 /* AuthServicing.swift */,
 				A1B2C3D4E5F600000000001E /* BackendError.swift */,
+				B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */,
 			);
 			path = Backend;
 			sourceTree = "<group>";
@@ -254,7 +266,10 @@
 			files = (
 				A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */,
 				A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */,
+				B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */,
+				B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */,
 				A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */,
+				B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
 				A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */,
 			);
@@ -265,6 +280,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */,
+				A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */,
 				A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
 			);
