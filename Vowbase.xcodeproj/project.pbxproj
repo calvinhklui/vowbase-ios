@@ -25,6 +25,8 @@
 		C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */; };
 		C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */; };
 		C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */; };
+		D1E2F3A4B5C6000000000001 /* AppDependenciesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */; };
+		D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000012 /* AppDependencies.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +63,8 @@
 		C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClient.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLProtocolStub.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClientTests.swift; sourceTree = "<group>"; };
+		D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependenciesTests.swift; sourceTree = "<group>"; };
+		D1E2F3A4B5C6000000000012 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +120,7 @@
 		A1B2C3D4E5F6000000000033 /* VowbaseTests */ = {
 			isa = PBXGroup;
 			children = (
+				D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */,
 				A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */,
 				A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */,
 				A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */,
@@ -132,6 +137,7 @@
 			children = (
 				C1D2E3F4A5B6000000000011 /* APIRequest.swift */,
 				A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */,
+				D1E2F3A4B5C6000000000012 /* AppDependencies.swift */,
 				B1C2D3E4F5A6000000000013 /* AuthService.swift */,
 				B1C2D3E4F5A6000000000012 /* AuthServicing.swift */,
 				A1B2C3D4E5F600000000001E /* BackendError.swift */,
@@ -278,6 +284,7 @@
 			files = (
 				C1D2E3F4A5B6000000000001 /* APIRequest.swift in Sources */,
 				A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */,
+				D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */,
 				A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */,
 				B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */,
 				B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */,
@@ -293,6 +300,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1E2F3A4B5C6000000000001 /* AppDependenciesTests.swift in Sources */,
 				A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */,
 				A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */,
 				A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */,
