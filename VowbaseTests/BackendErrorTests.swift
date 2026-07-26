@@ -45,11 +45,14 @@ struct BackendErrorTests {
         let message = "Safe server message."
         let requestID = "req-current"
         let cases: [(String, BackendError)] = [
-            ("authentication_required", .authenticationRequired),
+            (
+                "authentication_required",
+                .authenticationRequired(message: message, requestID: requestID)
+            ),
             ("forbidden", .forbidden(message: message, requestID: requestID)),
             ("wedding_forbidden", .forbidden(message: message, requestID: requestID)),
             ("validation_failed", .validation(message: message, requestID: requestID)),
-            ("method_not_allowed", .validation(message: message, requestID: requestID)),
+            ("method_not_allowed", .unknown(message: message, requestID: requestID)),
             ("conflict", .conflict(message: message, requestID: requestID)),
             ("rate_limited", .rateLimited(message: message, requestID: requestID)),
             (
@@ -74,6 +77,31 @@ struct BackendErrorTests {
             )
             #expect(BackendError(detail: detail) == expected)
         }
+    }
+
+    @Test("authentication errors support absent local and partial server diagnostics")
+    func authenticationErrorsSupportOptionalDiagnostics() {
+        let localError = BackendError.authenticationRequired(
+            message: nil,
+            requestID: nil
+        )
+        let serverError = BackendError(
+            detail: .init(
+                code: "authentication_required",
+                message: "Authentication required.",
+                requestID: nil
+            )
+        )
+
+        #expect(
+            localError == .authenticationRequired(message: nil, requestID: nil)
+        )
+        #expect(
+            serverError == .authenticationRequired(
+                message: "Authentication required.",
+                requestID: nil
+            )
+        )
     }
 
     @Test("decodes missing and null request IDs as nil")
@@ -125,7 +153,7 @@ struct BackendErrorTests {
     @Test("backend errors have equatable sendable value semantics")
     func backendErrorsHaveEquatableSendableValueSemantics() {
         let errors: [BackendError] = [
-            .authenticationRequired,
+            .authenticationRequired(message: nil, requestID: nil),
             .forbidden(message: "Forbidden.", requestID: "req-1"),
             .validation(message: "Invalid.", requestID: nil),
             .conflict(message: "Conflict.", requestID: "req-2"),

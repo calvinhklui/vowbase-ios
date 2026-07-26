@@ -1,5 +1,5 @@
 enum BackendError: Error, Equatable, Sendable {
-    case authenticationRequired
+    case authenticationRequired(message: String?, requestID: String?)
     case forbidden(message: String, requestID: String?)
     case validation(message: String, requestID: String?)
     case conflict(message: String, requestID: String?)
@@ -13,11 +13,16 @@ enum BackendError: Error, Equatable, Sendable {
     init(detail: APIErrorEnvelope.Detail) {
         switch detail.code {
         case "authentication_required":
-            self = .authenticationRequired
+            self = .authenticationRequired(
+                message: detail.message,
+                requestID: detail.requestID
+            )
         case "forbidden", "wedding_forbidden":
             self = .forbidden(message: detail.message, requestID: detail.requestID)
-        case "validation_failed", "method_not_allowed":
+        case "validation_failed":
             self = .validation(message: detail.message, requestID: detail.requestID)
+        case "method_not_allowed":
+            self = .unknown(message: detail.message, requestID: detail.requestID)
         case "conflict":
             self = .conflict(message: detail.message, requestID: detail.requestID)
         case "rate_limited":
