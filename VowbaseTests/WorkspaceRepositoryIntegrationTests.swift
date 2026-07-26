@@ -13,14 +13,11 @@ struct WorkspaceRepositoryIntegrationTests {
         let configuration = try WorkspaceIntegrationConfiguration.load()
 
         let owner = try await signedInClient(for: .owner, configuration: configuration)
-        let authenticatedUser = try await owner.provider.client.auth.user()
-        let session = try await owner.repository.sessionSummary()
-        #expect(session.user.id == authenticatedUser.id)
-
-        let memberships = try await owner.repository.memberships()
-        #expect(memberships.allSatisfy { $0.status == "active" })
-        #expect(memberships.contains { $0.weddingId == configuration.testWeddingID })
-        #expect(!memberships.contains { $0.weddingId == configuration.inactiveWeddingID })
+        try await assertAuthenticatedRole(
+            .owner,
+            client: owner,
+            configuration: configuration
+        )
 
         await #expect(
             throws: BackendError.forbidden(message: "Forbidden.", requestID: nil)
@@ -32,6 +29,11 @@ struct WorkspaceRepositoryIntegrationTests {
             let client = role == .owner
                 ? owner
                 : try await signedInClient(for: role, configuration: configuration)
+            try await assertAuthenticatedRole(
+                role,
+                client: client,
+                configuration: configuration
+            )
             let current = try await client.repository.wedding(id: configuration.testWeddingID)
             let patch = WeddingPatch(
                 name: current.name,
@@ -49,6 +51,11 @@ struct WorkspaceRepositoryIntegrationTests {
 
         for role in [WorkspaceIntegrationRole.planner, .parent, .viewer] {
             let client = try await signedInClient(for: role, configuration: configuration)
+            try await assertAuthenticatedRole(
+                role,
+                client: client,
+                configuration: configuration
+            )
             let current = try await client.repository.wedding(id: configuration.testWeddingID)
             let patch = WeddingPatch(
                 name: current.name,
@@ -91,6 +98,29 @@ struct WorkspaceRepositoryIntegrationTests {
             repository: SupabaseWorkspaceRepository(provider: provider, api: api)
         )
     }
+
+    private func assertAuthenticatedRole(
+        _ expectedRole: WorkspaceIntegrationRole,
+        client: WorkspaceIntegrationClient,
+        configuration: WorkspaceIntegrationConfiguration
+    ) async throws {
+        let authenticatedUser = try await client.provider.client.auth.user()
+        let session = try await client.repository.sessionSummary()
+        #expect(session.user.id == authenticatedUser.id)
+
+        let memberships = try await client.repository.memberships()
+        #expect(memberships.allSatisfy { $0.status == "active" })
+        #expect(!memberships.contains { $0.weddingId == configuration.inactiveWeddingID })
+        guard let membership = memberships.first(
+            where: { $0.weddingId == configuration.testWeddingID }
+        ) else {
+            throw WorkspaceIntegrationAssertionError.missingTestWeddingMembership(
+                expectedRole.rawValue
+            )
+        }
+        #expect(membership.userId == authenticatedUser.id)
+        #expect(membership.role == expectedRole.weddingRole)
+    }
 }
 
 private struct WorkspaceIntegrationClient {
@@ -104,6 +134,14 @@ private enum WorkspaceIntegrationRole: String, CaseIterable {
     case planner
     case parent
     case viewer
+
+    var weddingRole: WeddingRole {
+        WeddingRole(rawValue: rawValue)!
+    }
+}
+
+private enum WorkspaceIntegrationAssertionError: Error {
+    case missingTestWeddingMembership(String)
 }
 
 private struct WorkspaceIntegrationCredentials {

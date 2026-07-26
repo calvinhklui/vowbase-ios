@@ -117,8 +117,26 @@ final class SupabaseWorkspaceRepository: WorkspaceRepository, @unchecked Sendabl
         if error is CancellationError || Task.isCancelled {
             return .cancelled
         }
-        if error is AuthError {
-            return .authenticationRequired(message: nil, requestID: nil)
+        if let authError = error as? AuthError {
+            if authError.errorCode == .sessionNotFound
+                || authError.errorCode == .sessionExpired
+                || authError.errorCode == .refreshTokenNotFound
+                || authError.errorCode == .refreshTokenAlreadyUsed
+                || authError.errorCode == .noAuthorization
+                || authError.errorCode == .invalidJWT
+                || authError.errorCode == .invalidCredentials {
+                return .authenticationRequired(message: nil, requestID: nil)
+            }
+            if authError.errorCode == .overRequestRateLimit {
+                return .rateLimited(
+                    message: "Authentication rate limit reached.",
+                    requestID: nil
+                )
+            }
+            return .temporarilyUnavailable(
+                message: "Authentication is temporarily unavailable.",
+                requestID: nil
+            )
         }
         if let transport = error as? URLError {
             if transport.code == .cancelled {

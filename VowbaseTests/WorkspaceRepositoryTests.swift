@@ -190,6 +190,71 @@ struct WorkspaceRepositoryTests {
         }
     }
 
+    @Test("auth session errors preserve the authentication-required classification")
+    func mapsAuthenticationRequiredAuthErrors() async throws {
+        let errors: [AuthError] = [
+            .sessionMissing,
+            authAPIError(code: .sessionExpired),
+            authAPIError(code: .refreshTokenNotFound),
+            authAPIError(code: .refreshTokenAlreadyUsed),
+            authAPIError(code: .noAuthorization),
+            authAPIError(code: .invalidJWT),
+            authAPIError(code: .invalidCredentials),
+        ]
+
+        for error in errors {
+            await #expect(
+                throws: BackendError.authenticationRequired(message: nil, requestID: nil)
+            ) {
+                _ = try await SupabaseWorkspaceRepository(
+                    database: WorkspaceDatabaseSpy(
+                        authenticatedUserID: userID,
+                        authenticatedUserIDError: error
+                    ),
+                    api: SessionAPIClientSpy()
+                ).memberships()
+            }
+        }
+    }
+
+    @Test("auth rate-limit and unexpected errors use safe repository errors")
+    func mapsRateLimitedAndUnexpectedAuthErrors() async throws {
+        let rateLimitedRepository = SupabaseWorkspaceRepository(
+            database: WorkspaceDatabaseSpy(
+                authenticatedUserID: userID,
+                authenticatedUserIDError: authAPIError(code: .overRequestRateLimit)
+            ),
+            api: SessionAPIClientSpy()
+        )
+        await #expect(
+            throws: BackendError.rateLimited(
+                message: "Authentication rate limit reached.",
+                requestID: nil
+            )
+        ) {
+            _ = try await rateLimitedRepository.memberships()
+        }
+
+        let unavailableRepository = SupabaseWorkspaceRepository(
+            database: WorkspaceDatabaseSpy(
+                authenticatedUserID: userID,
+                authenticatedUserIDError: AuthError.weakPassword(
+                    message: "sensitive server response",
+                    reasons: []
+                )
+            ),
+            api: SessionAPIClientSpy()
+        )
+        await #expect(
+            throws: BackendError.temporarilyUnavailable(
+                message: "Authentication is temporarily unavailable.",
+                requestID: nil
+            )
+        ) {
+            _ = try await unavailableRepository.memberships()
+        }
+    }
+
     @Test("session summary preserves the configured api base path")
     func sessionSummaryComposesConfiguredAPIBasePath() async throws {
         let transport = URLProtocolStub.State(steps: [
@@ -401,6 +466,20 @@ private func fixture(named name: String) throws -> Data {
 private final class WorkspaceRepositoryTestsBundleToken {}
 
 private let productionDecoder = PostgrestClient.Configuration.jsonDecoder
+
+private func authAPIError(code: ErrorCode) -> AuthError {
+    .api(
+        message: "sensitive server response",
+        errorCode: code,
+        underlyingData: Data(),
+        underlyingResponse: HTTPURLResponse(
+            url: URL(string: "https://auth.example.com")!,
+            statusCode: 400,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+    )
+}
 
 private final class WorkspaceURLAuthStub: AuthServicing, Sendable {
     var states: AsyncStream<AuthenticationState> { AsyncStream { $0.finish() } }
