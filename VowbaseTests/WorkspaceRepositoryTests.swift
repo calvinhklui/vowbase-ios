@@ -22,6 +22,17 @@ struct WorkspaceRepositoryTests {
         let memberships = try await repository.memberships()
 
         #expect(memberships == [expectedMembership])
+        let membership = try #require(memberships.first)
+        #expect(membership.id == UUID(uuidString: "01908f9d-2265-789a-bcde-f0123456789a"))
+        #expect(membership.weddingId == weddingID)
+        #expect(membership.userId == userID)
+        #expect(membership.role == .partner)
+        #expect(membership.status == "active")
+        #expect(membership.wedding.id == weddingID)
+        #expect(membership.wedding.name == "Alex & Calvin")
+        #expect(membership.wedding.coupleNames == "Alex and Calvin")
+        #expect(membership.wedding.weddingDate == "2027-06-12")
+        #expect(membership.wedding.location == "Brooklyn, NY")
         #expect(await adapter.selectRequests == [
             WorkspaceSelectRequest(
                 table: "wedding_memberships",
@@ -103,12 +114,12 @@ struct WorkspaceRepositoryTests {
             weddingIDs: [weddingID]
         ))
         #expect(api.methods == ["GET"])
-        #expect(api.paths == ["api/v1/session"])
+        #expect(api.paths == ["v1/session"])
         #expect(await adapter.selectRequests.isEmpty)
         #expect(await adapter.updateRequests.isEmpty)
     }
 
-    @Test("RLS role matrix allows owners and partners to update")
+    @Test("role matrix reflects successful owner and partner patch responses")
     func allowedRolesCanUpdate() async throws {
         for role in [WeddingRole.owner, .partner] {
             let adapter = WorkspaceDatabaseSpy(
@@ -120,16 +131,26 @@ struct WorkspaceRepositoryTests {
                 api: SessionAPIClientSpy()
             )
 
-            let result = try await repository.updateWedding(
-                id: weddingID,
-                patch: WeddingPatch(name: "Allowed \(role.rawValue)")
-            )
+            let patch = WeddingPatch(name: "Allowed \(role.rawValue)")
+            let result = try await repository.updateWedding(id: weddingID, patch: patch)
 
-            #expect(result == expectedWedding, "\(role.rawValue) must be permitted by RLS")
+            #expect(result.name == patch.name)
+            #expect(result.coupleNames == expectedWedding.coupleNames)
+            #expect(await adapter.updateRequests == [
+                .init(
+                    table: "weddings",
+                    columns: "id,name,couple_names,wedding_date,location",
+                    equalityFilters: [
+                        .init(column: "id", value: weddingID.uuidString.lowercased()),
+                    ],
+                    singleRow: true,
+                    patch: patch
+                ),
+            ])
         }
     }
 
-    @Test("RLS role matrix denies planner parent and viewer updates")
+    @Test("role matrix maps denied planner parent and viewer outcomes")
     func deniedRolesCannotUpdate() async throws {
         for role in [WeddingRole.planner, .parent, .viewer] {
             let adapter = WorkspaceDatabaseSpy(
@@ -141,16 +162,62 @@ struct WorkspaceRepositoryTests {
                 api: SessionAPIClientSpy()
             )
 
+            let patch = WeddingPatch(name: "Denied \(role.rawValue)")
             await #expect(
                 throws: BackendError.forbidden(message: "Forbidden.", requestID: nil),
-                "\(role.rawValue) must be denied by RLS"
+                "\(role.rawValue) denied adapter outcome"
             ) {
-                _ = try await repository.updateWedding(
-                    id: weddingID,
-                    patch: WeddingPatch(name: "Denied \(role.rawValue)")
-                )
+                _ = try await repository.updateWedding(id: weddingID, patch: patch)
             }
+            #expect(await adapter.updateRequests.last?.patch == patch)
         }
+    }
+
+    @Test("signed-out authenticated-user lookup maps to authentication required")
+    func mapsSignedOutUserLookup() async throws {
+        let repository = SupabaseWorkspaceRepository(
+            database: WorkspaceDatabaseSpy(
+                authenticatedUserID: userID,
+                authenticatedUserIDError: AuthError.sessionMissing
+            ),
+            api: SessionAPIClientSpy()
+        )
+
+        await #expect(
+            throws: BackendError.authenticationRequired(message: nil, requestID: nil)
+        ) {
+            _ = try await repository.memberships()
+        }
+    }
+
+    @Test("session summary preserves the configured api base path")
+    func sessionSummaryComposesConfiguredAPIBasePath() async throws {
+        let transport = URLProtocolStub.State(steps: [
+            .response(statusCode: 200, body: try fixture(named: "session-summary")),
+        ])
+        let configuration = try AppConfiguration(
+            values: [
+                "CONFIGURATION": "Debug",
+                "SUPABASE_URL": "https://project.supabase.co",
+                "SUPABASE_PUBLISHABLE_KEY": "publishable-test-key",
+                "VOWBASE_API_URL": "https://api.example.com/api",
+            ],
+            transportPolicy: .debug
+        )
+        let api = VowbaseAPIClient(
+            sessionConfiguration: URLProtocolStub.configuration(for: transport),
+            configuration: configuration,
+            authService: WorkspaceURLAuthStub()
+        )
+        let repository = SupabaseWorkspaceRepository(
+            database: WorkspaceDatabaseSpy(authenticatedUserID: userID),
+            api: api
+        )
+
+        let summary = try await repository.sessionSummary()
+
+        #expect(summary.user.id == userID)
+        #expect(transport.requests.map(\.url?.path) == ["/api/v1/session"])
     }
 
     @Test("PostgREST no-row denials and cancellation normalize safely")
@@ -191,8 +258,8 @@ struct WorkspaceRepositoryTests {
     private var expectedMembership: WeddingMembership {
         WeddingMembership(
             id: UUID(uuidString: "01908f9d-2265-789a-bcde-f0123456789a")!,
-            weddingID: weddingID,
-            userID: userID,
+            weddingId: weddingID,
+            userId: userID,
             role: .partner,
             status: "active",
             wedding: expectedWedding
@@ -233,6 +300,7 @@ struct WorkspaceRepositoryTests {
 
 private actor WorkspaceDatabaseSpy: WorkspaceDatabaseAdapter {
     let authenticatedUserID: UUID
+    let authenticatedUserIDError: (any Error)?
     let selectResponse: Data?
     let updateResponse: Data?
     let selectError: (any Error)?
@@ -242,19 +310,24 @@ private actor WorkspaceDatabaseSpy: WorkspaceDatabaseAdapter {
 
     init(
         authenticatedUserID: UUID,
+        authenticatedUserIDError: (any Error)? = nil,
         selectResponse: Data? = nil,
         updateResponse: Data? = nil,
         selectError: (any Error)? = nil,
         updateError: (any Error)? = nil
     ) {
         self.authenticatedUserID = authenticatedUserID
+        self.authenticatedUserIDError = authenticatedUserIDError
         self.selectResponse = selectResponse
         self.updateResponse = updateResponse
         self.selectError = selectError
         self.updateError = updateError
     }
 
-    func authenticatedUserID() async throws -> UUID { authenticatedUserID }
+    func authenticatedUserID() async throws -> UUID {
+        if let authenticatedUserIDError { throw authenticatedUserIDError }
+        return authenticatedUserID
+    }
 
     func select<Response: Decodable & Sendable>(
         _ request: WorkspaceSelectRequest,
@@ -262,7 +335,7 @@ private actor WorkspaceDatabaseSpy: WorkspaceDatabaseAdapter {
     ) async throws -> Response {
         selectRequests.append(request)
         if let selectError { throw selectError }
-        return try DatabaseDecoding.decoder.decode(
+        return try productionDecoder.decode(
             Response.self,
             from: try #require(selectResponse)
         )
@@ -277,10 +350,21 @@ private actor WorkspaceDatabaseSpy: WorkspaceDatabaseAdapter {
         }
         updateRequests.append(request)
         if let updateError { throw updateError }
-        return try DatabaseDecoding.decoder.decode(
-            Response.self,
-            from: try #require(updateResponse)
-        )
+        if Response.self == WeddingSummary.self {
+            let patch = request.patch
+            let current = try productionDecoder.decode(
+                WeddingSummary.self,
+                from: try #require(updateResponse)
+            )
+            return WeddingSummary(
+                id: current.id,
+                name: patch.name ?? current.name,
+                coupleNames: patch.coupleNames ?? current.coupleNames,
+                weddingDate: patch.weddingDate ?? current.weddingDate,
+                location: patch.location ?? current.location
+            ) as! Response
+        }
+        return try productionDecoder.decode(Response.self, from: try #require(updateResponse))
     }
 }
 
@@ -298,7 +382,7 @@ private final class SessionAPIClientSpy: VowbaseAPIClientProtocol, @unchecked Se
     ) async throws -> Response {
         methods.append(request.method.rawValue)
         paths.append(request.path)
-        return try DatabaseDecoding.decoder.decode(
+        return try JSONDecoder().decode(
             Response.self,
             from: try #require(response)
         )
@@ -315,3 +399,19 @@ private func fixture(named name: String) throws -> Data {
 }
 
 private final class WorkspaceRepositoryTestsBundleToken {}
+
+private let productionDecoder = PostgrestClient.Configuration.jsonDecoder
+
+private final class WorkspaceURLAuthStub: AuthServicing, Sendable {
+    var states: AsyncStream<AuthenticationState> { AsyncStream { $0.finish() } }
+
+    func currentAccessToken() async throws -> String { "access-token" }
+    func refreshSession() async throws {}
+    func handle(url: URL) async throws {}
+    func signInWithIDToken(
+        provider: OpenIDConnectCredentials.Provider,
+        token: String,
+        nonce: String?
+    ) async throws {}
+    func signOut() async throws {}
+}

@@ -28,12 +28,12 @@ final class SupabaseWorkspaceRepository: WorkspaceRepository, @unchecked Sendabl
     func memberships() async throws -> [WeddingMembership] {
         do {
             try Task.checkCancellation()
-            let userID = try await database.authenticatedUserID()
+            let userId = try await database.authenticatedUserID()
             let request = WorkspaceSelectRequest(
                 table: "wedding_memberships",
                 columns: Self.membershipColumns,
                 equalityFilters: [
-                    .init(column: "user_id", value: userID.uuidString.lowercased()),
+                    .init(column: "user_id", value: userId.uuidString.lowercased()),
                     .init(column: "status", value: "active"),
                 ],
                 singleRow: false
@@ -90,7 +90,7 @@ final class SupabaseWorkspaceRepository: WorkspaceRepository, @unchecked Sendabl
         do {
             try Task.checkCancellation()
             let session: SessionSummary = try await api.send(
-                APIRequest(method: .get, path: "api/v1/session")
+                APIRequest(method: .get, path: "v1/session")
             )
             try Task.checkCancellation()
             return session
@@ -116,6 +116,9 @@ final class SupabaseWorkspaceRepository: WorkspaceRepository, @unchecked Sendabl
         }
         if error is CancellationError || Task.isCancelled {
             return .cancelled
+        }
+        if error is AuthError {
+            return .authenticationRequired(message: nil, requestID: nil)
         }
         if let transport = error as? URLError {
             if transport.code == .cancelled {

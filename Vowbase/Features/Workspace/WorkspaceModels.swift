@@ -26,16 +26,16 @@ struct WeddingSummary: Codable, Equatable, Sendable, Identifiable {
 
 struct WeddingMembership: Codable, Equatable, Sendable, Identifiable {
     let id: UUID
-    let weddingID: UUID
-    let userID: UUID
+    let weddingId: UUID
+    let userId: UUID
     let role: WeddingRole
     let status: String
     let wedding: WeddingSummary
 
     private enum CodingKeys: String, CodingKey {
         case id
-        case weddingID = "wedding_id"
-        case userID = "user_id"
+        case weddingId = "wedding_id"
+        case userId = "user_id"
         case role
         case status
         case wedding

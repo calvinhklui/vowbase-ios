@@ -37,6 +37,7 @@
 		F2A3B4C5D6E7000000000003 /* SupabaseWorkspaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */; };
 		F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */; };
 		F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000015 /* session-summary.json */; };
+		F2A3B4C5D6E7000000000006 /* WorkspaceRepositoryIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +86,7 @@
 		F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseWorkspaceRepository.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryTests.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000015 /* session-summary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "session-summary.json"; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryIntegrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -148,6 +150,7 @@
 				A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */,
 				E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */,
 				F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */,
+				F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -360,6 +363,7 @@
 				A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */,
 				E1F2A3B4C5D6000000000001 /* DatabaseDecodingTests.swift in Sources */,
 				F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */,
+				F2A3B4C5D6E7000000000006 /* WorkspaceRepositoryIntegrationTests.swift in Sources */,
 				C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */,
 				C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
