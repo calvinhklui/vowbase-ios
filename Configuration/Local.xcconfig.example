@@ -1,0 +1,5 @@
+// Copy this file to Local.xcconfig for local Debug builds.
+// These example values are intentionally non-production.
+VOWBASE_LOCAL_SUPABASE_URL = http:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)127.0.0.1:54321
+VOWBASE_LOCAL_SUPABASE_PUBLISHABLE_KEY = local-placeholder-key
+VOWBASE_LOCAL_API_URL = http:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)localhost:8080/api

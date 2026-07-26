@@ -10,3 +10,5 @@ Packages/
 
 # macOS
 .DS_Store
+
+Configuration/Local.xcconfig
