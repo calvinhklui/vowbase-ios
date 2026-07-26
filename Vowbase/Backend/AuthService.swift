@@ -55,8 +55,8 @@ final class AuthService: AuthServicing {
     }
 
     deinit {
-        observationTask.cancel()
         stateHub.finish()
+        observationTask.cancel()
     }
 
     func currentAccessToken() async throws -> String {
@@ -115,50 +115,29 @@ final class AuthService: AuthServicing {
         adapter: any AuthAdapting,
         stateHub: AuthenticationStateHub
     ) async {
-        var restoredInitialSession = false
-
         do {
             for try await event in adapter.events {
                 guard !Task.isCancelled else { return }
 
                 switch event {
                 case .initialSession(let session):
-                    guard !restoredInitialSession else {
-                        stateHub.send(.failed(stateFailureMessage))
-                        continue
-                    }
-                    restoredInitialSession = true
                     stateHub.send(state(for: session))
 
                 case .signedIn(let session),
                      .tokenRefreshed(let session),
                      .userUpdated(let session):
-                    guard restoredInitialSession else {
-                        restoredInitialSession = true
-                        stateHub.send(.failed(stateFailureMessage))
-                        continue
-                    }
                     stateHub.send(state(for: session))
 
                 case .signedOut:
-                    guard restoredInitialSession else {
-                        restoredInitialSession = true
-                        stateHub.send(.failed(stateFailureMessage))
-                        continue
-                    }
                     stateHub.send(.signedOut)
 
                 case .unexpected:
-                    restoredInitialSession = true
                     stateHub.send(.failed(stateFailureMessage))
                 }
             }
 
-            if !restoredInitialSession, !Task.isCancelled {
-                stateHub.send(.failed(stateFailureMessage))
-            }
-        } catch is CancellationError {
-            return
+            guard !Task.isCancelled else { return }
+            stateHub.send(.failed(stateFailureMessage))
         } catch {
             guard !Task.isCancelled else { return }
             stateHub.send(.failed(stateFailureMessage))

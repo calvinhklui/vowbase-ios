@@ -77,6 +77,87 @@ struct AuthServiceTests {
         )
     }
 
+    @Test("accepts authoritative state events before the initial-session event")
+    func acceptsAuthoritativeEventsBeforeInitialSession() async throws {
+        let signedInSession = AuthSessionSnapshot(userID: UUID(), accessToken: "token")
+        let signedOutEvents: [AuthAdapterEvent] = [
+            .signedIn(nil),
+            .signedOut,
+            .tokenRefreshed(nil),
+            .userUpdated(nil),
+        ]
+        let signedInEvents: [AuthAdapterEvent] = [
+            .signedIn(signedInSession),
+            .tokenRefreshed(signedInSession),
+            .userUpdated(signedInSession),
+        ]
+
+        for event in signedOutEvents {
+            let adapter = FakeAuthAdapter()
+            let service = AuthService(adapter: adapter)
+            let stream = service.states
+            let states = Task { try await values(from: stream, count: 2) }
+
+            adapter.yield(event)
+
+            #expect(try await states.value == [.loading, .signedOut])
+        }
+
+        for event in signedInEvents {
+            let adapter = FakeAuthAdapter()
+            let service = AuthService(adapter: adapter)
+            let stream = service.states
+            let states = Task { try await values(from: stream, count: 2) }
+
+            adapter.yield(event)
+
+            #expect(
+                try await states.value
+                    == [.loading, .signedIn(userID: signedInSession.userID)]
+            )
+        }
+    }
+
+    @Test("deduplicates a late initial session after a token refresh restores state")
+    func deduplicatesLateInitialSessionAfterTokenRefresh() async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let session = AuthSessionSnapshot(userID: UUID(), accessToken: "refreshed-token")
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 2) }
+
+        adapter.yield(.tokenRefreshed(session))
+        adapter.yield(.initialSession(session))
+
+        #expect(
+            try await states.value
+                == [.loading, .signedIn(userID: session.userID)]
+        )
+        #expect(
+            try await values(from: service.states, count: 1)
+                == [.signedIn(userID: session.userID)]
+        )
+    }
+
+    @Test(
+        "accepts session-bearing recovery and MFA events before initial restoration",
+        arguments: [AuthChangeEvent.passwordRecovery, .mfaChallengeVerified]
+    )
+    func acceptsSessionBearingEventsBeforeInitialSession(event: AuthChangeEvent) async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let session = AuthSessionSnapshot(userID: UUID(), accessToken: "token")
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 2) }
+
+        adapter.yield(SupabaseAuthEventMapper.event(event, session: session))
+
+        #expect(
+            try await states.value
+                == [.loading, .signedIn(userID: session.userID)]
+        )
+    }
+
     @Test(
         "preserves session-bearing recovery and MFA events",
         arguments: [AuthChangeEvent.passwordRecovery, .mfaChallengeVerified]
@@ -136,18 +217,79 @@ struct AuthServiceTests {
         )
     }
 
-    @Test("emits a stable failure when a transition arrives before restoration")
-    func sanitizesUnexpectedRestorationEvent() async throws {
+    @Test("reports an upstream cancellation error when observation remains active")
+    func reportsUpstreamCancellationError() async throws {
         let adapter = FakeAuthAdapter()
         let service = AuthService(adapter: adapter)
         let stream = service.states
         let states = Task { try await values(from: stream, count: 2) }
 
-        adapter.yield(.signedIn(.init(userID: UUID(), accessToken: "secret-token")))
+        adapter.finish(throwing: CancellationError())
 
         #expect(
             try await states.value
                 == [.loading, .failed("Authentication state unavailable.")]
+        )
+    }
+
+    @Test("keeps an unexpected pre-initial event safe and permits later restoration")
+    func sanitizesUnexpectedRestorationEvent() async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 3) }
+
+        adapter.yield(.unexpected)
+        adapter.yield(.initialSession(nil))
+
+        #expect(
+            try await states.value
+                == [
+                    .loading,
+                    .failed("Authentication state unavailable."),
+                    .signedOut,
+                ]
+        )
+    }
+
+    @Test("reports normal event-stream completion after restoring signed in")
+    func reportsCompletionAfterSignedIn() async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let userID = UUID()
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 3) }
+
+        adapter.yield(.initialSession(.init(userID: userID, accessToken: "token")))
+        adapter.finish()
+
+        #expect(
+            try await states.value
+                == [
+                    .loading,
+                    .signedIn(userID: userID),
+                    .failed("Authentication state unavailable."),
+                ]
+        )
+    }
+
+    @Test("reports normal event-stream completion after restoring signed out")
+    func reportsCompletionAfterSignedOut() async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 3) }
+
+        adapter.yield(.initialSession(nil))
+        adapter.finish()
+
+        #expect(
+            try await states.value
+                == [
+                    .loading,
+                    .signedOut,
+                    .failed("Authentication state unavailable."),
+                ]
         )
     }
 
@@ -259,13 +401,15 @@ struct AuthServiceTests {
     func cancelsObservationOnDeinit() async throws {
         let adapter = FakeAuthAdapter()
         let weakService: WeakAuthServiceReference
+        let stream: AsyncStream<AuthenticationState>
 
         do {
             let service = AuthService(adapter: adapter)
             weakService = WeakAuthServiceReference(service)
-            _ = service.states
+            stream = service.states
         }
 
+        #expect(try await valuesUntilFinished(from: stream) == [.loading])
         try await eventually {
             weakService.isNil && adapter.wasEventStreamTerminated
         }
@@ -328,6 +472,28 @@ private func eventually(
     while !condition() {
         guard clock.now < deadline else { throw TimeoutError() }
         await Task.yield()
+    }
+}
+
+private func valuesUntilFinished<Element: Sendable>(
+    from stream: AsyncStream<Element>
+) async throws -> [Element] {
+    try await withThrowingTaskGroup(of: [Element].self) { group in
+        group.addTask {
+            var result = [Element]()
+            for await value in stream {
+                result.append(value)
+            }
+            return result
+        }
+        group.addTask {
+            try await Task.sleep(for: .seconds(2))
+            throw TimeoutError()
+        }
+
+        let result = try await group.next() ?? []
+        group.cancelAll()
+        return result
     }
 }
 
