@@ -57,15 +57,49 @@ struct GuestDeleteRequest: Equatable, Sendable {
     let singleRow: Bool
 }
 
-struct GuestUpsertRequest<Draft: Encodable & Sendable>: Sendable {
-    let table: String
-    let columns: String
-    let draft: Draft
-    let onConflict: String
-    let singleRow: Bool
+struct GuestRPCRequest<Parameters: Encodable & Sendable>: Sendable {
+    let functionName: String
+    let parameters: Parameters
 }
 
-extension GuestUpsertRequest: Equatable where Draft: Equatable {}
+extension GuestRPCRequest: Equatable where Parameters: Equatable {}
+
+struct RSVPUpsertParameters: Encodable, Equatable, Sendable {
+    let weddingID: UUID
+    let guestID: UUID
+    let eventID: UUID
+    let status: RSVPStatus?
+    let mealChoice: String?
+    let notes: String?
+
+    init(draft: RSVPDraft) {
+        weddingID = draft.weddingID
+        guestID = draft.guestID
+        eventID = draft.eventID
+        status = draft.status
+        mealChoice = draft.mealChoice
+        notes = draft.notes
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case weddingID = "p_wedding_id"
+        case guestID = "p_guest_id"
+        case eventID = "p_event_id"
+        case status = "p_status"
+        case mealChoice = "p_meal_choice"
+        case notes = "p_notes"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(weddingID, forKey: .weddingID)
+        try container.encode(guestID, forKey: .guestID)
+        try container.encode(eventID, forKey: .eventID)
+        if let status { try container.encode(status, forKey: .status) } else { try container.encodeNil(forKey: .status) }
+        if let mealChoice { try container.encode(mealChoice, forKey: .mealChoice) } else { try container.encodeNil(forKey: .mealChoice) }
+        if let notes { try container.encode(notes, forKey: .notes) } else { try container.encodeNil(forKey: .notes) }
+    }
+}
 
 protocol GuestDatabaseAdapter: Sendable {
     func authenticatedUserID() async throws -> UUID
@@ -90,8 +124,8 @@ protocol GuestDatabaseAdapter: Sendable {
         as: Response.Type
     ) async throws -> Response
 
-    func upsert<Response: Decodable & Sendable, Draft: Encodable & Sendable>(
-        _ request: GuestUpsertRequest<Draft>,
+    func rpc<Response: Decodable & Sendable>(
+        _ request: GuestRPCRequest<RSVPUpsertParameters>,
         as: Response.Type
     ) async throws -> Response
 }

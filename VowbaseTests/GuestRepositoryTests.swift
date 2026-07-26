@@ -71,7 +71,7 @@ struct GuestRepositoryTests {
         let rsvpDraft = RSVPDraft(weddingID: weddingID, guestID: guestID, eventID: eventID, status: .accepted)
 
         _ = try await repository.createGuest(guestDraft, weddingID: weddingID)
-        _ = try await repository.updateGuest(id: guestID, patch: GuestPatch(email: "avery@example.com"))
+        _ = try await repository.updateGuest(id: guestID, patch: GuestPatch(email: .null))
         try await repository.deleteGuest(id: guestID)
         _ = try await repository.createCustomColumn(columnDraft, weddingID: weddingID)
         _ = try await repository.updateCustomColumn(id: columnID, patch: .init(hidden: true))
@@ -82,16 +82,137 @@ struct GuestRepositoryTests {
         #expect(await database.insertRecords.map(\.columns) == [GuestColumns.guests, GuestColumns.customColumns])
         #expect(await database.updateRecords.map(\.table) == ["guests", "guest_custom_columns"])
         #expect(await database.updateRecords.allSatisfy { $0.columns != "" && $0.singleRow })
+        #expect(await database.updatePayloads[0]["email"] is NSNull)
         #expect(await database.deleteRequests == [
             .init(table: "guests", columns: "id", equalityFilters: [.init(column: "id", value: guestID.uuidString.lowercased())], singleRow: true),
             .init(table: "guest_custom_columns", columns: "id", equalityFilters: [.init(column: "id", value: columnID.uuidString.lowercased())], singleRow: true),
         ])
-        #expect(await database.upsertRecords == [
-            .init(table: "rsvps", columns: GuestColumns.rsvps, onConflict: "guest_id,event_id", singleRow: true),
-        ])
+        #expect(await database.rpcRequests.map(\.functionName) == ["upsert_rsvp_if_planner"])
         #expect(UUID(uuidString: await database.insertPayloads[0]["wedding_id"] as? String ?? "") == weddingID)
         #expect(UUID(uuidString: await database.insertPayloads[1]["wedding_id"] as? String ?? "") == weddingID)
-        #expect(UUID(uuidString: await database.upsertPayloads[0]["wedding_id"] as? String ?? "") == weddingID)
+        let rpcPayload = try #require(await database.rpcPayloads.first)
+        #expect(Set(rpcPayload.keys) == ["p_wedding_id", "p_guest_id", "p_event_id", "p_status", "p_meal_choice", "p_notes"])
+        #expect(UUID(uuidString: rpcPayload["p_wedding_id"] as? String ?? "") == weddingID)
+        #expect(UUID(uuidString: rpcPayload["p_guest_id"] as? String ?? "") == guestID)
+        #expect(UUID(uuidString: rpcPayload["p_event_id"] as? String ?? "") == eventID)
+        #expect(rpcPayload["p_status"] as? String == "accepted")
+        #expect(rpcPayload["p_meal_choice"] is NSNull)
+        #expect(rpcPayload["p_notes"] is NSNull)
+    }
+
+    @Test("guest patch distinguishes unchanged, value, and explicit SQL null")
+    func guestPatchEncodesTriStateNullableFields() throws {
+        let unchanged = try jsonObject(GuestPatch(firstName: "Avery"))
+        #expect(unchanged.count == 1)
+        #expect(unchanged["first_name"] as? String == "Avery")
+
+        let values = try jsonObject(GuestPatch(
+            lastName: .value("Morgan"),
+            email: .null,
+            phone: .value("+1 555 0100"),
+            address: .null,
+            rsvpStatus: .value(.accepted),
+            originLabel: .null,
+            originLatitude: .value(40.7128),
+            originLongitude: .null,
+            originPrecision: .value("city"),
+            geocodeStatus: .null
+        ))
+        #expect(values["last_name"] as? String == "Morgan")
+        #expect(values["email"] is NSNull)
+        #expect(values["phone"] as? String == "+1 555 0100")
+        #expect(values["address"] is NSNull)
+        #expect(values["rsvp_status"] as? String == "accepted")
+        #expect(values["origin_label"] is NSNull)
+        #expect(values["origin_latitude"] as? Double == 40.7128)
+        #expect(values["origin_longitude"] is NSNull)
+        #expect(values["origin_precision"] as? String == "city")
+        #expect(values["geocode_status"] is NSNull)
+        #expect(values["custom_fields"] == nil)
+    }
+
+    @Test("custom_fields remains a non-null JSON object for guest creates and updates")
+    func rejectsUnsafeCustomFieldShapesBeforeDataAccess() async throws {
+        let database = GuestDatabaseSpy(authenticatedUserID: userID)
+        let repository = SupabaseGuestRepository(database: database)
+
+        await #expect(throws: BackendError.validation(
+            message: "Custom fields must be a JSON object.",
+            requestID: nil
+        )) {
+            _ = try await repository.createGuest(
+                .init(firstName: "Invalid", customFields: .null),
+                weddingID: weddingID
+            )
+        }
+        await #expect(throws: BackendError.validation(
+            message: "Custom fields must be a JSON object.",
+            requestID: nil
+        )) {
+            _ = try await repository.updateGuest(
+                id: guestID,
+                patch: .init(customFields: .array([]))
+            )
+        }
+        #expect(await database.insertRecords.isEmpty)
+        #expect(await database.updateRecords.isEmpty)
+    }
+
+    @Test("RSVP RPC parameter encoding preserves every nullable argument as explicit JSON null")
+    func rsvpRPCParametersEncodeExactKeysAndNulls() throws {
+        let parameters = RSVPUpsertParameters(
+            draft: .init(weddingID: weddingID, guestID: guestID, eventID: eventID)
+        )
+        let object = try jsonObject(parameters)
+
+        #expect(Set(object.keys) == ["p_wedding_id", "p_guest_id", "p_event_id", "p_status", "p_meal_choice", "p_notes"])
+        #expect(object["p_status"] is NSNull)
+        #expect(object["p_meal_choice"] is NSNull)
+        #expect(object["p_notes"] is NSNull)
+    }
+
+    @Test("PostgREST constraint failures normalize to conflict or validation without weakening forbidden")
+    func normalizesDatabaseConstraintErrors() async throws {
+        let cases: [(String, BackendError)] = [
+            ("23505", .conflict(message: "Conflict.", requestID: nil)),
+            ("23503", .validation(message: "Invalid data.", requestID: nil)),
+            ("23514", .validation(message: "Invalid data.", requestID: nil)),
+            ("22023", .validation(message: "Invalid data.", requestID: nil)),
+            ("22001", .validation(message: "Invalid data.", requestID: nil)),
+            ("42501", .forbidden(message: "Forbidden.", requestID: nil)),
+        ]
+        for (code, expected) in cases {
+            let repository = SupabaseGuestRepository(database: GuestDatabaseSpy(
+                authenticatedUserID: userID,
+                rpcError: PostgrestError(code: code, message: "sensitive database detail")
+            ))
+            await #expect(throws: expected, "SQLSTATE \(code)") {
+                _ = try await repository.upsertRSVP(.init(weddingID: weddingID, guestID: guestID, eventID: eventID))
+            }
+        }
+    }
+
+    @Test("integration configuration rejects canonically equivalent production URLs")
+    func integrationConfigurationRejectsEquivalentProductionURLs() throws {
+        var supabaseEquivalent = integrationEnvironment
+        supabaseEquivalent["VOWBASE_GUEST_INTEGRATION_SUPABASE_URL"] = "https://test-ref.supabase.co/"
+        supabaseEquivalent["VOWBASE_PRODUCTION_SUPABASE_URL"] = "https://TEST-REF.SUPABASE.CO:443"
+        #expect(throws: GuestIntegrationConfigurationError.conflict(
+            actualKey: "VOWBASE_GUEST_INTEGRATION_SUPABASE_URL",
+            productionKey: "VOWBASE_PRODUCTION_SUPABASE_URL"
+        )) {
+            _ = try GuestIntegrationConfiguration.load(environment: supabaseEquivalent)
+        }
+
+        var apiEquivalent = integrationEnvironment
+        apiEquivalent["VOWBASE_GUEST_INTEGRATION_API_URL"] = "https://api.test.example.com/api/"
+        apiEquivalent["VOWBASE_PRODUCTION_API_URL"] = "https://API.TEST.EXAMPLE.COM:443/api"
+        #expect(throws: GuestIntegrationConfigurationError.conflict(
+            actualKey: "VOWBASE_GUEST_INTEGRATION_API_URL",
+            productionKey: "VOWBASE_PRODUCTION_API_URL"
+        )) {
+            _ = try GuestIntegrationConfiguration.load(environment: apiEquivalent)
+        }
     }
 
     @Test("signed-out calls fail before all table access")
@@ -108,8 +229,12 @@ struct GuestRepositoryTests {
         await #expect(throws: BackendError.authenticationRequired(message: nil, requestID: nil)) {
             _ = try await repository.createGuest(.init(firstName: "No session"), weddingID: weddingID)
         }
+        await #expect(throws: BackendError.authenticationRequired(message: nil, requestID: nil)) {
+            _ = try await repository.upsertRSVP(.init(weddingID: weddingID, guestID: guestID, eventID: eventID))
+        }
         #expect(await database.selectRequests.isEmpty)
         #expect(await database.insertRecords.isEmpty)
+        #expect(await database.rpcRequests.isEmpty)
     }
 
     @Test("unit role simulation labels adapter denials rather than claiming hosted RLS coverage")
@@ -117,7 +242,7 @@ struct GuestRepositoryTests {
         for role in [WeddingRole.parent, .viewer] {
             let database = GuestDatabaseSpy(
                 authenticatedUserID: userID,
-                upsertError: PostgrestError(code: "42501", message: "permission denied")
+                rpcError: PostgrestError(code: "42501", message: "permission denied")
             )
             await #expect(
                 throws: BackendError.forbidden(message: "Forbidden.", requestID: nil),
@@ -147,6 +272,34 @@ struct GuestRepositoryTests {
         {"id":"01908f9d-2265-789a-bcde-f0123456789a","wedding_id":"\(weddingID.uuidString)","guest_id":"\(guestID.uuidString)","event_id":"\(eventID.uuidString)","status":"pending","meal_choice":null,"notes":null,"updated_at":"2026-07-25T12:00:00Z"}
         """.utf8)
     }
+
+    private var integrationEnvironment: [String: String] {
+        var values = [
+            "VOWBASE_GUEST_INTEGRATION_ENABLED": "1",
+            "VOWBASE_GUEST_INTEGRATION_ENVIRONMENT": "test",
+            "VOWBASE_GUEST_INTEGRATION_SUPABASE_URL": "https://test-ref.supabase.co",
+            "VOWBASE_PRODUCTION_SUPABASE_URL": "https://production-ref.supabase.co",
+            "VOWBASE_GUEST_INTEGRATION_API_URL": "https://api.test.example.com/api",
+            "VOWBASE_PRODUCTION_API_URL": "https://api.production.example.com/api",
+            "VOWBASE_GUEST_INTEGRATION_SUPABASE_PROJECT_REF": "test-ref",
+            "VOWBASE_GUEST_INTEGRATION_SUPABASE_HOST": "test-ref.supabase.co",
+            "VOWBASE_GUEST_INTEGRATION_SUPABASE_PUBLISHABLE_KEY": "publishable-test-key",
+            "VOWBASE_GUEST_INTEGRATION_WEDDING_ID": weddingID.uuidString,
+            "VOWBASE_GUEST_INTEGRATION_SAFE_GUEST_ID": guestID.uuidString,
+            "VOWBASE_GUEST_INTEGRATION_SAFE_EVENT_ID": eventID.uuidString,
+        ]
+        for role in GuestIntegrationRole.allCases {
+            let prefix = "VOWBASE_GUEST_INTEGRATION_\(role.rawValue.uppercased())"
+            values["\(prefix)_ACCESS_TOKEN"] = "access-\(role.rawValue)"
+            values["\(prefix)_REFRESH_TOKEN"] = "refresh-\(role.rawValue)"
+        }
+        return values
+    }
+
+    private func jsonObject(_ value: some Encodable) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(value)
+        return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
 }
 
 private enum GuestColumns {
@@ -169,13 +322,6 @@ private struct GuestMutationRecord: Equatable, Sendable {
     let singleRow: Bool
 }
 
-private struct GuestUpsertRecord: Equatable, Sendable {
-    let table: String
-    let columns: String
-    let onConflict: String
-    let singleRow: Bool
-}
-
 private actor GuestDatabaseSpy: GuestDatabaseAdapter {
     let userID: UUID
     let authenticatedUserIDError: (any Error)?
@@ -183,15 +329,16 @@ private actor GuestDatabaseSpy: GuestDatabaseAdapter {
     let columnData: Data?
     let rsvpData: Data?
     let deletionData: Data?
-    let upsertError: (any Error)?
+    let rpcError: (any Error)?
     private(set) var authenticatedUserIDCallCount = 0
     private(set) var selectRequests = [GuestSelectRequest]()
     private(set) var insertRecords = [GuestMutationRecord]()
     private(set) var updateRecords = [GuestMutationRecord]()
+    private(set) var updatePayloads = [[String: Any]]()
     private(set) var deleteRequests = [GuestDeleteRequest]()
-    private(set) var upsertRecords = [GuestUpsertRecord]()
+    private(set) var rpcRequests = [GuestRPCRequest<RSVPUpsertParameters>]()
     private(set) var insertPayloads = [[String: Any]]()
-    private(set) var upsertPayloads = [[String: Any]]()
+    private(set) var rpcPayloads = [[String: Any]]()
 
     init(
         authenticatedUserID: UUID,
@@ -200,7 +347,7 @@ private actor GuestDatabaseSpy: GuestDatabaseAdapter {
         columnData: Data? = nil,
         rsvpData: Data? = nil,
         deletionData: Data? = nil,
-        upsertError: (any Error)? = nil
+        rpcError: (any Error)? = nil
     ) {
         self.userID = authenticatedUserID
         self.authenticatedUserIDError = authenticatedUserIDError
@@ -208,7 +355,7 @@ private actor GuestDatabaseSpy: GuestDatabaseAdapter {
         self.columnData = columnData
         self.rsvpData = rsvpData
         self.deletionData = deletionData
-        self.upsertError = upsertError
+        self.rpcError = rpcError
     }
 
     func authenticatedUserID() throws -> UUID {
@@ -230,6 +377,7 @@ private actor GuestDatabaseSpy: GuestDatabaseAdapter {
 
     func update<Response: Decodable & Sendable, Patch: Encodable & Sendable>(_ request: GuestUpdateRequest<Patch>, as: Response.Type) throws -> Response {
         updateRecords.append(.init(table: request.table, columns: request.columns, singleRow: request.singleRow))
+        updatePayloads.append(try object(from: request.patch))
         return try decode(for: Response.self, list: false)
     }
 
@@ -239,10 +387,10 @@ private actor GuestDatabaseSpy: GuestDatabaseAdapter {
         return try GuestTestDecoding.decoder.decode(Response.self, from: deletionData)
     }
 
-    func upsert<Response: Decodable & Sendable, Draft: Encodable & Sendable>(_ request: GuestUpsertRequest<Draft>, as: Response.Type) throws -> Response {
-        upsertRecords.append(.init(table: request.table, columns: request.columns, onConflict: request.onConflict, singleRow: request.singleRow))
-        upsertPayloads.append(try object(from: request.draft))
-        if let upsertError { throw upsertError }
+    func rpc<Response: Decodable & Sendable>(_ request: GuestRPCRequest<RSVPUpsertParameters>, as: Response.Type) throws -> Response {
+        rpcRequests.append(request)
+        rpcPayloads.append(try object(from: request.parameters))
+        if let rpcError { throw rpcError }
         return try decode(for: Response.self, list: false)
     }
 
@@ -276,26 +424,67 @@ struct GuestRepositoryIntegrationTests {
     @Test("dedicated non-production roles deny parent/viewer writes and allow an exact safe RSVP upsert", .enabled(if: ProcessInfo.processInfo.environment["VOWBASE_GUEST_INTEGRATION_ENABLED"] == "1"))
     func dedicatedNonProductionRoleMatrix() async throws {
         let configuration = try GuestIntegrationConfiguration.load()
-        let owner = try await repository(for: .owner, configuration: configuration)
-        let existing = try #require(try await owner.rsvps(weddingID: configuration.weddingID).first {
+        let owner = try await client(for: .owner, configuration: configuration)
+        try await assertAuthenticatedRole(.owner, client: owner, configuration: configuration)
+        let existing = try #require(try await owner.guests.rsvps(weddingID: configuration.weddingID).first {
             $0.guestID == configuration.guestID && $0.eventID == configuration.eventID
         })
         let safeDraft = RSVPDraft(weddingID: existing.weddingID, guestID: existing.guestID, eventID: existing.eventID, status: existing.status, mealChoice: existing.mealChoice, notes: existing.notes)
-        #expect(try await owner.upsertRSVP(safeDraft) == existing)
+        let saved = try await owner.guests.upsertRSVP(safeDraft)
+        #expect(saved.id == existing.id)
+        #expect(saved.weddingID == existing.weddingID)
+        #expect(saved.guestID == existing.guestID)
+        #expect(saved.eventID == existing.eventID)
+        #expect(saved.status == existing.status)
+        #expect(saved.mealChoice == existing.mealChoice)
+        #expect(saved.notes == existing.notes)
         for role in [GuestIntegrationRole.parent, .viewer] {
-            let repository = try await repository(for: role, configuration: configuration)
-            await #expect(throws: BackendError.forbidden(message: "Forbidden.", requestID: nil), "hosted (role.rawValue) denial") {
-                _ = try await repository.upsertRSVP(safeDraft)
+            let client = try await client(for: role, configuration: configuration)
+            try await assertAuthenticatedRole(role, client: client, configuration: configuration)
+            await #expect(throws: BackendError.forbidden(message: "Forbidden.", requestID: nil), "hosted \(role.rawValue) denial") {
+                _ = try await client.guests.upsertRSVP(safeDraft)
             }
         }
     }
 
-    private func repository(for role: GuestIntegrationRole, configuration: GuestIntegrationConfiguration) async throws -> SupabaseGuestRepository {
+    private func client(for role: GuestIntegrationRole, configuration: GuestIntegrationConfiguration) async throws -> GuestIntegrationClient {
         let provider = SupabaseProvider(configuration: configuration.appConfiguration)
         let credentials = configuration.credentials(for: role)
         _ = try await provider.client.auth.setSession(accessToken: credentials.accessToken, refreshToken: credentials.refreshToken)
-        return SupabaseGuestRepository(provider: provider)
+        let authService = AuthService(provider: provider)
+        let api = VowbaseAPIClient(
+            sessionConfiguration: .ephemeral,
+            configuration: configuration.appConfiguration,
+            authService: authService
+        )
+        return GuestIntegrationClient(
+            provider: provider,
+            guests: SupabaseGuestRepository(provider: provider),
+            workspace: SupabaseWorkspaceRepository(provider: provider, api: api)
+        )
     }
+
+    private func assertAuthenticatedRole(
+        _ role: GuestIntegrationRole,
+        client: GuestIntegrationClient,
+        configuration: GuestIntegrationConfiguration
+    ) async throws {
+        let authenticatedUser = try await client.provider.client.auth.user()
+        let session = try await client.workspace.sessionSummary()
+        #expect(session.user.id == authenticatedUser.id)
+        let membership = try #require(try await client.workspace.memberships().first {
+            $0.weddingId == configuration.weddingID
+        })
+        #expect(membership.userId == authenticatedUser.id)
+        #expect(membership.status == "active")
+        #expect(membership.role.rawValue == role.rawValue)
+    }
+}
+
+private struct GuestIntegrationClient {
+    let provider: SupabaseProvider
+    let guests: SupabaseGuestRepository
+    let workspace: SupabaseWorkspaceRepository
 }
 
 private enum GuestIntegrationRole: String, CaseIterable { case owner, parent, viewer }
@@ -308,31 +497,98 @@ private struct GuestIntegrationConfiguration {
     private let credentialsByRole: [GuestIntegrationRole: GuestIntegrationCredentials]
 
     static func load(environment: [String: String] = ProcessInfo.processInfo.environment) throws -> Self {
-        func required(_ key: String) throws -> String {
-            guard let value = environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { throw GuestIntegrationConfigurationError.missing(key) }
-            return value
+        guard try required("VOWBASE_GUEST_INTEGRATION_ENABLED", in: environment) == "1" else {
+            throw GuestIntegrationConfigurationError.invalid("VOWBASE_GUEST_INTEGRATION_ENABLED")
         }
-        func uuid(_ key: String) throws -> UUID {
-            guard let value = UUID(uuidString: try required(key)) else { throw GuestIntegrationConfigurationError.invalid(key) }
-            return value
+        guard ["test", "staging"].contains(try required("VOWBASE_GUEST_INTEGRATION_ENVIRONMENT", in: environment).lowercased()) else {
+            throw GuestIntegrationConfigurationError.invalid("VOWBASE_GUEST_INTEGRATION_ENVIRONMENT")
         }
-        guard ["test", "staging"].contains(try required("VOWBASE_GUEST_INTEGRATION_ENVIRONMENT").lowercased()) else { throw GuestIntegrationConfigurationError.invalid("VOWBASE_GUEST_INTEGRATION_ENVIRONMENT") }
-        let supabaseURL = try required("VOWBASE_GUEST_INTEGRATION_SUPABASE_URL")
-        let productionURL = try required("VOWBASE_PRODUCTION_SUPABASE_URL")
-        guard supabaseURL.lowercased() != productionURL.lowercased() else { throw GuestIntegrationConfigurationError.productionTarget }
+        let supabaseURL = try required("VOWBASE_GUEST_INTEGRATION_SUPABASE_URL", in: environment)
+        let apiURL = try required("VOWBASE_GUEST_INTEGRATION_API_URL", in: environment)
+        let productionSupabaseURL = try required("VOWBASE_PRODUCTION_SUPABASE_URL", in: environment)
+        let productionAPIURL = try required("VOWBASE_PRODUCTION_API_URL", in: environment)
+        try requireDistinctURL(actual: supabaseURL, production: productionSupabaseURL, actualKey: "VOWBASE_GUEST_INTEGRATION_SUPABASE_URL", productionKey: "VOWBASE_PRODUCTION_SUPABASE_URL")
+        try requireDistinctURL(actual: apiURL, production: productionAPIURL, actualKey: "VOWBASE_GUEST_INTEGRATION_API_URL", productionKey: "VOWBASE_PRODUCTION_API_URL")
+        try validateSupabaseIdentity(
+            url: supabaseURL,
+            projectRef: try required("VOWBASE_GUEST_INTEGRATION_SUPABASE_PROJECT_REF", in: environment),
+            expectedHost: try required("VOWBASE_GUEST_INTEGRATION_SUPABASE_HOST", in: environment)
+        )
         let roles = try Dictionary(uniqueKeysWithValues: GuestIntegrationRole.allCases.map { role in
             let prefix = "VOWBASE_GUEST_INTEGRATION_\(role.rawValue.uppercased())"
-            return (role, GuestIntegrationCredentials(accessToken: try required("\(prefix)_ACCESS_TOKEN"), refreshToken: try required("\(prefix)_REFRESH_TOKEN")))
+            return (role, GuestIntegrationCredentials(
+                accessToken: try required("\(prefix)_ACCESS_TOKEN", in: environment),
+                refreshToken: try required("\(prefix)_REFRESH_TOKEN", in: environment)
+            ))
         })
         return .init(
-            appConfiguration: try AppConfiguration(values: ["CONFIGURATION": "Debug", "SUPABASE_URL": supabaseURL, "SUPABASE_PUBLISHABLE_KEY": try required("VOWBASE_GUEST_INTEGRATION_SUPABASE_PUBLISHABLE_KEY"), "VOWBASE_API_URL": try required("VOWBASE_GUEST_INTEGRATION_API_URL")], transportPolicy: .debug),
-            weddingID: try uuid("VOWBASE_GUEST_INTEGRATION_WEDDING_ID"),
-            guestID: try uuid("VOWBASE_GUEST_INTEGRATION_SAFE_GUEST_ID"),
-            eventID: try uuid("VOWBASE_GUEST_INTEGRATION_SAFE_EVENT_ID"),
+            appConfiguration: try AppConfiguration(values: [
+                "CONFIGURATION": "Debug",
+                "SUPABASE_URL": supabaseURL,
+                "SUPABASE_PUBLISHABLE_KEY": try required("VOWBASE_GUEST_INTEGRATION_SUPABASE_PUBLISHABLE_KEY", in: environment),
+                "VOWBASE_API_URL": apiURL,
+            ], transportPolicy: .debug),
+            weddingID: try requiredUUID("VOWBASE_GUEST_INTEGRATION_WEDDING_ID", in: environment),
+            guestID: try requiredUUID("VOWBASE_GUEST_INTEGRATION_SAFE_GUEST_ID", in: environment),
+            eventID: try requiredUUID("VOWBASE_GUEST_INTEGRATION_SAFE_EVENT_ID", in: environment),
             credentialsByRole: roles
         )
     }
 
     func credentials(for role: GuestIntegrationRole) -> GuestIntegrationCredentials { credentialsByRole[role]! }
+
+    private static func required(_ key: String, in environment: [String: String]) throws -> String {
+        guard let raw = environment[key] else { throw GuestIntegrationConfigurationError.missing(key) }
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { throw GuestIntegrationConfigurationError.missing(key) }
+        return value
+    }
+
+    private static func requiredUUID(_ key: String, in environment: [String: String]) throws -> UUID {
+        guard let value = UUID(uuidString: try required(key, in: environment)) else {
+            throw GuestIntegrationConfigurationError.invalid(key)
+        }
+        return value
+    }
+
+    private static func requireDistinctURL(actual: String, production: String, actualKey: String, productionKey: String) throws {
+        guard let actualURL = normalizedURL(actual),
+              let productionURL = normalizedURL(production),
+              actualURL != productionURL else {
+            throw GuestIntegrationConfigurationError.conflict(actualKey: actualKey, productionKey: productionKey)
+        }
+    }
+
+    private static func normalizedURL(_ value: String) -> String? {
+        guard var components = URLComponents(string: value),
+              let scheme = components.scheme?.lowercased(),
+              let host = components.host?.lowercased() else { return nil }
+        components.scheme = scheme
+        components.host = host
+        if components.port == nil {
+            components.port = scheme == "https" ? 443 : (scheme == "http" ? 80 : nil)
+        }
+        while components.path.count > 1 && components.path.hasSuffix("/") {
+            components.path.removeLast()
+        }
+        components.path = components.path == "/" ? "" : components.path
+        components.query = nil
+        components.fragment = nil
+        return components.string
+    }
+
+    private static func validateSupabaseIdentity(url: String, projectRef: String, expectedHost: String) throws {
+        guard let host = URL(string: url)?.host?.lowercased(),
+              host == expectedHost.lowercased(),
+              host == "\(projectRef.lowercased()).supabase.co" else {
+            throw GuestIntegrationConfigurationError.invalid(
+                "VOWBASE_GUEST_INTEGRATION_SUPABASE_PROJECT_REF or VOWBASE_GUEST_INTEGRATION_SUPABASE_HOST"
+            )
+        }
+    }
 }
-private enum GuestIntegrationConfigurationError: Error { case missing(String), invalid(String), productionTarget }
+private enum GuestIntegrationConfigurationError: Error, Equatable {
+    case missing(String)
+    case invalid(String)
+    case conflict(actualKey: String, productionKey: String)
+}

@@ -162,9 +162,18 @@ enum RepositoryErrorNormalizer {
         if let transport = error as? URLError {
             return transport.code == .cancelled ? .cancelled : .networkUnavailable
         }
-        if let postgrest = error as? PostgrestError,
-           postgrest.code == "42501" || postgrest.code == "PGRST116" {
-            return .forbidden(message: "Forbidden.", requestID: nil)
+        if let postgrest = error as? PostgrestError {
+            if postgrest.code == "42501" || postgrest.code == "PGRST116" {
+                return .forbidden(message: "Forbidden.", requestID: nil)
+            }
+            if postgrest.code == "23505" {
+                return .conflict(message: "Conflict.", requestID: nil)
+            }
+            if postgrest.code == "23503"
+                || postgrest.code == "23514"
+                || postgrest.code?.hasPrefix("22") == true {
+                return .validation(message: "Invalid data.", requestID: nil)
+            }
         }
         if error is DecodingError {
             return .invalidResponse

@@ -23,11 +23,15 @@ final class SupabaseGuestRepository: GuestRepository, @unchecked Sendable {
     }
 
     func createGuest(_ draft: GuestDraft, weddingID: UUID) async throws -> Guest {
-        try await insert(.init(table: "guests", columns: Self.guestColumns, draft: GuestCreatePayload(weddingID: weddingID, draft: draft), singleRow: true), as: Guest.self)
+        try validateCustomFields(draft.customFields)
+        return try await insert(.init(table: "guests", columns: Self.guestColumns, draft: GuestCreatePayload(weddingID: weddingID, draft: draft), singleRow: true), as: Guest.self)
     }
 
     func updateGuest(id: UUID, patch: GuestPatch) async throws -> Guest {
-        try await update(.init(table: "guests", columns: Self.guestColumns, equalityFilters: [scope(id: id)], patch: patch, singleRow: true), as: Guest.self)
+        if let customFields = patch.customFields {
+            try validateCustomFields(customFields)
+        }
+        return try await update(.init(table: "guests", columns: Self.guestColumns, equalityFilters: [scope(id: id)], patch: patch, singleRow: true), as: Guest.self)
     }
 
     func deleteGuest(id: UUID) async throws {
@@ -64,8 +68,11 @@ final class SupabaseGuestRepository: GuestRepository, @unchecked Sendable {
         do {
             try Task.checkCancellation()
             _ = try await database.authenticatedUserID()
-            let rsvp: RSVP = try await database.upsert(
-                .init(table: "rsvps", columns: Self.rsvpColumns, draft: draft, onConflict: "guest_id,event_id", singleRow: true),
+            let rsvp: RSVP = try await database.rpc(
+                .init(
+                    functionName: "upsert_rsvp_if_planner",
+                    parameters: RSVPUpsertParameters(draft: draft)
+                ),
                 as: RSVP.self
             )
             try Task.checkCancellation()
@@ -124,6 +131,15 @@ final class SupabaseGuestRepository: GuestRepository, @unchecked Sendable {
 
     private func normalized(_ error: any Error) -> BackendError {
         RepositoryErrorNormalizer.normalized(error, fallbackMessage: "Guest request failed.")
+    }
+
+    private func validateCustomFields(_ value: JSONValue) throws {
+        guard case .object = value else {
+            throw BackendError.validation(
+                message: "Custom fields must be a JSON object.",
+                requestID: nil
+            )
+        }
     }
 }
 
@@ -218,8 +234,10 @@ private final class SupabaseGuestDatabaseAdapter: GuestDatabaseAdapter, @uncheck
         return request.singleRow ? try await returning.single().execute().value : try await returning.execute().value
     }
 
-    func upsert<Response: Decodable & Sendable, Draft: Encodable & Sendable>(_ request: GuestUpsertRequest<Draft>, as: Response.Type) async throws -> Response {
-        let query = try provider.client.from(request.table).upsert(request.draft, onConflict: request.onConflict).select(request.columns)
-        return request.singleRow ? try await query.single().execute().value : try await query.execute().value
+    func rpc<Response: Decodable & Sendable>(_ request: GuestRPCRequest<RSVPUpsertParameters>, as: Response.Type) async throws -> Response {
+        try await provider.client
+            .rpc(request.functionName, params: request.parameters)
+            .execute()
+            .value
     }
 }
