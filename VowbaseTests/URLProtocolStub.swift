@@ -99,7 +99,7 @@ final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     private let deliveryLock = NSLock()
     private var isStopped = false
 
-    static func session(for state: State) -> URLSession {
+    static func configuration(for state: State) -> URLSessionConfiguration {
         let identifier = UUID().uuidString.lowercased()
         registryLock.withLock {
             registry = registry.filter { $0.value.value != nil }
@@ -111,7 +111,7 @@ final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         configuration.httpAdditionalHeaders = [stateHeader: identifier]
         configuration.urlCache = nil
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        return URLSession(configuration: configuration)
+        return configuration
     }
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -160,14 +160,10 @@ final class URLProtocolStub: URLProtocol, @unchecked Sendable {
                 client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
                 return
             }
-            var redirectedRequest = request
-            redirectedRequest.url = location
             deliver {
-                client?.urlProtocol(
-                    self,
-                    wasRedirectedTo: redirectedRequest,
-                    redirectResponse: response
-                )
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data())
+                client?.urlProtocolDidFinishLoading(self)
             }
 
         case .error(let error):

@@ -22,7 +22,7 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
     private let sleeper: Sleeper
 
     init(
-        session: URLSession,
+        sessionConfiguration: URLSessionConfiguration,
         configuration: AppConfiguration,
         authService: any AuthServicing,
         now: @escaping Now = { Date() },
@@ -31,7 +31,7 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
         }
     ) {
         self.session = URLSession(
-            configuration: session.configuration,
+            configuration: sessionConfiguration,
             delegate: RedirectRejectingDelegate(),
             delegateQueue: nil
         )
@@ -419,16 +419,17 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
     }
 }
 
-private final class RedirectRejectingDelegate: NSObject,
+final class RedirectRejectingDelegate: NSObject,
     URLSessionTaskDelegate,
     @unchecked Sendable {
     func urlSession(
         _ session: URLSession,
         task: URLSessionTask,
         willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest
-    ) async -> URLRequest? {
-        nil
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
     }
 }
 

@@ -176,6 +176,34 @@ struct VowbaseAPIClientTests {
         #expect(transport.requests.first?.url?.host == "api.example.com")
     }
 
+    @Test("owned transport delegate rejects redirected requests")
+    func redirectDelegateReturnsNil() throws {
+        let originalURL = try #require(URL(string: "https://api.example.com/original"))
+        let redirectedURL = try #require(URL(string: "https://evil.example/steal"))
+        let session = URLSession(configuration: .ephemeral)
+        let task = session.dataTask(with: originalURL)
+        let response = try #require(
+            HTTPURLResponse(
+                url: originalURL,
+                statusCode: 302,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Location": redirectedURL.absoluteString]
+            )
+        )
+        var acceptedRequest: URLRequest?
+
+        RedirectRejectingDelegate().urlSession(
+            session,
+            task: task,
+            willPerformHTTPRedirection: response,
+            newRequest: URLRequest(url: redirectedURL)
+        ) {
+            acceptedRequest = $0
+        }
+
+        #expect(acceptedRequest == nil)
+    }
+
     @Test("maps envelope codes authoritatively and preserves safe request IDs")
     func mapsErrorEnvelopes() async throws {
         let cases: [(Int, String, BackendError)] = [
@@ -602,7 +630,7 @@ struct VowbaseAPIClientTests {
             await delays.record(delay)
         }
         return VowbaseAPIClient(
-            session: URLProtocolStub.session(for: transport),
+            sessionConfiguration: URLProtocolStub.configuration(for: transport),
             configuration: configuration,
             authService: auth,
             now: { now },
