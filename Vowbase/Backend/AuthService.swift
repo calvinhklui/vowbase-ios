@@ -283,7 +283,12 @@ private final class SupabaseAuthAdapter: AuthAdapting {
         let task = Task {
             for await (event, session) in source {
                 guard !Task.isCancelled else { break }
-                pair.continuation.yield(Self.event(event, session: session))
+                pair.continuation.yield(
+                    SupabaseAuthEventMapper.event(
+                        event,
+                        session: session.map(Self.snapshot)
+                    )
+                )
             }
             pair.continuation.finish()
         }
@@ -325,30 +330,35 @@ private final class SupabaseAuthAdapter: AuthAdapting {
         try await client.auth.signOut()
     }
 
-    private static func event(
-        _ event: AuthChangeEvent,
-        session: Session?
-    ) -> AuthAdapterEvent {
-        switch event {
-        case .initialSession:
-            return .initialSession(session.map(snapshot))
-        case .signedIn:
-            return .signedIn(session.map(snapshot))
-        case .signedOut, .userDeleted:
-            return .signedOut
-        case .tokenRefreshed:
-            return .tokenRefreshed(session.map(snapshot))
-        case .userUpdated:
-            return .userUpdated(session.map(snapshot))
-        case .passwordRecovery, .mfaChallengeVerified:
-            return .unexpected
-        }
-    }
-
     private static func snapshot(_ session: Session) -> AuthSessionSnapshot {
         AuthSessionSnapshot(
             userID: session.user.id,
             accessToken: session.accessToken
         )
+    }
+}
+
+enum SupabaseAuthEventMapper {
+    static func event(
+        _ event: AuthChangeEvent,
+        session: AuthSessionSnapshot?
+    ) -> AuthAdapterEvent {
+        switch event {
+        case .initialSession:
+            return .initialSession(session)
+        case .signedIn:
+            return .signedIn(session)
+        case .signedOut, .userDeleted:
+            return .signedOut
+        case .tokenRefreshed:
+            return .tokenRefreshed(session)
+        case .userUpdated:
+            return .userUpdated(session)
+        case .passwordRecovery, .mfaChallengeVerified:
+            guard let session else { return .unexpected }
+            return .signedIn(session)
+        @unknown default:
+            return .unexpected
+        }
     }
 }

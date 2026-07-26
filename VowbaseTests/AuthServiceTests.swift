@@ -77,6 +77,50 @@ struct AuthServiceTests {
         )
     }
 
+    @Test(
+        "preserves session-bearing recovery and MFA events",
+        arguments: [AuthChangeEvent.passwordRecovery, .mfaChallengeVerified]
+    )
+    func preservesSessionBearingEvents(event: AuthChangeEvent) {
+        let session = AuthSessionSnapshot(userID: UUID(), accessToken: "token")
+
+        #expect(
+            SupabaseAuthEventMapper.event(event, session: session)
+                == .signedIn(session)
+        )
+        #expect(
+            SupabaseAuthEventMapper.event(event, session: nil)
+                == .unexpected
+        )
+    }
+
+    @Test(
+        "deduplicates recovery and MFA after the matching sign-in",
+        arguments: [AuthChangeEvent.passwordRecovery, .mfaChallengeVerified]
+    )
+    func deduplicatesSessionBearingEvents(event: AuthChangeEvent) async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let session = AuthSessionSnapshot(userID: UUID(), accessToken: "token")
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 4) }
+
+        adapter.yield(.initialSession(nil))
+        adapter.yield(.signedIn(session))
+        adapter.yield(SupabaseAuthEventMapper.event(event, session: session))
+        adapter.yield(.signedOut)
+
+        #expect(
+            try await states.value
+                == [
+                    .loading,
+                    .signedOut,
+                    .signedIn(userID: session.userID),
+                    .signedOut,
+                ]
+        )
+    }
+
     @Test("emits a stable sanitized failure for event-stream failures")
     func sanitizesEventFailure() async throws {
         let adapter = FakeAuthAdapter()
