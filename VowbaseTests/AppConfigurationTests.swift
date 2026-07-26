@@ -98,47 +98,108 @@ struct AppConfigurationTests {
         values["VOWBASE_API_URL"] = value
 
         #expect(throws: AppConfiguration.Error.invalidURL("VOWBASE_API_URL")) {
-            try AppConfiguration(values: values)
+            try AppConfiguration(values: values, transportPolicy: .debug)
         }
     }
 
     @Test(
-        "accepts HTTP loopback URLs with ports in Debug",
+        "accepts canonical and legacy HTTP loopback URLs in Debug policy",
         arguments: [
             "http://localhost:54321/api/",
+            "http://LOCALHOST.:54321/api/",
+            "http://service.localhost:54321/api/",
+            "http://service.LOCALHOST.:54321/api/",
             "http://127.0.0.1:54321/api/",
+            "http://127.42.5.9:54321/api/",
+            "http://127.255.255.255.:54321/api/",
+            "http://127.1:54321/api/",
+            "http://2130706433:54321/api/",
+            "http://0177.0.0.1:54321/api/",
+            "http://0x7f000001:54321/api/",
+            "http://0x7f.1:54321/api/",
             "http://[::1]:54321/api/",
+            "http://[0:0:0:0:0:0:0:1]:54321/api/",
+            "http://[::ffff:127.0.0.1]:54321/api/",
+            "http://[::ffff:127.42.5.9]:54321/api/",
+            "http://[::ffff:127.1]:54321/api/",
+            "http://[::ffff:2130706433]:54321/api/",
+            "http://[::ffff:0x7f000001]:54321/api/",
         ]
     )
     func acceptsDebugLoopback(value: String) throws {
         var values = Self.validValues
-        values["CONFIGURATION"] = "Debug"
+        values["CONFIGURATION"] = "Release"
         values["SUPABASE_URL"] = value
         values["VOWBASE_API_URL"] = value
 
-        let configuration = try AppConfiguration(values: values)
+        let configuration = try AppConfiguration(values: values, transportPolicy: .debug)
 
         #expect(configuration.supabaseURL.absoluteString == value)
         #expect(configuration.apiBaseURL.absoluteString == value)
     }
 
     @Test(
-        "rejects loopback URLs in Release",
+        "rejects canonical and legacy loopback URLs in Release policy",
         arguments: [
-            "http://localhost:54321",
-            "http://127.0.0.1:54321",
-            "http://[::1]:54321",
-            "https://localhost:54321",
-            "https://127.0.0.1:54321",
-            "https://[::1]:54321",
+            "localhost",
+            "LOCALHOST.",
+            "service.localhost",
+            "service.LOCALHOST.",
+            "127.0.0.1",
+            "127.255.255.255",
+            "127.42.5.9.",
+            "127.1",
+            "2130706433",
+            "0177.0.0.1",
+            "0x7f000001",
+            "0x7f.1",
+            "[::1]",
+            "[0:0:0:0:0:0:0:1]",
+            "[::ffff:127.0.0.1]",
+            "[::ffff:127.42.5.9]",
+            "[::ffff:127.1]",
+            "[::ffff:2130706433]",
+            "[::ffff:0x7f000001]",
         ]
     )
-    func rejectsReleaseLoopback(value: String) {
+    func rejectsReleaseLoopback(host: String) {
+        var values = Self.validValues
+        values["CONFIGURATION"] = "Debug"
+
+        for scheme in ["http", "https"] {
+            values["VOWBASE_API_URL"] = "\(scheme)://\(host):54321/api"
+            #expect(throws: AppConfiguration.Error.invalidURL("VOWBASE_API_URL")) {
+                try AppConfiguration(values: values, transportPolicy: .release)
+            }
+        }
+    }
+
+    @Test(
+        "accepts non-loopback HTTPS hosts in Release policy",
+        arguments: [
+            "https://localhost.example:443",
+            "https://notlocalhost:443",
+            "https://128.0.0.1:443",
+            "https://[::ffff:128.0.0.1]:443",
+        ]
+    )
+    func acceptsNonLoopbackHTTPS(value: String) throws {
         var values = Self.validValues
         values["VOWBASE_API_URL"] = value
 
+        let configuration = try AppConfiguration(values: values, transportPolicy: .release)
+
+        #expect(configuration.apiBaseURL.absoluteString == value)
+    }
+
+    @Test("a Debug marker cannot weaken Release transport policy")
+    func debugMarkerCannotWeakenReleasePolicy() {
+        var values = Self.validValues
+        values["CONFIGURATION"] = "Debug"
+        values["VOWBASE_API_URL"] = "http://127.1:8080"
+
         #expect(throws: AppConfiguration.Error.invalidURL("VOWBASE_API_URL")) {
-            try AppConfiguration(values: values)
+            try AppConfiguration(values: values, transportPolicy: .release)
         }
     }
 
@@ -168,6 +229,47 @@ struct AppConfigurationTests {
         #expect(configuration.apiBaseURL.absoluteString == "https://api.vowbase.example/v1")
     }
 
+    @Test("live parsing cannot be weakened by a Debug plist marker")
+    func liveDebugMarkerCannotWeakenReleasePolicy() throws {
+        let bundle = try temporaryBundle(info: [
+            "SUPABASE_URL": "https://supabase.example.invalid",
+            "SUPABASE_PUBLISHABLE_KEY": "bundle-key",
+            "VOWBASE_API_URL": "http://127.1:8080",
+            "VOWBASE_BUILD_CONFIGURATION": "Debug",
+        ])
+
+        #expect(throws: AppConfiguration.Error.invalidURL("VOWBASE_API_URL")) {
+            try AppConfiguration.live(bundle: bundle, transportPolicy: .release)
+        }
+    }
+
+    @Test("live parsing ignores localized InfoPlist.strings overrides")
+    func liveUsesRawInfoDictionary() throws {
+        let bundle = try temporaryBundle(
+            info: [
+                "SUPABASE_URL": "https://supabase.example.invalid",
+                "SUPABASE_PUBLISHABLE_KEY": "raw-bundle-key",
+                "VOWBASE_API_URL": "https://api.vowbase.example/v1",
+                "VOWBASE_BUILD_CONFIGURATION": "Release",
+            ],
+            localizedOverrides: [
+                "SUPABASE_URL": "https://localized.example.invalid",
+                "SUPABASE_PUBLISHABLE_KEY": "localized-key",
+                "VOWBASE_API_URL": "https://localized-api.example.invalid",
+                "VOWBASE_BUILD_CONFIGURATION": "Debug",
+            ]
+        )
+
+        #expect(bundle.object(forInfoDictionaryKey: "SUPABASE_URL") as? String == "https://localized.example.invalid")
+        #expect(bundle.infoDictionary?["SUPABASE_URL"] as? String == "https://supabase.example.invalid")
+
+        let configuration = try AppConfiguration.live(bundle: bundle, transportPolicy: .release)
+
+        #expect(configuration.supabaseURL.absoluteString == "https://supabase.example.invalid")
+        #expect(configuration.supabasePublishableKey == "raw-bundle-key")
+        #expect(configuration.apiBaseURL.absoluteString == "https://api.vowbase.example/v1")
+    }
+
     @Test(
         "reports each missing bundle Info.plist key",
         arguments: [
@@ -178,7 +280,7 @@ struct AppConfigurationTests {
         ]
     )
     func reportsMissingBundleKey(key: String) throws {
-        var info = [
+        var info: [String: Any] = [
             "SUPABASE_URL": "https://supabase.example.invalid",
             "SUPABASE_PUBLISHABLE_KEY": "bundle-key",
             "VOWBASE_API_URL": "https://api.vowbase.example/v1",
@@ -192,7 +294,10 @@ struct AppConfigurationTests {
         }
     }
 
-    private func temporaryBundle(info: [String: String]) throws -> Bundle {
+    private func temporaryBundle(
+        info: [String: Any],
+        localizedOverrides: [String: String] = [:]
+    ) throws -> Bundle {
         let bundleURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("bundle")
@@ -200,13 +305,35 @@ struct AppConfigurationTests {
             at: bundleURL,
             withIntermediateDirectories: true
         )
+        var bundleInfo = info
+        bundleInfo["CFBundleDevelopmentRegion"] = "en"
+        bundleInfo["CFBundleIdentifier"] = "com.vowbase.configuration-tests.\(UUID().uuidString)"
+        bundleInfo["CFBundleLocalizations"] = ["en"]
         let infoURL = bundleURL.appendingPathComponent("Info.plist")
         let data = try PropertyListSerialization.data(
-            fromPropertyList: info,
+            fromPropertyList: bundleInfo,
             format: .xml,
             options: 0
         )
         try data.write(to: infoURL, options: .atomic)
+
+        if !localizedOverrides.isEmpty {
+            let localizationURL = bundleURL.appendingPathComponent("en.lproj")
+            try FileManager.default.createDirectory(
+                at: localizationURL,
+                withIntermediateDirectories: true
+            )
+            let localizedData = try PropertyListSerialization.data(
+                fromPropertyList: localizedOverrides,
+                format: .binary,
+                options: 0
+            )
+            try localizedData.write(
+                to: localizationURL.appendingPathComponent("InfoPlist.strings"),
+                options: .atomic
+            )
+        }
+
         #expect(Bundle(url: bundleURL) != nil)
         return try #require(Bundle(url: bundleURL))
     }
