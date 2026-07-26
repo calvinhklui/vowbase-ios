@@ -118,6 +118,46 @@ struct AuthServiceTests {
         }
     }
 
+    @Test("ignores a stale initial session after an authoritative sign-out")
+    func ignoresStaleInitialSessionAfterSignedOut() async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let staleSession = AuthSessionSnapshot(
+            userID: UUID(),
+            accessToken: "stale-token"
+        )
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 2) }
+
+        adapter.yield(.signedOut)
+        adapter.yield(.initialSession(staleSession))
+
+        #expect(try await states.value == [.loading, .signedOut])
+        #expect(try await values(from: service.states, count: 1) == [.signedOut])
+    }
+
+    @Test("ignores a stale initial session after an authoritative sign-in")
+    func ignoresStaleInitialSessionAfterSignedIn() async throws {
+        let adapter = FakeAuthAdapter()
+        let service = AuthService(adapter: adapter)
+        let newUserID = UUID()
+        let oldSession = AuthSessionSnapshot(
+            userID: UUID(),
+            accessToken: "stale-token"
+        )
+        let stream = service.states
+        let states = Task { try await values(from: stream, count: 2) }
+
+        adapter.yield(.signedIn(.init(userID: newUserID, accessToken: "new-token")))
+        adapter.yield(.initialSession(oldSession))
+
+        #expect(try await states.value == [.loading, .signedIn(userID: newUserID)])
+        #expect(
+            try await values(from: service.states, count: 1)
+                == [.signedIn(userID: newUserID)]
+        )
+    }
+
     @Test("deduplicates a late initial session after a token refresh restores state")
     func deduplicatesLateInitialSessionAfterTokenRefresh() async throws {
         let adapter = FakeAuthAdapter()

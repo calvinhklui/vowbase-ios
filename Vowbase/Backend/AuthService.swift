@@ -115,20 +115,25 @@ final class AuthService: AuthServicing {
         adapter: any AuthAdapting,
         stateHub: AuthenticationStateHub
     ) async {
+        var hasAppliedAuthoritativeEvent = false
+
         do {
             for try await event in adapter.events {
                 guard !Task.isCancelled else { return }
 
                 switch event {
                 case .initialSession(let session):
+                    guard !hasAppliedAuthoritativeEvent else { continue }
                     stateHub.send(state(for: session))
 
                 case .signedIn(let session),
                      .tokenRefreshed(let session),
                      .userUpdated(let session):
+                    hasAppliedAuthoritativeEvent = true
                     stateHub.send(state(for: session))
 
                 case .signedOut:
+                    hasAppliedAuthoritativeEvent = true
                     stateHub.send(.signedOut)
 
                 case .unexpected:
