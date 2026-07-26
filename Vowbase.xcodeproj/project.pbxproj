@@ -9,16 +9,38 @@
 /* Begin PBXBuildFile section */
 		A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */; };
 		A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* ContentView.swift */; };
+		A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60000000000B1 /* Supabase */; };
+		A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D4E5F60000000000A0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6000000000070 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F6000000000040;
+			remoteInfo = Vowbase;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F6000000000010 /* Vowbase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vowbase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VowbaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1B2C3D4E5F6000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000021 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -32,6 +54,7 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6000000000031 /* Vowbase */,
+				A1B2C3D4E5F6000000000033 /* VowbaseTests */,
 				A1B2C3D4E5F6000000000032 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -49,8 +72,17 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6000000000010 /* Vowbase.app */,
+				A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000033 /* VowbaseTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */,
+			);
+			path = VowbaseTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -70,10 +102,31 @@
 			);
 			name = Vowbase;
 			packageProductDependencies = (
+				A1B2C3D4E5F60000000000B1 /* Supabase */,
 			);
 			productName = Vowbase;
 			productReference = A1B2C3D4E5F6000000000010 /* Vowbase.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A1B2C3D4E5F6000000000041 /* VowbaseTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000052 /* Build configuration list for PBXNativeTarget "VowbaseTests" */;
+			buildPhases = (
+				A1B2C3D4E5F6000000000062 /* Sources */,
+				A1B2C3D4E5F6000000000021 /* Frameworks */,
+				A1B2C3D4E5F6000000000063 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F60000000000A1 /* PBXTargetDependency */,
+			);
+			name = VowbaseTests;
+			packageProductDependencies = (
+			);
+			productName = VowbaseTests;
+			productReference = A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -88,6 +141,10 @@
 					A1B2C3D4E5F6000000000040 = {
 						CreatedOnToolsVersion = 26.6;
 					};
+					A1B2C3D4E5F6000000000041 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A1B2C3D4E5F6000000000040;
+					};
 				};
 			};
 			buildConfigurationList = A1B2C3D4E5F6000000000051 /* Build configuration list for PBXProject "Vowbase" */;
@@ -100,18 +157,29 @@
 			);
 			mainGroup = A1B2C3D4E5F6000000000030;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A1B2C3D4E5F60000000000B0 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A1B2C3D4E5F6000000000032 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				A1B2C3D4E5F6000000000040 /* Vowbase */,
+				A1B2C3D4E5F6000000000041 /* VowbaseTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A1B2C3D4E5F6000000000061 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000063 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -130,7 +198,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D4E5F6000000000062 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D4E5F60000000000A1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D4E5F6000000000040 /* Vowbase */;
+			targetProxy = A1B2C3D4E5F60000000000A0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1B2C3D4E5F6000000000080 /* Debug */ = {
@@ -246,6 +330,44 @@
 			};
 			name = Release;
 		};
+		A1B2C3D4E5F6000000000084 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vowbase.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vowbase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowbase";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vowbase.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vowbase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowbase";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -267,7 +389,35 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A1B2C3D4E5F6000000000052 /* Build configuration list for PBXNativeTarget "VowbaseTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000084 /* Debug */,
+				A1B2C3D4E5F6000000000085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1B2C3D4E5F60000000000B0 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.53.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1B2C3D4E5F60000000000B1 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B2C3D4E5F60000000000B0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1B2C3D4E5F6000000000070 /* Project object */;
 }
