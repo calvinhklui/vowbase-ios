@@ -61,6 +61,9 @@ final class VowbaseAPIClient: VowbaseAPIClientProtocol, Sendable {
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = request.method.rawValue
             urlRequest.httpBody = request.body
+            for (field, value) in request.headers {
+                urlRequest.setValue(value, forHTTPHeaderField: field)
+            }
             urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
             urlRequest.setValue(logicalRequestID, forHTTPHeaderField: "x-request-id")

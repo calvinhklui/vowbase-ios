@@ -82,6 +82,11 @@
 		FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */; };
 		FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000015 /* geocode-response.json */; };
 		FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000016 /* travel-times-response.json */; };
+		BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */; };
+		BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */; };
+		BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */; };
+		BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */; };
+		BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000017 /* venue-research-run.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -175,6 +180,11 @@
 		FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowRepositoryTests.swift; sourceTree = "<group>"; };
 		FAA3B4C5D6E7000000000015 /* geocode-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "geocode-response.json"; sourceTree = "<group>"; };
 		FAA3B4C5D6E7000000000016 /* travel-times-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "travel-times-response.json"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueResearchModels.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueResearchRepository.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/APIVenueResearchRepository.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueResearchRepositoryTests.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000017 /* venue-research-run.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "venue-research-run.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -222,6 +232,7 @@
 				F6A3B4C5D6E7000000000011 /* VendorModels.swift */, F6A3B4C5D6E7000000000012 /* VendorRepository.swift */, F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */,
 				F6A3B4C5D6E7000000000014 /* BudgetModels.swift */, F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */, F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
 				F6A3B4C5D6E7000000000017 /* VenueModels.swift */, F6A3B4C5D6E7000000000018 /* VenueRepository.swift */, F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
+				BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */, BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */, BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */,
 				F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */,
 				F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */,
 				F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */,
@@ -261,6 +272,7 @@
 				F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */,
 				F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */,
 				FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */,
+				BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -374,6 +386,7 @@
 				F2A3B4C5D6E7000000000015 /* session-summary.json */,
 				FAA3B4C5D6E7000000000015 /* geocode-response.json */,
 				FAA3B4C5D6E7000000000016 /* travel-times-response.json */,
+				BAA3B4C5D6E7000000000017 /* venue-research-run.json */,
 			);
 			path = Fixtures;
 			sourceTree = "<group>";
@@ -499,6 +512,7 @@
 				F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */,
 				FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */,
 				FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */,
+				BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -555,6 +569,9 @@
 				FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */,
 				FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */,
 				FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */,
+				BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -579,6 +596,7 @@
 				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,
 				F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */,
 				FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */,
+				BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

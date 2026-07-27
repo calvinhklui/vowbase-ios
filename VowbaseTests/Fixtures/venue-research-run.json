@@ -1,0 +1,37 @@
+{
+  "run": {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "venueId": "20000000-0000-4000-8000-000000000001",
+    "weddingId": "30000000-0000-4000-8000-000000000001",
+    "sourceType": "website",
+    "sourceUrl": "https://venue.example/research",
+    "status": "ready",
+    "errorCode": null,
+    "ocrUsed": false,
+    "createdAt": "2026-07-25T14:00:00.123Z",
+    "updatedAt": "2026-07-25T14:01:00Z",
+    "completedAt": "2026-07-25T14:01:00Z"
+  },
+  "suggestions": [
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "runId": "10000000-0000-4000-8000-000000000001",
+      "fieldKey": "capacity_max",
+      "currentValue": 150,
+      "suggestedValue": 175,
+      "confidence": 0.91,
+      "decision": "pending",
+      "conflictReason": null
+    }
+  ],
+  "facts": [
+    {
+      "id": "50000000-0000-4000-8000-000000000001",
+      "runId": "10000000-0000-4000-8000-000000000001",
+      "topic": "Rain plan",
+      "content": "The conservatory is available in wet weather.",
+      "decision": "pending",
+      "createdAt": "2026-07-25T14:01:00Z"
+    }
+  ]
+}

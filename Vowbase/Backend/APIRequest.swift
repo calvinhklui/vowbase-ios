@@ -11,10 +11,17 @@ struct APIRequest<Response: Decodable & Sendable>: Sendable {
     let method: Method
     let path: String
     let body: Data?
+    let headers: [String: String]
 
-    init(method: Method, path: String, body: Data? = nil) {
+    init(
+        method: Method,
+        path: String,
+        body: Data? = nil,
+        headers: [String: String] = [:]
+    ) {
         self.method = method
         self.path = path
         self.body = body
+        self.headers = headers
     }
 }

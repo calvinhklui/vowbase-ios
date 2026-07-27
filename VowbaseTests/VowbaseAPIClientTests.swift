@@ -43,6 +43,30 @@ struct VowbaseAPIClientTests {
         #expect(UUID(uuidString: requestIDs[0]) != nil)
     }
 
+    @Test("applies optional request headers without allowing them to replace authentication")
+    func appliesRequestHeaders() async throws {
+        let transport = URLProtocolStub.State(steps: [
+            .response(statusCode: 200, body: payloadBody("ok")),
+        ])
+        let client = try makeClient(transport: transport, auth: APIClientAuthStub())
+
+        let _: Payload = try await client.send(
+            APIRequest(
+                method: .post,
+                path: "idempotent",
+                body: Data("{}".utf8),
+                headers: [
+                    "Idempotency-Key": "idempotency-key-1",
+                    "Authorization": "Bearer untrusted",
+                ]
+            )
+        )
+
+        let request = try #require(transport.requests.first)
+        #expect(request.value(forHTTPHeaderField: "Idempotency-Key") == "idempotency-key-1")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer access-token")
+    }
+
     @Test("preserves the configured base path and merges base and request queries")
     func constructsURLUnderBase() async throws {
         let transport = URLProtocolStub.State(steps: [
