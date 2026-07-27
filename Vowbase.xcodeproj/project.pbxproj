@@ -67,6 +67,13 @@
 		F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000018 /* VenueRepository.swift */; };
 		F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */; };
 		F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */; };
+		F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000011 /* InspirationModels.swift */; };
+		F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */; };
+		F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */; };
+		F7A3B4C5D6E7000000000004 /* AttachmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */; };
+		F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */; };
+		F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */; };
+		F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -145,6 +152,13 @@
 		F6A3B4C5D6E7000000000018 /* VenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueRepository.swift"; sourceTree = "<group>"; };
 		F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/SupabaseVenueRepository.swift"; sourceTree = "<group>"; };
 		F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VendorBudgetVenueRepositoryTests.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000011 /* InspirationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationModels.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseInspirationRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentModels.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAttachmentRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationAttachmentRepositoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -186,6 +200,8 @@
 				F3A3B4C5D6E7000000000039 /* People */,
 				F3A3B4C5D6E700000000003A /* Invitations */,
 				F4A3B4C5D6E7000000000039 /* Guests */,
+				F7A3B4C5D6E7000000000039 /* Inspiration */,
+				F7A3B4C5D6E700000000003A /* Attachments */,
 				F6A3B4C5D6E7000000000011 /* VendorModels.swift */, F6A3B4C5D6E7000000000012 /* VendorRepository.swift */, F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */,
 				F6A3B4C5D6E7000000000014 /* BudgetModels.swift */, F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */, F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
 				F6A3B4C5D6E7000000000017 /* VenueModels.swift */, F6A3B4C5D6E7000000000018 /* VenueRepository.swift */, F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
@@ -225,6 +241,7 @@
 				F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */,
 				F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */,
 				F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */,
+				F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -289,6 +306,26 @@
 				F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */,
 			);
 			path = "Features/Guests";
+			sourceTree = "<group>";
+		};
+		F7A3B4C5D6E7000000000039 /* Inspiration */ = {
+			isa = PBXGroup;
+			children = (
+				F7A3B4C5D6E7000000000011 /* InspirationModels.swift */,
+				F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */,
+				F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */,
+			);
+			path = "Features/Inspiration";
+			sourceTree = "<group>";
+		};
+		F7A3B4C5D6E700000000003A /* Attachments */ = {
+			isa = PBXGroup;
+			children = (
+				F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */,
+				F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */,
+				F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */,
+			);
+			path = "Features/Attachments";
 			sourceTree = "<group>";
 		};
 		E1F2A3B4C5D6000000000038 /* Models */ = {
@@ -474,6 +511,12 @@
 				F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */, F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */, F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */,
 				F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */, F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */, F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */,
 				F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */, F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */, F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */,
+				F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000004 /* AttachmentModels.swift in Sources */,
+				F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -495,6 +538,7 @@
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
 				F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */,
 				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
+				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
