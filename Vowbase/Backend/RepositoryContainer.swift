@@ -16,6 +16,7 @@ struct RepositoryContainer: Sendable {
     let attachments: any AttachmentRepository
     let maps: any MapWorkflowRepository
     let venueResearch: any VenueResearchRepository
+    let venuePhotos: any VenuePhotoServicing
 
     init(supabase: SupabaseProvider, api: any VowbaseAPIClientProtocol) {
         workspace = SupabaseWorkspaceRepository(provider: supabase, api: api)
@@ -31,5 +32,6 @@ struct RepositoryContainer: Sendable {
         attachments = SupabaseAttachmentRepository(provider: supabase)
         maps = APIMapWorkflowRepository(api: api)
         venueResearch = APIVenueResearchRepository(api: api)
+        venuePhotos = VenuePhotoService(api: api)
     }
 }
