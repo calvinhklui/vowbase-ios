@@ -57,6 +57,16 @@
 		F5A3B4C5D6E7000000000007 /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000017 /* TaskRepository.swift */; };
 		F5A3B4C5D6E7000000000008 /* SupabaseTaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */; };
 		F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */; };
+		F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000011 /* VendorModels.swift */; };
+		F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000012 /* VendorRepository.swift */; };
+		F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */; };
+		F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000014 /* BudgetModels.swift */; };
+		F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */; };
+		F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */; };
+		F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000017 /* VenueModels.swift */; };
+		F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000018 /* VenueRepository.swift */; };
+		F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */; };
+		F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -125,6 +135,16 @@
 		F5A3B4C5D6E7000000000017 /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Tasks/TaskRepository.swift"; sourceTree = "<group>"; };
 		F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Tasks/SupabaseTaskRepository.swift"; sourceTree = "<group>"; };
 		F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTaskRepositoryTests.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000011 /* VendorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Vendors/VendorModels.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000012 /* VendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Vendors/VendorRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Vendors/SupabaseVendorRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000014 /* BudgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Budget/BudgetModels.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Budget/BudgetRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Budget/SupabaseBudgetRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000017 /* VenueModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueModels.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000018 /* VenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/SupabaseVenueRepository.swift"; sourceTree = "<group>"; };
+		F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VendorBudgetVenueRepositoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +186,9 @@
 				F3A3B4C5D6E7000000000039 /* People */,
 				F3A3B4C5D6E700000000003A /* Invitations */,
 				F4A3B4C5D6E7000000000039 /* Guests */,
+				F6A3B4C5D6E7000000000011 /* VendorModels.swift */, F6A3B4C5D6E7000000000012 /* VendorRepository.swift */, F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */,
+				F6A3B4C5D6E7000000000014 /* BudgetModels.swift */, F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */, F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
+				F6A3B4C5D6E7000000000017 /* VenueModels.swift */, F6A3B4C5D6E7000000000018 /* VenueRepository.swift */, F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
 				F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */,
 				F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */,
 				F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */,
@@ -201,6 +224,7 @@
 				F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */,
 				F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */,
 				F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */,
+				F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -447,6 +471,9 @@
 				F5A3B4C5D6E7000000000006 /* TaskModels.swift in Sources */,
 				F5A3B4C5D6E7000000000007 /* TaskRepository.swift in Sources */,
 				F5A3B4C5D6E7000000000008 /* SupabaseTaskRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */, F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */, F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */, F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */, F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */, F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */, F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -467,6 +494,7 @@
 				C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
 				F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */,
+				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
