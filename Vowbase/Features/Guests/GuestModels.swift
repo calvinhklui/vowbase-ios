@@ -173,6 +173,21 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         case geocodeStatus = "geocode_status"
     }
 
+    var isEmpty: Bool {
+        firstName == nil
+            && lastName == .unchanged
+            && email == .unchanged
+            && phone == .unchanged
+            && address == .unchanged
+            && customFields == nil
+            && rsvpStatus == .unchanged
+            && originLabel == .unchanged
+            && originLatitude == .unchanged
+            && originLongitude == .unchanged
+            && originPrecision == .unchanged
+            && geocodeStatus == .unchanged
+    }
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(firstName, forKey: .firstName)

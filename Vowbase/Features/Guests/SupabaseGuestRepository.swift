@@ -28,6 +28,12 @@ final class SupabaseGuestRepository: GuestRepository, @unchecked Sendable {
     }
 
     func updateGuest(id: UUID, patch: GuestPatch) async throws -> Guest {
+        guard !patch.isEmpty else {
+            throw BackendError.validation(
+                message: "Guest update must include at least one field.",
+                requestID: nil
+            )
+        }
         if let customFields = patch.customFields {
             try validateCustomFields(customFields)
         }

@@ -131,6 +131,21 @@ struct GuestRepositoryTests {
         #expect(values["custom_fields"] == nil)
     }
 
+    @Test("an all-unchanged guest patch fails before authentication or database access")
+    func rejectsEmptyGuestPatchBeforeDataAccess() async throws {
+        let database = GuestDatabaseSpy(authenticatedUserID: userID)
+        let repository = SupabaseGuestRepository(database: database)
+
+        await #expect(throws: BackendError.validation(
+            message: "Guest update must include at least one field.",
+            requestID: nil
+        )) {
+            _ = try await repository.updateGuest(id: guestID, patch: GuestPatch())
+        }
+        #expect(await database.authenticatedUserIDCallCount == 0)
+        #expect(await database.updateRecords.isEmpty)
+    }
+
     @Test("custom_fields remains a non-null JSON object for guest creates and updates")
     func rejectsUnsafeCustomFieldShapesBeforeDataAccess() async throws {
         let database = GuestDatabaseSpy(authenticatedUserID: userID)
@@ -212,6 +227,38 @@ struct GuestRepositoryTests {
             productionKey: "VOWBASE_PRODUCTION_API_URL"
         )) {
             _ = try GuestIntegrationConfiguration.load(environment: apiEquivalent)
+        }
+
+        for nonProductionURL in [
+            "https://test-ref.supabase.co/.",
+            "https://test-ref.supabase.co/segment/..",
+            "https://test-ref.supabase.co/%2E",
+        ] {
+            var sameSupabaseProjectHost = integrationEnvironment
+            sameSupabaseProjectHost["VOWBASE_GUEST_INTEGRATION_SUPABASE_URL"] = nonProductionURL
+            sameSupabaseProjectHost["VOWBASE_PRODUCTION_SUPABASE_URL"] = "https://test-ref.supabase.co/production-path"
+            #expect(throws: GuestIntegrationConfigurationError.conflict(
+                actualKey: "VOWBASE_GUEST_INTEGRATION_SUPABASE_URL",
+                productionKey: "VOWBASE_PRODUCTION_SUPABASE_URL"
+            ), "Supabase host must fail closed for \(nonProductionURL)") {
+                _ = try GuestIntegrationConfiguration.load(environment: sameSupabaseProjectHost)
+            }
+        }
+
+        for nonProductionURL in [
+            "https://api.test.example.com/api/.",
+            "https://api.test.example.com/api/segment/..",
+            "https://api.test.example.com/api/%2E",
+        ] {
+            var dotSegmentEquivalentAPI = integrationEnvironment
+            dotSegmentEquivalentAPI["VOWBASE_GUEST_INTEGRATION_API_URL"] = nonProductionURL
+            dotSegmentEquivalentAPI["VOWBASE_PRODUCTION_API_URL"] = "https://API.TEST.EXAMPLE.COM:443/api"
+            #expect(throws: GuestIntegrationConfigurationError.conflict(
+                actualKey: "VOWBASE_GUEST_INTEGRATION_API_URL",
+                productionKey: "VOWBASE_PRODUCTION_API_URL"
+            ), "API URL must canonicalize \(nonProductionURL)") {
+                _ = try GuestIntegrationConfiguration.load(environment: dotSegmentEquivalentAPI)
+            }
         }
     }
 
@@ -507,7 +554,12 @@ private struct GuestIntegrationConfiguration {
         let apiURL = try required("VOWBASE_GUEST_INTEGRATION_API_URL", in: environment)
         let productionSupabaseURL = try required("VOWBASE_PRODUCTION_SUPABASE_URL", in: environment)
         let productionAPIURL = try required("VOWBASE_PRODUCTION_API_URL", in: environment)
-        try requireDistinctURL(actual: supabaseURL, production: productionSupabaseURL, actualKey: "VOWBASE_GUEST_INTEGRATION_SUPABASE_URL", productionKey: "VOWBASE_PRODUCTION_SUPABASE_URL")
+        try requireDistinctSupabaseHost(
+            actual: supabaseURL,
+            production: productionSupabaseURL,
+            actualKey: "VOWBASE_GUEST_INTEGRATION_SUPABASE_URL",
+            productionKey: "VOWBASE_PRODUCTION_SUPABASE_URL"
+        )
         try requireDistinctURL(actual: apiURL, production: productionAPIURL, actualKey: "VOWBASE_GUEST_INTEGRATION_API_URL", productionKey: "VOWBASE_PRODUCTION_API_URL")
         try validateSupabaseIdentity(
             url: supabaseURL,
@@ -559,22 +611,59 @@ private struct GuestIntegrationConfiguration {
         }
     }
 
+    private static func requireDistinctSupabaseHost(
+        actual: String,
+        production: String,
+        actualKey: String,
+        productionKey: String
+    ) throws {
+        guard let actualHost = URLComponents(string: actual)?.host?.lowercased(),
+              let productionHost = URLComponents(string: production)?.host?.lowercased(),
+              actualHost != productionHost else {
+            throw GuestIntegrationConfigurationError.conflict(
+                actualKey: actualKey,
+                productionKey: productionKey
+            )
+        }
+    }
+
     private static func normalizedURL(_ value: String) -> String? {
         guard var components = URLComponents(string: value),
               let scheme = components.scheme?.lowercased(),
               let host = components.host?.lowercased() else { return nil }
         components.scheme = scheme
         components.host = host
-        if components.port == nil {
-            components.port = scheme == "https" ? 443 : (scheme == "http" ? 80 : nil)
+        if (scheme == "https" && components.port == 443)
+            || (scheme == "http" && components.port == 80) {
+            components.port = nil
         }
-        while components.path.count > 1 && components.path.hasSuffix("/") {
-            components.path.removeLast()
-        }
-        components.path = components.path == "/" ? "" : components.path
+        components.percentEncodedPath = canonicalPath(components.percentEncodedPath)
         components.query = nil
         components.fragment = nil
         return components.string
+    }
+
+    private static func canonicalPath(_ path: String) -> String {
+        var segments = [String]()
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/")
+
+        for (index, rawSegment) in path.split(separator: "/", omittingEmptySubsequences: false).enumerated() {
+            if index == 0 && path.hasPrefix("/") { continue }
+            let segment = String(rawSegment)
+            let decoded = segment.removingPercentEncoding ?? segment
+            switch decoded {
+            case ".":
+                continue
+            case "..":
+                if !segments.isEmpty { segments.removeLast() }
+            default:
+                segments.append(decoded.addingPercentEncoding(withAllowedCharacters: allowed) ?? segment)
+            }
+        }
+
+        while segments.last == "" { segments.removeLast() }
+        return segments.isEmpty ? "" : "/" + segments.joined(separator: "/")
     }
 
     private static func validateSupabaseIdentity(url: String, projectRef: String, expectedHost: String) throws {
