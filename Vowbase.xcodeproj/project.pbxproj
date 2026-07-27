@@ -74,6 +74,8 @@
 		F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */; };
 		F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */; };
 		F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */; };
+		F9A3B4C5D6E7000000000001 /* RepositoryContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */; };
+		F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -159,6 +161,8 @@
 		F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentRepository.swift; sourceTree = "<group>"; };
 		F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAttachmentRepository.swift; sourceTree = "<group>"; };
 		F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationAttachmentRepositoryTests.swift; sourceTree = "<group>"; };
+		F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryContainer.swift; sourceTree = "<group>"; };
+		F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryContainerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -242,6 +246,7 @@
 				F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */,
 				F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */,
 				F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */,
+				F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -256,6 +261,7 @@
 				C1D2E3F4A5B6000000000011 /* APIRequest.swift */,
 				A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */,
 				D1E2F3A4B5C6000000000012 /* AppDependencies.swift */,
+				F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */,
 				D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */,
 				B1C2D3E4F5A6000000000013 /* AuthService.swift */,
 				B1C2D3E4F5A6000000000012 /* AuthServicing.swift */,
@@ -517,6 +523,7 @@
 				F7A3B4C5D6E7000000000004 /* AttachmentModels.swift in Sources */,
 				F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */,
 				F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */,
+				F9A3B4C5D6E7000000000001 /* RepositoryContainer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -539,6 +546,7 @@
 				F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */,
 				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
 				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,
+				F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

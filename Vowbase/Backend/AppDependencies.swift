@@ -4,6 +4,18 @@ struct AppDependencies: Sendable {
     let supabase: SupabaseProvider
     let auth: any AuthServicing
     let api: any VowbaseAPIClientProtocol
+    let repositories: RepositoryContainer
+
+    init(
+        supabase: SupabaseProvider,
+        auth: any AuthServicing,
+        api: any VowbaseAPIClientProtocol
+    ) {
+        self.supabase = supabase
+        self.auth = auth
+        self.api = api
+        repositories = RepositoryContainer(supabase: supabase, api: api)
+    }
 
     static func live(configuration: AppConfiguration) -> AppDependencies {
         live(
