@@ -1,0 +1,12 @@
+{
+  "results": [{
+    "id": "venue-1",
+    "latitude": 40.758,
+    "longitude": -73.9855,
+    "durationSeconds": 1800,
+    "distanceMeters": 8300,
+    "source": "google_routes",
+    "estimated": false,
+    "travelMode": "drive"
+  }]
+}

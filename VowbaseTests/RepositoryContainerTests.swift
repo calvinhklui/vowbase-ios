@@ -9,6 +9,7 @@ import Testing
         #expect(container.schedule is SupabaseScheduleRepository)
         #expect(container.inspiration is SupabaseInspirationRepository)
         #expect(container.attachments is SupabaseAttachmentRepository)
+        #expect(container.maps is APIMapWorkflowRepository)
     }
 }
 private struct ContainerAPI: VowbaseAPIClientProtocol { func send<Response>(_ request: APIRequest<Response>) async throws -> Response where Response : Decodable, Response : Sendable { throw BackendError.invalidResponse } }

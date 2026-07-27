@@ -76,6 +76,12 @@
 		F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */; };
 		F9A3B4C5D6E7000000000001 /* RepositoryContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */; };
 		F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */; };
+		FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */; };
+		FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */; };
+		FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */; };
+		FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */; };
+		FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000015 /* geocode-response.json */; };
+		FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000016 /* travel-times-response.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -163,6 +169,12 @@
 		F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationAttachmentRepositoryTests.swift; sourceTree = "<group>"; };
 		F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryContainer.swift; sourceTree = "<group>"; };
 		F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryContainerTests.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowModels.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowRepository.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIMapWorkflowRepository.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowRepositoryTests.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000015 /* geocode-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "geocode-response.json"; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000016 /* travel-times-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "travel-times-response.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -206,6 +218,7 @@
 				F4A3B4C5D6E7000000000039 /* Guests */,
 				F7A3B4C5D6E7000000000039 /* Inspiration */,
 				F7A3B4C5D6E700000000003A /* Attachments */,
+				FAA3B4C5D6E7000000000039 /* Maps */,
 				F6A3B4C5D6E7000000000011 /* VendorModels.swift */, F6A3B4C5D6E7000000000012 /* VendorRepository.swift */, F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */,
 				F6A3B4C5D6E7000000000014 /* BudgetModels.swift */, F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */, F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
 				F6A3B4C5D6E7000000000017 /* VenueModels.swift */, F6A3B4C5D6E7000000000018 /* VenueRepository.swift */, F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
@@ -247,6 +260,7 @@
 				F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */,
 				F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */,
 				F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */,
+				FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -334,6 +348,16 @@
 			path = "Features/Attachments";
 			sourceTree = "<group>";
 		};
+		FAA3B4C5D6E7000000000039 /* Maps */ = {
+			isa = PBXGroup;
+			children = (
+				FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */,
+				FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */,
+				FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */,
+			);
+			path = "Features/Maps";
+			sourceTree = "<group>";
+		};
 		E1F2A3B4C5D6000000000038 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -348,6 +372,8 @@
 				A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */,
 				E1F2A3B4C5D6000000000012 /* workspace-membership.json */,
 				F2A3B4C5D6E7000000000015 /* session-summary.json */,
+				FAA3B4C5D6E7000000000015 /* geocode-response.json */,
+				FAA3B4C5D6E7000000000016 /* travel-times-response.json */,
 			);
 			path = Fixtures;
 			sourceTree = "<group>";
@@ -471,6 +497,8 @@
 				A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */,
 				E1F2A3B4C5D6000000000002 /* workspace-membership.json in Resources */,
 				F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */,
+				FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */,
+				FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -524,6 +552,9 @@
 				F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */,
 				F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */,
 				F9A3B4C5D6E7000000000001 /* RepositoryContainer.swift in Sources */,
+				FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */,
+				FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */,
+				FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -547,6 +578,7 @@
 				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
 				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,
 				F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */,
+				FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,13 @@
+{
+  "cached": false,
+  "results": [{
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "displayName": "New York, New York, United States",
+    "city": "New York",
+    "region": "New York",
+    "country": "United States",
+    "provider": "nominatim",
+    "providerResultId": "175905"
+  }]
+}
