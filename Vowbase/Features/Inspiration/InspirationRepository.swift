@@ -1,0 +1,2 @@
+import Foundation
+protocol InspirationRepository:Sendable{func inspirationItems(weddingID:UUID)async throws->[InspirationItem];func createInspirationItem(_ draft:InspirationDraft,weddingID:UUID)async throws->InspirationItem;func updateInspirationItem(id:UUID,patch:InspirationPatch)async throws->InspirationItem;func deleteInspirationItem(id:UUID)async throws;func moodboardRequirements(weddingID:UUID)async throws->[MoodboardRequirement];func moodboardNotes(weddingID:UUID)async throws->[MoodboardNote]}

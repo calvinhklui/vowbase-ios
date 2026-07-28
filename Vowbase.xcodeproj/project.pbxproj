@@ -9,16 +9,198 @@
 /* Begin PBXBuildFile section */
 		A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */; };
 		A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* ContentView.swift */; };
+		A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60000000000B1 /* Supabase */; };
+		A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */; };
+		A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */; };
+		A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */; };
+		A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */; };
+		A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */; };
+		A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */; };
+		A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001E /* BackendError.swift */; };
+		A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */; };
+		B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */; };
+		B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000012 /* AuthServicing.swift */; };
+		B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000013 /* AuthService.swift */; };
+		C1D2E3F4A5B6000000000001 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000011 /* APIRequest.swift */; };
+		C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */; };
+		C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */; };
+		C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */; };
+		D1E2F3A4B5C6000000000001 /* AppDependenciesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */; };
+		D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000012 /* AppDependencies.swift */; };
+		D1E2F3A4B5C6000000000003 /* AuthCallbackHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */; };
+		E1F2A3B4C5D6000000000001 /* DatabaseDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */; };
+		E1F2A3B4C5D6000000000002 /* workspace-membership.json in Resources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000012 /* workspace-membership.json */; };
+		E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000013 /* JSONValue.swift */; };
+		E1F2A3B4C5D6000000000004 /* DatabaseDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000014 /* DatabaseDecoding.swift */; };
+		F2A3B4C5D6E7000000000001 /* WorkspaceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */; };
+		F2A3B4C5D6E7000000000002 /* WorkspaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */; };
+		F2A3B4C5D6E7000000000003 /* SupabaseWorkspaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */; };
+		F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */; };
+		F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000015 /* session-summary.json */; };
+		F2A3B4C5D6E7000000000006 /* WorkspaceRepositoryIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */; };
+		F3A3B4C5D6E7000000000001 /* ProfileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000011 /* ProfileModels.swift */; };
+		F3A3B4C5D6E7000000000002 /* ProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000012 /* ProfileRepository.swift */; };
+		F3A3B4C5D6E7000000000003 /* SupabaseProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000013 /* SupabaseProfileRepository.swift */; };
+		F3A3B4C5D6E7000000000004 /* InvitationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000014 /* InvitationModels.swift */; };
+		F3A3B4C5D6E7000000000005 /* InvitationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */; };
+		F3A3B4C5D6E7000000000006 /* SupabaseInvitationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */; };
+		F3A3B4C5D6E7000000000007 /* ProfileInvitationRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */; };
+		F4A3B4C5D6E7000000000001 /* GuestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000011 /* GuestModels.swift */; };
+		F4A3B4C5D6E7000000000002 /* GuestRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000012 /* GuestRepository.swift */; };
+		F4A3B4C5D6E7000000000003 /* SupabaseGuestRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */; };
+		F4A3B4C5D6E7000000000004 /* GuestRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */; };
+		F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */; };
+		F5A3B4C5D6E7000000000003 /* ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */; };
+		F5A3B4C5D6E7000000000004 /* ScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */; };
+		F5A3B4C5D6E7000000000005 /* SupabaseScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */; };
+		F5A3B4C5D6E7000000000006 /* TaskModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000016 /* TaskModels.swift */; };
+		F5A3B4C5D6E7000000000007 /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000017 /* TaskRepository.swift */; };
+		F5A3B4C5D6E7000000000008 /* SupabaseTaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */; };
+		F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */; };
+		F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000011 /* VendorModels.swift */; };
+		F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000012 /* VendorRepository.swift */; };
+		F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */; };
+		F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000014 /* BudgetModels.swift */; };
+		F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */; };
+		F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */; };
+		F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000017 /* VenueModels.swift */; };
+		F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000018 /* VenueRepository.swift */; };
+		F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */; };
+		F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */; };
+		F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000011 /* InspirationModels.swift */; };
+		F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */; };
+		F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */; };
+		F7A3B4C5D6E7000000000004 /* AttachmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */; };
+		F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */; };
+		F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */; };
+		F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */; };
+		F9A3B4C5D6E7000000000001 /* RepositoryContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */; };
+		F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */; };
+		FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */; };
+		FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */; };
+		FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */; };
+		FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */; };
+		FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000015 /* geocode-response.json */; };
+		FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */ = {isa = PBXBuildFile; fileRef = FAA3B4C5D6E7000000000016 /* travel-times-response.json */; };
+		BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */; };
+		BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */; };
+		BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */; };
+		BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */; };
+		BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */; };
+		BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */; };
+		BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000017 /* venue-research-run.json */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D4E5F60000000000A0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6000000000070 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F6000000000040;
+			remoteInfo = Vowbase;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F6000000000010 /* Vowbase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vowbase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VowbaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000017 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000018 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000019 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig.example; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendErrorTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "error-wedding-forbidden.json"; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorEnvelope.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001E /* BackendError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendError.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProvider.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6000000000012 /* AuthServicing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServicing.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6000000000013 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B6000000000011 /* APIRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIRequest.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClient.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLProtocolStub.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClientTests.swift; sourceTree = "<group>"; };
+		D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependenciesTests.swift; sourceTree = "<group>"; };
+		D1E2F3A4B5C6000000000012 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
+		D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCallbackHandler.swift; sourceTree = "<group>"; };
+		E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDecodingTests.swift; sourceTree = "<group>"; };
+		E1F2A3B4C5D6000000000012 /* workspace-membership.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "workspace-membership.json"; sourceTree = "<group>"; };
+		E1F2A3B4C5D6000000000013 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
+		E1F2A3B4C5D6000000000014 /* DatabaseDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDecoding.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceModels.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepository.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseWorkspaceRepository.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryTests.swift; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000015 /* session-summary.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "session-summary.json"; sourceTree = "<group>"; };
+		F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepositoryIntegrationTests.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000011 /* ProfileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000012 /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000013 /* SupabaseProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProfileRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000014 /* InvitationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitationModels.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitationRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseInvitationRepository.swift; sourceTree = "<group>"; };
+		F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileInvitationRepositoryTests.swift; sourceTree = "<group>"; };
+		F4A3B4C5D6E7000000000011 /* GuestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestModels.swift; sourceTree = "<group>"; };
+		F4A3B4C5D6E7000000000012 /* GuestRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepository.swift; sourceTree = "<group>"; };
+		F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseGuestRepository.swift; sourceTree = "<group>"; };
+		F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepositoryTests.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainRepositorySupport.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Schedule/ScheduleModels.swift"; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Schedule/ScheduleRepository.swift"; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Schedule/SupabaseScheduleRepository.swift"; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000016 /* TaskModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Tasks/TaskModels.swift"; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000017 /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Tasks/TaskRepository.swift"; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Tasks/SupabaseTaskRepository.swift"; sourceTree = "<group>"; };
+		F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTaskRepositoryTests.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000011 /* VendorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Vendors/VendorModels.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000012 /* VendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Vendors/VendorRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Vendors/SupabaseVendorRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000014 /* BudgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Budget/BudgetModels.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Budget/BudgetRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Budget/SupabaseBudgetRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000017 /* VenueModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueModels.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000018 /* VenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueRepository.swift"; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/SupabaseVenueRepository.swift"; sourceTree = "<group>"; };
+		F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VendorBudgetVenueRepositoryTests.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000011 /* InspirationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationModels.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseInspirationRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentModels.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAttachmentRepository.swift; sourceTree = "<group>"; };
+		F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationAttachmentRepositoryTests.swift; sourceTree = "<group>"; };
+		F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryContainer.swift; sourceTree = "<group>"; };
+		F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryContainerTests.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowModels.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowRepository.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIMapWorkflowRepository.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowRepositoryTests.swift; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000015 /* geocode-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "geocode-response.json"; sourceTree = "<group>"; };
+		FAA3B4C5D6E7000000000016 /* travel-times-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "travel-times-response.json"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueResearchModels.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenueResearchRepository.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/APIVenueResearchRepository.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Features/Venues/VenuePhotoService.swift"; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueResearchRepositoryTests.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenuePhotoServiceTests.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000017 /* venue-research-run.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "venue-research-run.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1B2C3D4E5F6000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000021 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -31,7 +213,9 @@
 		A1B2C3D4E5F6000000000030 = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6000000000034 /* Configuration */,
 				A1B2C3D4E5F6000000000031 /* Vowbase */,
+				A1B2C3D4E5F6000000000033 /* VowbaseTests */,
 				A1B2C3D4E5F6000000000032 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +223,27 @@
 		A1B2C3D4E5F6000000000031 /* Vowbase */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6000000000037 /* Backend */,
+				A1B2C3D4E5F6000000000035 /* Configuration */,
+				E1F2A3B4C5D6000000000038 /* Models */,
+				F2A3B4C5D6E7000000000039 /* Workspace */,
+				F3A3B4C5D6E7000000000039 /* People */,
+				F3A3B4C5D6E700000000003A /* Invitations */,
+				F4A3B4C5D6E7000000000039 /* Guests */,
+				F7A3B4C5D6E7000000000039 /* Inspiration */,
+				F7A3B4C5D6E700000000003A /* Attachments */,
+				FAA3B4C5D6E7000000000039 /* Maps */,
+				F6A3B4C5D6E7000000000011 /* VendorModels.swift */, F6A3B4C5D6E7000000000012 /* VendorRepository.swift */, F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */,
+				F6A3B4C5D6E7000000000014 /* BudgetModels.swift */, F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */, F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
+				F6A3B4C5D6E7000000000017 /* VenueModels.swift */, F6A3B4C5D6E7000000000018 /* VenueRepository.swift */, F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
+				BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */, BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */, BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */, BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */,
+				F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */,
+				F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */,
+				F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */,
+				F5A3B4C5D6E7000000000016 /* TaskModels.swift */,
+				F5A3B4C5D6E7000000000017 /* TaskRepository.swift */,
+				F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */,
+				A1B2C3D4E5F600000000001A /* Info.plist */,
 				A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */,
 				A1B2C3D4E5F6000000000012 /* ContentView.swift */,
 			);
@@ -49,8 +254,164 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6000000000010 /* Vowbase.app */,
+				A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000033 /* VowbaseTests */ = {
+			isa = PBXGroup;
+			children = (
+				D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */,
+				A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */,
+				A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */,
+				A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */,
+				E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */,
+				F2A3B4C5D6E7000000000014 /* WorkspaceRepositoryTests.swift */,
+				F2A3B4C5D6E7000000000016 /* WorkspaceRepositoryIntegrationTests.swift */,
+				F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */,
+				F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */,
+				F8A3B4C5D6E7000000000011 /* ScheduleTaskRepositoryTests.swift */,
+				F8A3B4C5D6E7000000000012 /* VendorBudgetVenueRepositoryTests.swift */,
+				F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */,
+				F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */,
+				FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */,
+				BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */,
+				BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */,
+				A1B2C3D4E5F6000000000036 /* Fixtures */,
+				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
+				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
+				A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */,
+			);
+			path = VowbaseTests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000037 /* Backend */ = {
+			isa = PBXGroup;
+			children = (
+				C1D2E3F4A5B6000000000011 /* APIRequest.swift */,
+				A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */,
+				D1E2F3A4B5C6000000000012 /* AppDependencies.swift */,
+				F9A3B4C5D6E7000000000011 /* RepositoryContainer.swift */,
+				D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */,
+				B1C2D3E4F5A6000000000013 /* AuthService.swift */,
+				B1C2D3E4F5A6000000000012 /* AuthServicing.swift */,
+				A1B2C3D4E5F600000000001E /* BackendError.swift */,
+				E1F2A3B4C5D6000000000014 /* DatabaseDecoding.swift */,
+				B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */,
+				C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */,
+				F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */,
+			);
+			path = Backend;
+			sourceTree = "<group>";
+		};
+		F2A3B4C5D6E7000000000039 /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */,
+				F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */,
+				F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */,
+			);
+			path = "Features/Workspace";
+			sourceTree = "<group>";
+		};
+		F3A3B4C5D6E7000000000039 /* People */ = {
+			isa = PBXGroup;
+			children = (
+				F3A3B4C5D6E7000000000011 /* ProfileModels.swift */,
+				F3A3B4C5D6E7000000000012 /* ProfileRepository.swift */,
+				F3A3B4C5D6E7000000000013 /* SupabaseProfileRepository.swift */,
+			);
+			path = "Features/People";
+			sourceTree = "<group>";
+		};
+		F3A3B4C5D6E700000000003A /* Invitations */ = {
+			isa = PBXGroup;
+			children = (
+				F3A3B4C5D6E7000000000014 /* InvitationModels.swift */,
+				F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */,
+				F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */,
+			);
+			path = "Features/Invitations";
+			sourceTree = "<group>";
+		};
+		F4A3B4C5D6E7000000000039 /* Guests */ = {
+			isa = PBXGroup;
+			children = (
+				F4A3B4C5D6E7000000000011 /* GuestModels.swift */,
+				F4A3B4C5D6E7000000000012 /* GuestRepository.swift */,
+				F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */,
+			);
+			path = "Features/Guests";
+			sourceTree = "<group>";
+		};
+		F7A3B4C5D6E7000000000039 /* Inspiration */ = {
+			isa = PBXGroup;
+			children = (
+				F7A3B4C5D6E7000000000011 /* InspirationModels.swift */,
+				F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */,
+				F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */,
+			);
+			path = "Features/Inspiration";
+			sourceTree = "<group>";
+		};
+		F7A3B4C5D6E700000000003A /* Attachments */ = {
+			isa = PBXGroup;
+			children = (
+				F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */,
+				F7A3B4C5D6E7000000000015 /* AttachmentRepository.swift */,
+				F7A3B4C5D6E7000000000016 /* SupabaseAttachmentRepository.swift */,
+			);
+			path = "Features/Attachments";
+			sourceTree = "<group>";
+		};
+		FAA3B4C5D6E7000000000039 /* Maps */ = {
+			isa = PBXGroup;
+			children = (
+				FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */,
+				FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */,
+				FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */,
+			);
+			path = "Features/Maps";
+			sourceTree = "<group>";
+		};
+		E1F2A3B4C5D6000000000038 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				E1F2A3B4C5D6000000000013 /* JSONValue.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000036 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F600000000001C /* error-wedding-forbidden.json */,
+				E1F2A3B4C5D6000000000012 /* workspace-membership.json */,
+				F2A3B4C5D6E7000000000015 /* session-summary.json */,
+				FAA3B4C5D6E7000000000015 /* geocode-response.json */,
+				FAA3B4C5D6E7000000000016 /* travel-times-response.json */,
+				BAA3B4C5D6E7000000000017 /* venue-research-run.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000034 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000017 /* Debug.xcconfig */,
+				A1B2C3D4E5F6000000000018 /* Release.xcconfig */,
+				A1B2C3D4E5F6000000000019 /* Local.xcconfig.example */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000035 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */,
+			);
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -70,10 +431,31 @@
 			);
 			name = Vowbase;
 			packageProductDependencies = (
+				A1B2C3D4E5F60000000000B1 /* Supabase */,
 			);
 			productName = Vowbase;
 			productReference = A1B2C3D4E5F6000000000010 /* Vowbase.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A1B2C3D4E5F6000000000041 /* VowbaseTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000052 /* Build configuration list for PBXNativeTarget "VowbaseTests" */;
+			buildPhases = (
+				A1B2C3D4E5F6000000000062 /* Sources */,
+				A1B2C3D4E5F6000000000021 /* Frameworks */,
+				A1B2C3D4E5F6000000000063 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F60000000000A1 /* PBXTargetDependency */,
+			);
+			name = VowbaseTests;
+			packageProductDependencies = (
+			);
+			productName = VowbaseTests;
+			productReference = A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -88,6 +470,10 @@
 					A1B2C3D4E5F6000000000040 = {
 						CreatedOnToolsVersion = 26.6;
 					};
+					A1B2C3D4E5F6000000000041 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A1B2C3D4E5F6000000000040;
+					};
 				};
 			};
 			buildConfigurationList = A1B2C3D4E5F6000000000051 /* Build configuration list for PBXProject "Vowbase" */;
@@ -100,11 +486,15 @@
 			);
 			mainGroup = A1B2C3D4E5F6000000000030;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A1B2C3D4E5F60000000000B0 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			productRefGroup = A1B2C3D4E5F6000000000032 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				A1B2C3D4E5F6000000000040 /* Vowbase */,
+				A1B2C3D4E5F6000000000041 /* VowbaseTests */,
 			);
 		};
 /* End PBXProject section */
@@ -117,6 +507,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D4E5F6000000000063 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000008 /* error-wedding-forbidden.json in Resources */,
+				E1F2A3B4C5D6000000000002 /* workspace-membership.json in Resources */,
+				F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */,
+				FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */,
+				FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */,
+				BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -124,12 +527,94 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1D2E3F4A5B6000000000001 /* APIRequest.swift in Sources */,
+				A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */,
+				D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */,
+				D1E2F3A4B5C6000000000003 /* AuthCallbackHandler.swift in Sources */,
+				A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */,
+				B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */,
+				B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */,
+				A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */,
+				E1F2A3B4C5D6000000000004 /* DatabaseDecoding.swift in Sources */,
+				F2A3B4C5D6E7000000000001 /* WorkspaceModels.swift in Sources */,
+				F2A3B4C5D6E7000000000002 /* WorkspaceRepository.swift in Sources */,
+				F2A3B4C5D6E7000000000003 /* SupabaseWorkspaceRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000001 /* ProfileModels.swift in Sources */,
+				F3A3B4C5D6E7000000000002 /* ProfileRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000003 /* SupabaseProfileRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000004 /* InvitationModels.swift in Sources */,
+				F3A3B4C5D6E7000000000005 /* InvitationRepository.swift in Sources */,
+				F3A3B4C5D6E7000000000006 /* SupabaseInvitationRepository.swift in Sources */,
+				F4A3B4C5D6E7000000000001 /* GuestModels.swift in Sources */,
+				F4A3B4C5D6E7000000000002 /* GuestRepository.swift in Sources */,
+				F4A3B4C5D6E7000000000003 /* SupabaseGuestRepository.swift in Sources */,
+				E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */,
+				B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
 				A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */,
+				C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */,
+				F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */,
+				F5A3B4C5D6E7000000000003 /* ScheduleModels.swift in Sources */,
+				F5A3B4C5D6E7000000000004 /* ScheduleRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000005 /* SupabaseScheduleRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000006 /* TaskModels.swift in Sources */,
+				F5A3B4C5D6E7000000000007 /* TaskRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000008 /* SupabaseTaskRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */, F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */, F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */, F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */, F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */, F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */, F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */,
+				F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000004 /* AttachmentModels.swift in Sources */,
+				F7A3B4C5D6E7000000000005 /* AttachmentRepository.swift in Sources */,
+				F7A3B4C5D6E7000000000006 /* SupabaseAttachmentRepository.swift in Sources */,
+				F9A3B4C5D6E7000000000001 /* RepositoryContainer.swift in Sources */,
+				FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */,
+				FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */,
+				FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */,
+				BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6000000000062 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1E2F3A4B5C6000000000001 /* AppDependenciesTests.swift in Sources */,
+				A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */,
+				A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */,
+				A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */,
+				E1F2A3B4C5D6000000000001 /* DatabaseDecodingTests.swift in Sources */,
+				F2A3B4C5D6E7000000000004 /* WorkspaceRepositoryTests.swift in Sources */,
+				F2A3B4C5D6E7000000000006 /* WorkspaceRepositoryIntegrationTests.swift in Sources */,
+				F3A3B4C5D6E7000000000007 /* ProfileInvitationRepositoryTests.swift in Sources */,
+				F4A3B4C5D6E7000000000004 /* GuestRepositoryTests.swift in Sources */,
+				C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */,
+				C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */,
+				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
+				F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */,
+				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
+				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,
+				F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */,
+				FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */,
+				BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */,
+				BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D4E5F60000000000A1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D4E5F6000000000040 /* Vowbase */;
+			targetProxy = A1B2C3D4E5F60000000000A0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1B2C3D4E5F6000000000080 /* Debug */ = {
@@ -239,20 +724,14 @@
 		};
 		A1B2C3D4E5F6000000000082 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D4E5F6000000000017 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Vowbase;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Vowbase/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Mooma.Vowbase;
@@ -269,20 +748,14 @@
 		};
 		A1B2C3D4E5F6000000000083 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D4E5F6000000000018 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Vowbase;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Vowbase/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Mooma.Vowbase;
@@ -294,6 +767,44 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6000000000084 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vowbase.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vowbase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowbase";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vowbase.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vowbase.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowbase";
 			};
 			name = Release;
 		};
@@ -318,7 +829,35 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A1B2C3D4E5F6000000000052 /* Build configuration list for PBXNativeTarget "VowbaseTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000084 /* Debug */,
+				A1B2C3D4E5F6000000000085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1B2C3D4E5F60000000000B0 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.53.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1B2C3D4E5F60000000000B1 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B2C3D4E5F60000000000B0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1B2C3D4E5F6000000000070 /* Project object */;
 }

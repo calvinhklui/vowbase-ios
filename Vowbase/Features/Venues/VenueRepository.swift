@@ -1,0 +1,2 @@
+import Foundation
+protocol VenueRepository:Sendable{func venues(weddingID:UUID)async throws->[Venue];func createVenue(_ draft:VenueDraft,weddingID:UUID)async throws->Venue;func updateVenue(id:UUID,patch:VenuePatch)async throws->Venue;func deleteVenue(id:UUID)async throws;func venuePhotos(venueID:UUID)async throws->[VenuePhoto];func createVenuePhoto(_ draft:VenuePhotoDraft,venueID:UUID,weddingID:UUID)async throws->VenuePhoto;func updateVenuePhoto(id:UUID,patch:VenuePhotoPatch)async throws->VenuePhoto;func deleteVenuePhoto(id:UUID)async throws}

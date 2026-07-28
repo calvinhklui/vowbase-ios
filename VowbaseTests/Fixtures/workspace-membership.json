@@ -1,0 +1,15 @@
+{
+  "id": "01908f9d-2265-789a-bcde-f0123456789a",
+  "wedding_id": "01908f9d-2265-789a-bcde-f0123456789b",
+  "user_id": "01908f9d-2265-789a-bcde-f0123456789c",
+  "role": "partner",
+  "status": "active",
+  "created_at": "2026-07-25T14:23:45.678Z",
+  "wedding": {
+    "id": "01908f9d-2265-789a-bcde-f0123456789b",
+    "name": "Alex & Calvin",
+    "couple_names": "Alex and Calvin",
+    "wedding_date": "2027-06-12",
+    "location": "Brooklyn, NY"
+  }
+}
