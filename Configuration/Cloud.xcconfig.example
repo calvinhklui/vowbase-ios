@@ -1,0 +1,5 @@
+// Xcode Cloud generates Cloud.xcconfig before each build. Do not commit the
+// generated file or put production values in this example.
+VOWBASE_PRODUCTION_SUPABASE_URL = https:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)project-ref.supabase.co
+VOWBASE_PRODUCTION_SUPABASE_PUBLISHABLE_KEY = placeholder-publishable-key
+VOWBASE_PRODUCTION_API_URL = https:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)api.example.com/api
