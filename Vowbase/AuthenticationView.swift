@@ -143,6 +143,9 @@ final class AuthenticationCoordinator {
 struct VowbaseAppRoot: View {
     let auth: any AuthServicing
     @State private var coordinator: AuthenticationCoordinator
+#if DEBUG
+    @State private var isTestingWorkspaceActive = false
+#endif
 
     init(auth: any AuthServicing) {
         self.auth = auth
@@ -151,12 +154,26 @@ struct VowbaseAppRoot: View {
 
     var body: some View {
         Group {
+#if DEBUG
+            if isTestingWorkspaceActive {
+                VowbaseAuthenticatedContent {
+                    isTestingWorkspaceActive = false
+                }
+            } else
+#endif
             if case .signedIn = coordinator.state {
                 VowbaseAuthenticatedContent(onSignOut: coordinator.signOut)
             } else if coordinator.state == .loading {
                 AuthenticationLoadingView()
             } else {
-                AuthenticationSignInView(coordinator: coordinator)
+                AuthenticationSignInView(
+                    coordinator: coordinator
+#if DEBUG
+                    , onContinueWithTesting: {
+                        isTestingWorkspaceActive = true
+                    }
+#endif
+                )
             }
         }
     }
@@ -180,6 +197,9 @@ private struct AuthenticationLoadingView: View {
 
 private struct AuthenticationSignInView: View {
     @Bindable var coordinator: AuthenticationCoordinator
+#if DEBUG
+    let onContinueWithTesting: () -> Void = {}
+#endif
 
     var body: some View {
         ZStack {
@@ -211,8 +231,7 @@ private struct AuthenticationSignInView: View {
                         coordinator.signInWithGoogle()
                     } label: {
                         AuthenticationButtonLabel(
-                            title: coordinator.operation == .google ? "Connecting…" : "Continue with Google",
-                            icon: "g.circle.fill"
+                            title: coordinator.operation == .google ? "Connecting…" : "Continue with Google"
                         )
                     }
                     .buttonStyle(AuthenticationButtonStyle())
@@ -229,6 +248,16 @@ private struct AuthenticationSignInView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .disabled(coordinator.isSigningIn || coordinator.operation == .signOut)
                     .accessibilityHint("Uses your Apple account to sign in")
+
+#if DEBUG
+                    Button(action: onContinueWithTesting) {
+                        TestingAuthenticationButtonLabel()
+                    }
+                    .buttonStyle(AuthenticationButtonStyle())
+                    .disabled(coordinator.isSigningIn || coordinator.operation == .signOut)
+                    .accessibilityIdentifier("continue-with-testing")
+                    .accessibilityHint("Opens a local workspace populated with testing data")
+#endif
                 }
                 .padding(.horizontal, 24)
 
@@ -285,19 +314,49 @@ struct VowbaseConfigurationErrorView: View {
 
 private struct AuthenticationButtonLabel: View {
     let title: String
-    let icon: String
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 19, weight: .medium))
+        ZStack {
             Text(title)
-                .font(.system(size: 17, weight: .semibold))
-            Spacer(minLength: 0)
+                .font(.system(size: 17, weight: .medium))
+
+            HStack {
+                GoogleSignInIcon()
+                Spacer(minLength: 0)
+            }
         }
         .foregroundStyle(VowbaseTheme.ink)
         .frame(maxWidth: .infinity, minHeight: 54)
         .padding(.horizontal, 18)
+    }
+}
+
+#if DEBUG
+private struct TestingAuthenticationButtonLabel: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "testtube.2")
+                .font(.system(size: 18, weight: .medium))
+                .accessibilityHidden(true)
+            Text("Continue with Testing")
+                .font(.system(size: 17, weight: .medium))
+        }
+        .foregroundStyle(VowbaseTheme.ink)
+        .frame(maxWidth: .infinity, minHeight: 54)
+        .padding(.horizontal, 18)
+    }
+}
+#endif
+
+private struct GoogleSignInIcon: View {
+    var body: some View {
+        Image("Google-SignIn-iOS/SVG/Light/Theme=Light, Show text=No, Shape=Square, Platform=iOS")
+            .resizable()
+            .interpolation(.high)
+            .frame(width: 44, height: 44)
+            .frame(width: 20, height: 20)
+            .clipped()
+            .accessibilityHidden(true)
     }
 }
 
