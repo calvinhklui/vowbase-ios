@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct VowbaseApp: App {
+    private let dependencies: AppDependencies?
     private let authCallbackHandler: AuthCallbackHandler?
 
     init() {
@@ -9,19 +10,24 @@ struct VowbaseApp: App {
             let dependencies = AppDependencies.live(
                 configuration: try AppConfiguration.live()
             )
+            self.dependencies = dependencies
             authCallbackHandler = AuthCallbackHandler(auth: dependencies.auth)
         } catch {
-            // The local-first MVP is usable before an authenticated workspace
-            // has been configured. Production configuration still enables
-            // authenticated callback handling when it is available.
+            dependencies = nil
             authCallbackHandler = nil
         }
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .onOpenURL { [authCallbackHandler] url in
+            Group {
+                if let dependencies {
+                    VowbaseAppRoot(auth: dependencies.auth)
+                } else {
+                    VowbaseConfigurationErrorView()
+                }
+            }
+            .onOpenURL { [authCallbackHandler] url in
                     guard let authCallbackHandler else { return }
                     Task {
                         _ = await authCallbackHandler.enqueue(url)

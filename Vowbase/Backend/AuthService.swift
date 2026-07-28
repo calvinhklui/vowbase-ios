@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import Supabase
 
@@ -21,6 +22,7 @@ protocol AuthAdapting: Sendable {
     func currentSession() async throws -> AuthSessionSnapshot?
     func refreshSession() async throws
     func handle(url: URL) async throws
+    func signInWithGoogle() async throws
     func signInWithIDToken(
         provider: OpenIDConnectCredentials.Provider,
         token: String,
@@ -82,6 +84,14 @@ final class AuthService: AuthServicing {
     func handle(url: URL) async throws {
         do {
             try await adapter.handle(url: url)
+        } catch {
+            throw Self.normalized(error)
+        }
+    }
+
+    func signInWithGoogle() async throws {
+        do {
+            try await adapter.signInWithGoogle()
         } catch {
             throw Self.normalized(error)
         }
@@ -159,6 +169,11 @@ final class AuthService: AuthServicing {
             return backendError
         }
         if error is CancellationError {
+            return .cancelled
+        }
+        let nsError = error as NSError
+        if nsError.domain == ASWebAuthenticationSessionErrorDomain,
+           nsError.code == ASWebAuthenticationSessionError.Code.canceledLogin.rawValue {
             return .cancelled
         }
         if let urlError = error as? URLError {
@@ -294,6 +309,13 @@ private final class SupabaseAuthAdapter: AuthAdapting {
 
     func handle(url: URL) async throws {
         _ = try await client.auth.session(from: url)
+    }
+
+    func signInWithGoogle() async throws {
+        _ = try await client.auth.signInWithOAuth(
+            provider: .google,
+            redirectTo: URL(string: "vowbase://auth/callback")
+        )
     }
 
     func signInWithIDToken(

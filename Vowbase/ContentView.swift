@@ -5,10 +5,21 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    var body: some View {
+        VowbaseAuthenticatedContent()
+    }
+}
+
+struct VowbaseAuthenticatedContent: View {
     @State private var store = VowbaseMVPStore()
+    let onSignOut: () -> Void
+
+    init(onSignOut: @escaping () -> Void = {}) {
+        self.onSignOut = onSignOut
+    }
 
     var body: some View {
-        WeddingAppShell(store: store)
+        WeddingAppShell(store: store, onSignOut: onSignOut)
     }
 }
 
@@ -48,12 +59,18 @@ private enum QuickAddDestination: String, Identifiable {
 @MainActor
 private struct WeddingAppShell: View {
     let store: VowbaseMVPStore
+    let onSignOut: () -> Void
     @State private var selectedTab: AppTab = .map
     @State private var quickAdd: QuickAddDestination?
     @State private var isActionMenuOpen = false
 
-    init(store: VowbaseMVPStore, initialTab: AppTab = .map) {
+    init(
+        store: VowbaseMVPStore,
+        initialTab: AppTab = .map,
+        onSignOut: @escaping () -> Void = {}
+    ) {
         self.store = store
+        self.onSignOut = onSignOut
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -67,12 +84,13 @@ private struct WeddingAppShell: View {
                     MapWorkspaceView(
                         store: store,
                         isActionMenuOpen: $isActionMenuOpen,
-                        addAction: openQuickAdd
+                        addAction: openQuickAdd,
+                        onSignOut: onSignOut
                     )
                 case .venues:
-                    VenuesView(store: store, openQuickAdd: openQuickAdd)
+                    VenuesView(store: store, openQuickAdd: openQuickAdd, onSignOut: onSignOut)
                 case .guests:
-                    GuestsView(store: store, openQuickAdd: openQuickAdd)
+                    GuestsView(store: store, openQuickAdd: openQuickAdd, onSignOut: onSignOut)
                 }
             }
         }
@@ -134,6 +152,9 @@ private struct VowbaseTabBar: View {
 }
 
 private struct IdentityBar: View {
+    let onSignOut: () -> Void
+    @State private var isAccountMenuPresented = false
+
     var body: some View {
         HStack(spacing: 14) {
             Text("A&C")
@@ -142,7 +163,9 @@ private struct IdentityBar: View {
                 .background(VowbaseTheme.blush)
                 .clipShape(Circle())
 
-            Button(action: {}) {
+            Button {
+                isAccountMenuPresented = true
+            } label: {
                 HStack(spacing: 8) {
                     Text("Andey & Calvin")
                         .font(.system(size: 24, weight: .regular, design: .serif))
@@ -166,6 +189,16 @@ private struct IdentityBar: View {
             }
             .accessibilityLabel("Account")
         }
+        .confirmationDialog(
+            "Your Vowbase account",
+            isPresented: $isAccountMenuPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Sign out", role: .destructive, action: onSignOut)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You can sign back in with Apple or Google at any time.")
+        }
         .padding(10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 29, style: .continuous))
         .overlay {
@@ -183,6 +216,7 @@ private struct MapWorkspaceView: View {
     let store: VowbaseMVPStore
     @Binding var isActionMenuOpen: Bool
     let addAction: (QuickAddDestination) -> Void
+    let onSignOut: () -> Void
     @State private var showsVenues = true
     @State private var showsGuests = true
     @State private var position = MapCameraPosition.region(
@@ -225,7 +259,7 @@ private struct MapWorkspaceView: View {
             .ignoresSafeArea(edges: .top)
 
             VStack(alignment: .leading, spacing: 20) {
-                IdentityBar()
+                IdentityBar(onSignOut: onSignOut)
                 HStack(spacing: 10) {
                     LayerChip(title: "Venues", icon: "mappin", isOn: $showsVenues, tint: VowbaseTheme.rose)
                     LayerChip(title: "Guests", icon: "person.2", isOn: $showsGuests, tint: VowbaseTheme.guestBlue)
@@ -407,6 +441,7 @@ private struct MapVenueCard: View {
 private struct VenuesView: View {
     let store: VowbaseMVPStore
     let openQuickAdd: (QuickAddDestination) -> Void
+    let onSignOut: () -> Void
     @State private var mode: VenueMode = .shortlist
     @State private var statusFilter: VenueStatusFilter = .all
     @State private var showsFilter = false
@@ -420,7 +455,7 @@ private struct VenuesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    IdentityBar()
+                    IdentityBar(onSignOut: onSignOut)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("VENUE SEARCH")
                             .eyebrow()
@@ -660,6 +695,7 @@ private struct VenueDetailView: View {
 private struct GuestsView: View {
     let store: VowbaseMVPStore
     let openQuickAdd: (QuickAddDestination) -> Void
+    let onSignOut: () -> Void
     @State private var query = ""
     @State private var filter: GuestFilter = .all
     @State private var onlyLocated = false
@@ -678,7 +714,7 @@ private struct GuestsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    IdentityBar()
+                    IdentityBar(onSignOut: onSignOut)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("GUEST LIST").eyebrow()
                         Text("Guests").displayTitle()
@@ -1025,7 +1061,7 @@ private struct RSVPStatusCapsule: View {
     }
 }
 
-private enum VowbaseTheme {
+enum VowbaseTheme {
     static let background = Color(red: 1.0, green: 0.995, blue: 0.99)
     static let ink = Color(red: 0.15, green: 0.135, blue: 0.13)
     static let mutedInk = Color(red: 0.42, green: 0.42, blue: 0.47)

@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import Supabase
 import Testing
@@ -388,7 +389,7 @@ struct AuthServiceTests {
         }
     }
 
-    @Test("delegates refresh, URL, OIDC, and sign-out exactly once")
+    @Test("delegates refresh, URL, Google, OIDC, and sign-out exactly once")
     func delegatesAuthOperationsExactlyOnce() async throws {
         let adapter = FakeAuthAdapter()
         let service = AuthService(adapter: adapter)
@@ -396,6 +397,7 @@ struct AuthServiceTests {
 
         try await service.refreshSession()
         try await service.handle(url: url)
+        try await service.signInWithGoogle()
         try await service.signInWithIDToken(
             provider: .apple,
             token: "id-token",
@@ -405,11 +407,28 @@ struct AuthServiceTests {
 
         #expect(adapter.refreshCallCount == 1)
         #expect(adapter.handledURLs == [url])
+        #expect(adapter.googleSignInCallCount == 1)
         #expect(
             adapter.idTokenCalls
                 == [.init(provider: .apple, token: "id-token", nonce: "nonce")]
         )
         #expect(adapter.signOutCallCount == 1)
+    }
+
+    @Test("maps a cancelled Google web session without showing an auth failure")
+    func mapsCancelledGoogleWebSession() async {
+        let adapter = FakeAuthAdapter()
+        adapter.googleSignInResult = .failure(
+            NSError(
+                domain: ASWebAuthenticationSessionErrorDomain,
+                code: ASWebAuthenticationSessionError.Code.canceledLogin.rawValue
+            )
+        )
+        let service = AuthService(adapter: adapter)
+
+        await #expect(throws: BackendError.cancelled) {
+            try await service.signInWithGoogle()
+        }
     }
 
     @Test("sign-out changes state only when the auth event arrives")
@@ -592,6 +611,11 @@ private final class FakeAuthAdapter: AuthAdapting, @unchecked Sendable {
     var currentSessionCallCount: Int { lock.withLock { storage.currentSessionCallCount } }
     var refreshCallCount: Int { lock.withLock { storage.refreshCallCount } }
     var handledURLs: [URL] { lock.withLock { storage.handledURLs } }
+    var googleSignInCallCount: Int { lock.withLock { storage.googleSignInCallCount } }
+    var googleSignInResult: Result<Void, any Error> {
+        get { lock.withLock { storage.googleSignInResult } }
+        set { lock.withLock { storage.googleSignInResult = newValue } }
+    }
     var idTokenCalls: [IDTokenCall] { lock.withLock { storage.idTokenCalls } }
     var signOutCallCount: Int { lock.withLock { storage.signOutCallCount } }
     var wasEventStreamTerminated: Bool { lock.withLock { storage.wasEventStreamTerminated } }
@@ -629,6 +653,14 @@ private final class FakeAuthAdapter: AuthAdapting, @unchecked Sendable {
         lock.withLock { storage.handledURLs.append(url) }
     }
 
+    func signInWithGoogle() async throws {
+        let result = lock.withLock { () -> Result<Void, any Error> in
+            storage.googleSignInCallCount += 1
+            return storage.googleSignInResult
+        }
+        try result.get()
+    }
+
     func signInWithIDToken(
         provider: OpenIDConnectCredentials.Provider,
         token: String,
@@ -648,6 +680,8 @@ private final class FakeAuthAdapter: AuthAdapting, @unchecked Sendable {
         var currentSessionCallCount = 0
         var refreshCallCount = 0
         var handledURLs = [URL]()
+        var googleSignInCallCount = 0
+        var googleSignInResult: Result<Void, any Error> = .success(())
         var idTokenCalls = [IDTokenCall]()
         var signOutCallCount = 0
         var wasEventStreamTerminated = false
