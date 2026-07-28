@@ -21,9 +21,23 @@ required_value() {
   printf '%s' "$variable_value"
 }
 
-supabase_url="$(required_value VOWBASE_PRODUCTION_SUPABASE_URL)"
+xcconfig_url() {
+  case "$1" in
+    https://*)
+      printf 'https:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)%s' "${1#https://}"
+      ;;
+    http://*)
+      printf 'http:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)%s' "${1#http://}"
+      ;;
+    *)
+      printf '%s' "$1"
+      ;;
+  esac
+}
+
+supabase_url="$(xcconfig_url "$(required_value VOWBASE_PRODUCTION_SUPABASE_URL)")"
 publishable_key="$(required_value VOWBASE_PRODUCTION_SUPABASE_PUBLISHABLE_KEY)"
-api_url="$(required_value VOWBASE_PRODUCTION_API_URL)"
+api_url="$(xcconfig_url "$(required_value VOWBASE_PRODUCTION_API_URL)")"
 
 mkdir -p "$configuration_directory"
 umask 077
