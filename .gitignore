@@ -12,4 +12,3 @@ Packages/
 .DS_Store
 
 Configuration/Local.xcconfig
-Configuration/Cloud.xcconfig

@@ -1,6 +1,11 @@
 VOWBASE_URL_SLASH = /
 
-#include? "Cloud.xcconfig"
+// These are client-visible runtime values, not secrets. The Supabase
+// publishable key is safe to ship; service-role and provider credentials never
+// belong in this repository or in the app bundle.
+VOWBASE_PRODUCTION_SUPABASE_URL = https:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)stspjmexsnpkgljqvcsk.supabase.co
+VOWBASE_PRODUCTION_SUPABASE_PUBLISHABLE_KEY = sb_publishable_nXFUyyJkMxsIXuQz3-caeA_PcMuGzWE
+VOWBASE_PRODUCTION_API_URL = https:$(VOWBASE_URL_SLASH)$(VOWBASE_URL_SLASH)vowbase.app
 
 INFOPLIST_KEY_SUPABASE_URL = $(VOWBASE_PRODUCTION_SUPABASE_URL)
 INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY = $(VOWBASE_PRODUCTION_SUPABASE_PUBLISHABLE_KEY)
