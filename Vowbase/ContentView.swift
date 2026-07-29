@@ -41,30 +41,6 @@ struct VowbaseAuthenticatedContent: View {
 
 // MARK: - App shell
 
-private enum AppTab: String, CaseIterable, Identifiable {
-    case map
-    case venues
-    case guests
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .map: "Map"
-        case .venues: "Venues"
-        case .guests: "Guests"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .map: "map"
-        case .venues: "mappin"
-        case .guests: "person.2"
-        }
-    }
-}
-
 private enum QuickAddDestination: String, Identifiable {
     case venue
     case guest
@@ -76,9 +52,9 @@ private enum QuickAddDestination: String, Identifiable {
 private struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
     let onSignOut: () -> Void
-    @State private var selectedTab: AppTab = .map
+    @State private var navigation: AppNavigationModel
     @State private var quickAdd: QuickAddDestination?
-    @State private var isActionMenuOpen = false
+    @State private var isQuickAddPresented = false
 
     init(
         store: VowbaseWorkspaceStore,
@@ -87,26 +63,26 @@ private struct WeddingAppShell: View {
     ) {
         self.store = store
         self.onSignOut = onSignOut
-        _selectedTab = State(initialValue: initialTab)
+        _navigation = State(initialValue: AppNavigationModel(selectedTab: initialTab))
     }
 
     var body: some View {
+        @Bindable var navigation = navigation
+
         ZStack {
             VowbaseTheme.background.ignoresSafeArea()
 
             Group {
-                switch selectedTab {
+                switch navigation.selectedTab {
                 case .map:
                     MapWorkspaceView(
                         store: store,
-                        isActionMenuOpen: $isActionMenuOpen,
-                        addAction: openQuickAdd,
                         onSignOut: onSignOut
                     )
                 case .venues:
-                    VenuesView(store: store, openQuickAdd: openQuickAdd, onSignOut: onSignOut)
+                    VenuesView(store: store, onSignOut: onSignOut)
                 case .guests:
-                    GuestsView(store: store, openQuickAdd: openQuickAdd, onSignOut: onSignOut)
+                    GuestsView(store: store, onSignOut: onSignOut)
                 }
             }
 
@@ -131,9 +107,18 @@ private struct WeddingAppShell: View {
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .padding(24)
             }
+
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VowbaseTabBar(selection: $selectedTab)
+            VowbaseTabBar(selection: $navigation.selectedTab)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            QuickAddOverlay(
+                isPresented: $isQuickAddPresented,
+                onAddVenue: { quickAdd = .venue },
+                onAddGuest: { quickAdd = .guest }
+            )
+            .padding(.bottom, 64)
         }
         .sheet(item: $quickAdd) { destination in
             switch destination {
@@ -145,13 +130,9 @@ private struct WeddingAppShell: View {
                     .presentationDetents([.medium, .large])
             }
         }
-        .animation(.snappy(duration: 0.28), value: selectedTab)
+        .animation(.snappy(duration: 0.28), value: navigation.selectedTab)
     }
 
-    private func openQuickAdd(_ destination: QuickAddDestination) {
-        isActionMenuOpen = false
-        quickAdd = destination
-    }
 }
 
 private struct VowbaseTabBar: View {
@@ -165,7 +146,7 @@ private struct VowbaseTabBar: View {
                     UISelectionFeedbackGenerator().selectionChanged()
                 } label: {
                     VStack(spacing: 5) {
-                        Image(systemName: tab.icon)
+                        Image(systemName: tab.systemImage)
                             .font(.system(size: 22, weight: .medium))
                             .symbolVariant(selection == tab ? .fill : .none)
                         Text(tab.title)
@@ -175,7 +156,7 @@ private struct VowbaseTabBar: View {
                             .frame(width: 6, height: 6)
                     }
                     .foregroundStyle(selection == tab ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
-                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .frame(maxWidth: .infinity, minHeight: 60)
                     .contentShape(Rectangle())
                     .accessibilityAddTraits(selection == tab ? .isSelected : [])
                 }
@@ -202,28 +183,20 @@ private struct IdentityBar: View {
                 .background(VowbaseTheme.blush)
                 .clipShape(Circle())
 
-            Button {
-                isAccountMenuPresented = true
-            } label: {
-                HStack(spacing: 8) {
-                    Text(weddingTitle)
-                        .font(.system(size: 24, weight: .regular, design: .serif))
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                }
+            Text(weddingTitle)
+                .font(VowbaseType.detailTitle)
                 .foregroundStyle(VowbaseTheme.ink)
-            }
-            .accessibilityLabel("Current wedding: \(weddingTitle)")
+                .lineLimit(1)
+                .layoutPriority(1)
+                .accessibilityLabel("Current wedding: \(weddingTitle)")
 
             Spacer(minLength: 0)
 
-            Button(action: {}) {
+            Button { isAccountMenuPresented = true } label: {
                 Image(systemName: "person")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(VowbaseTheme.rose)
-                    .frame(width: 48, height: 48)
+                    .frame(width: VowbaseControlMetric.minimumTapTarget, height: VowbaseControlMetric.minimumTapTarget)
                     .overlay(Circle().stroke(VowbaseTheme.border, lineWidth: 1))
             }
             .accessibilityLabel("Account")
@@ -262,8 +235,6 @@ private struct IdentityBar: View {
 @MainActor
 private struct MapWorkspaceView: View {
     let store: VowbaseWorkspaceStore
-    @Binding var isActionMenuOpen: Bool
-    let addAction: (QuickAddDestination) -> Void
     let onSignOut: () -> Void
     @State private var showsVenues = true
     @State private var showsGuests = true
@@ -320,11 +291,7 @@ private struct MapWorkspaceView: View {
             .padding(.top, 10)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ShortlistPanel(
-                store: store,
-                isActionMenuOpen: $isActionMenuOpen,
-                addAction: addAction
-            )
+            ShortlistPanel(store: store)
             .padding(.bottom, 8)
         }
     }
@@ -397,8 +364,6 @@ private struct GuestClusterAnnotation: View {
 @MainActor
 private struct ShortlistPanel: View {
     let store: VowbaseWorkspaceStore
-    @Binding var isActionMenuOpen: Bool
-    let addAction: (QuickAddDestination) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -438,18 +403,6 @@ private struct ShortlistPanel: View {
         .padding(.horizontal, 18)
         .padding(.bottom, 14)
         .background(.regularMaterial, in: UnevenRoundedRectangle(topLeadingRadius: 34, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 34, style: .continuous))
-        .overlay(alignment: .bottomTrailing) {
-            VStack(alignment: .trailing, spacing: 10) {
-                if isActionMenuOpen {
-                    QuickAddMenu(addAction: addAction)
-                        .transition(.scale(scale: 0.9, anchor: .bottomTrailing).combined(with: .opacity))
-                }
-                AddButton(isOpen: isActionMenuOpen) { isActionMenuOpen.toggle() }
-            }
-            .padding(.trailing, 22)
-            .padding(.bottom, 18)
-        }
-        .animation(.snappy(duration: 0.24), value: isActionMenuOpen)
     }
 }
 
@@ -492,12 +445,12 @@ private struct MapVenueCard: View {
 @MainActor
 private struct VenuesView: View {
     let store: VowbaseWorkspaceStore
-    let openQuickAdd: (QuickAddDestination) -> Void
     let onSignOut: () -> Void
     @State private var mode: VenueMode = .shortlist
     @State private var statusFilter: VenueStatusFilter = .all
     @State private var showsFilter = false
     @State private var comparison: [UUID] = []
+    @State private var showsComparison = false
 
     private var visibleVenues: [MVPVenue] {
         store.venues.filter { statusFilter == .all || $0.status == statusFilter.status }
@@ -540,15 +493,12 @@ private struct VenuesView: View {
 
                     if mode == .compare && comparison.count >= 2 {
                         Button {
-                            // Selection state is already the comparison's source of truth.
+                            showsComparison = true
                         } label: {
                             Label("Compare \(comparison.count) venues", systemImage: "rectangle.split.3x1")
-                                .font(.system(size: 16, weight: .semibold))
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .foregroundStyle(.white)
-                                .background(VowbaseTheme.rose, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(VowbasePrimaryButtonStyle())
                     }
 
                     LazyVStack(spacing: 22) {
@@ -577,19 +527,15 @@ private struct VenuesView: View {
             .navigationDestination(for: MVPVenue.self) { venue in
                 VenueDetailView(venue: venue, store: store)
             }
-            .overlay(alignment: .bottomTrailing) {
-                VStack(alignment: .trailing, spacing: 10) {
-                    if store.isGlobalMenuOpen {
-                        QuickAddMenu(addAction: openQuickAdd)
-                    }
-                    AddButton(isOpen: store.isGlobalMenuOpen) { store.isGlobalMenuOpen.toggle() }
-                }
-                .padding(.trailing, 22)
-                .padding(.bottom, 86)
-            }
             .sheet(isPresented: $showsFilter) {
                 VenueFilterSheet(selection: $statusFilter)
                     .presentationDetents([.height(380)])
+            }
+            .sheet(isPresented: $showsComparison) {
+                VenueComparisonSheet(
+                    venues: store.venues.filter { comparison.contains($0.id) }
+                )
+                .presentationDetents([.medium, .large])
             }
         }
     }
@@ -601,6 +547,40 @@ private struct VenuesView: View {
             comparison.append(id)
         } else {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        }
+    }
+}
+
+private struct VenueComparisonSheet: View {
+    let venues: [MVPVenue]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("At a glance") {
+                    ForEach(venues) { venue in
+                        VStack(alignment: .leading, spacing: VowbaseSpace.small) {
+                            Text(venue.name)
+                                .font(VowbaseType.cardTitle)
+                                .foregroundStyle(VowbaseTheme.ink)
+                            StatusCapsule(status: venue.status)
+                            LabeledContent("Capacity", value: venue.capacity)
+                            LabeledContent("Estimate", value: venue.estimate)
+                            LabeledContent("Guest travel", value: venue.travel)
+                        }
+                        .padding(.vertical, VowbaseSpace.small)
+                    }
+                }
+            }
+            .navigationTitle("Compare venues")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .tint(VowbaseTheme.rose)
+                }
+            }
         }
     }
 }
@@ -643,8 +623,8 @@ private struct VenueCard: View {
                 HStack {
                     Label(venue.location, systemImage: "mappin.and.ellipse")
                     Spacer()
-                    Label("View on map", systemImage: "map")
-                        .foregroundStyle(VowbaseTheme.rose)
+                    Label("Map location", systemImage: "map")
+                        .foregroundStyle(VowbaseTheme.mutedInk)
                 }
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(VowbaseTheme.mutedInk)
@@ -775,11 +755,11 @@ private struct VenueDetailView: View {
 @MainActor
 private struct GuestsView: View {
     let store: VowbaseWorkspaceStore
-    let openQuickAdd: (QuickAddDestination) -> Void
     let onSignOut: () -> Void
     @State private var query = ""
     @State private var filter: GuestFilter = .all
     @State private var onlyLocated = false
+    @State private var showsFilter = false
 
     private var visibleGuests: [MVPGuest] {
         store.guests.filter { guest in
@@ -815,7 +795,7 @@ private struct GuestsView: View {
                         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
                         Button {
-                            onlyLocated.toggle()
+                            showsFilter = true
                         } label: {
                             Label("Filters", systemImage: "slider.horizontal.3")
                                 .font(.system(size: 16, weight: .semibold))
@@ -867,13 +847,9 @@ private struct GuestsView: View {
             .navigationDestination(for: MVPGuest.self) { guest in
                 GuestDetailView(guest: guest, store: store)
             }
-            .overlay(alignment: .bottomTrailing) {
-                VStack(alignment: .trailing, spacing: 10) {
-                    if store.isGlobalMenuOpen { QuickAddMenu(addAction: openQuickAdd) }
-                    AddButton(isOpen: store.isGlobalMenuOpen) { store.isGlobalMenuOpen.toggle() }
-                }
-                .padding(.trailing, 22)
-                .padding(.bottom, 86)
+            .sheet(isPresented: $showsFilter) {
+                GuestFilterSheet(onlyLocated: $onlyLocated)
+                    .presentationDetents([.height(280)])
             }
         }
     }
@@ -901,6 +877,32 @@ private enum GuestFilter: String, CaseIterable, Identifiable {
         case .accepted: "Accepted"
         }
         return "\(label) \(count)"
+    }
+}
+
+private struct GuestFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var onlyLocated: Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Guest information") {
+                    Toggle("Only guests with a location", isOn: $onlyLocated)
+                        .tint(VowbaseTheme.rose)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(VowbaseTheme.groupedBackground)
+            .navigationTitle("Filters")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .tint(VowbaseTheme.rose)
+                }
+            }
+        }
     }
 }
 
@@ -1068,6 +1070,7 @@ private struct AddVenueSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
+            .tint(VowbaseTheme.rose)
             .navigationTitle("Add venue")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1126,6 +1129,7 @@ private struct AddGuestSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
+            .tint(VowbaseTheme.rose)
             .navigationTitle("Add guest")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1192,6 +1196,7 @@ private struct EditVenueSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
+            .tint(VowbaseTheme.rose)
             .navigationTitle("Edit venue")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1256,6 +1261,7 @@ private struct EditGuestSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
+            .tint(VowbaseTheme.rose)
             .navigationTitle("Edit guest")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1339,24 +1345,25 @@ private struct RSVPStatusCapsule: View {
 }
 
 enum VowbaseTheme {
-    static let background = Color(red: 1.0, green: 0.995, blue: 0.99)
-    static let ink = Color(red: 0.15, green: 0.135, blue: 0.13)
-    static let mutedInk = Color(red: 0.42, green: 0.42, blue: 0.47)
-    static let rose = Color(red: 0.77, green: 0.22, blue: 0.40)
-    static let blush = Color(red: 0.985, green: 0.94, blue: 0.95)
-    static let border = Color(red: 0.89, green: 0.875, blue: 0.89)
-    static let guestBlue = Color(red: 0.15, green: 0.39, blue: 0.92)
+    static let background = VowbaseDesign.background
+    static let groupedBackground = VowbaseDesign.groupedBackground
+    static let ink = VowbaseDesign.textPrimary
+    static let mutedInk = VowbaseDesign.textSecondary
+    static let rose = VowbaseDesign.rose
+    static let blush = VowbaseDesign.blush
+    static let border = VowbaseDesign.separator
+    static let guestBlue = VowbaseDesign.guestBlue
 }
 
 private extension Text {
     func displayTitle() -> some View {
-        font(.system(size: 46, weight: .regular, design: .serif))
+        font(VowbaseType.screenDisplay)
             .foregroundStyle(VowbaseTheme.ink)
     }
 
     func eyebrow() -> some View {
-        font(.system(size: 13, weight: .bold))
-            .tracking(2.1)
+        font(VowbaseType.eyebrow)
+            .tracking(1.6)
             .foregroundStyle(VowbaseTheme.rose)
     }
 }

@@ -11,6 +11,13 @@
 		3E232CCC30187209003E5C26 /* VowbaseIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CCB30187209003E5C26 /* VowbaseIcon.icon */; };
 		A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */; };
 		A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* ContentView.swift */; };
+		DAA3B4C5D6E7000000000001 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000011 /* AppTab.swift */; };
+		DAA3B4C5D6E7000000000002 /* AppNavigationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */; };
+		DAA3B4C5D6E7000000000003 /* VowbaseTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */; };
+		DAA3B4C5D6E7000000000004 /* VowbaseTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */; };
+		DAA3B4C5D6E7000000000005 /* VowbaseMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */; };
+		DAA3B4C5D6E7000000000006 /* VowbaseComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */; };
+		DAA3B4C5D6E7000000000007 /* QuickAddFAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */; };
 		A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */; };
 		A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60000000000B1 /* Supabase */; };
 		A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */; };
@@ -110,6 +117,13 @@
 		A1B2C3D4E5F6000000000010 /* Vowbase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vowbase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000011 /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationModel.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTheme.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTypography.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseMetrics.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseComponents.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/QuickAddFAB.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vowbase.entitlements; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VowbaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -232,6 +246,8 @@
 		A1B2C3D4E5F6000000000031 /* Vowbase */ = {
 			isa = PBXGroup;
 			children = (
+				DAA3B4C5D6E7000000000031 /* App shell */,
+				DAA3B4C5D6E7000000000032 /* Design system */,
 				A1B2C3D4E5F6000000000037 /* Backend */,
 				A1B2C3D4E5F6000000000035 /* Configuration */,
 				E1F2A3B4C5D6000000000038 /* Models */,
@@ -268,6 +284,27 @@
 				A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */,
 			);
 			path = Vowbase;
+			sourceTree = "<group>";
+		};
+		DAA3B4C5D6E7000000000031 /* App shell */ = {
+			isa = PBXGroup;
+			children = (
+				DAA3B4C5D6E7000000000011 /* AppTab.swift */,
+				DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */,
+			);
+			path = AppShell;
+			sourceTree = "<group>";
+		};
+		DAA3B4C5D6E7000000000032 /* Design system */ = {
+			isa = PBXGroup;
+			children = (
+				DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */,
+				DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */,
+				DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */,
+				DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */,
+				DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */,
+			);
+			path = DesignSystem;
 			sourceTree = "<group>";
 		};
 		A1B2C3D4E5F6000000000032 /* Products */ = {
@@ -574,6 +611,13 @@
 				B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
 				A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */,
+				DAA3B4C5D6E7000000000001 /* AppTab.swift in Sources */,
+				DAA3B4C5D6E7000000000002 /* AppNavigationModel.swift in Sources */,
+				DAA3B4C5D6E7000000000003 /* VowbaseTheme.swift in Sources */,
+				DAA3B4C5D6E7000000000004 /* VowbaseTypography.swift in Sources */,
+				DAA3B4C5D6E7000000000005 /* VowbaseMetrics.swift in Sources */,
+				DAA3B4C5D6E7000000000006 /* VowbaseComponents.swift in Sources */,
+				DAA3B4C5D6E7000000000007 /* QuickAddFAB.swift in Sources */,
 				A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */,
 				C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */,
 				F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */,
