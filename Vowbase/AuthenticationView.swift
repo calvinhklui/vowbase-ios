@@ -20,6 +20,9 @@ final class AuthenticationCoordinator {
     var state: AuthenticationState = .loading
     var operation: Operation?
     var message: String?
+#if DEBUG
+    var isTestingWorkspaceActive = false
+#endif
 
     init(auth: any AuthServicing) {
         self.auth = auth
@@ -112,6 +115,16 @@ final class AuthenticationCoordinator {
         }
     }
 
+#if DEBUG
+    func enterTestingWorkspace() {
+        isTestingWorkspaceActive = true
+    }
+
+    func exitTestingWorkspace() {
+        isTestingWorkspaceActive = false
+    }
+#endif
+
     private func apply(_ state: AuthenticationState) {
         self.state = state
         switch state {
@@ -141,40 +154,45 @@ final class AuthenticationCoordinator {
 }
 
 struct VowbaseAppRoot: View {
-    let auth: any AuthServicing
+    let dependencies: AppDependencies
     @State private var coordinator: AuthenticationCoordinator
-#if DEBUG
-    @State private var isTestingWorkspaceActive = false
-#endif
 
-    init(auth: any AuthServicing) {
-        self.auth = auth
-        _coordinator = State(initialValue: AuthenticationCoordinator(auth: auth))
+    init(dependencies: AppDependencies) {
+        self.dependencies = dependencies
+        _coordinator = State(initialValue: AuthenticationCoordinator(auth: dependencies.auth))
     }
 
     var body: some View {
         Group {
 #if DEBUG
-            if isTestingWorkspaceActive {
-                VowbaseAuthenticatedContent {
-                    isTestingWorkspaceActive = false
+            if coordinator.isTestingWorkspaceActive {
+                VowbaseAuthenticatedContent(testingWorkspace: true) {
+                    coordinator.exitTestingWorkspace()
                 }
-            } else
-#endif
-            if case .signedIn = coordinator.state {
-                VowbaseAuthenticatedContent(onSignOut: coordinator.signOut)
-            } else if coordinator.state == .loading {
-                AuthenticationLoadingView()
             } else {
-                AuthenticationSignInView(
-                    coordinator: coordinator
-#if DEBUG
-                    , onContinueWithTesting: {
-                        isTestingWorkspaceActive = true
-                    }
-#endif
-                )
+                authenticationContent
             }
+#else
+            authenticationContent
+#endif
+        }
+    }
+
+    @ViewBuilder
+    private var authenticationContent: some View {
+        if case .signedIn = coordinator.state {
+            VowbaseAuthenticatedContent(
+                repositories: dependencies.repositories,
+                onSignOut: coordinator.signOut
+            )
+        } else if coordinator.state == .loading {
+            AuthenticationLoadingView()
+        } else {
+#if DEBUG
+            AuthenticationSignInView(coordinator: coordinator)
+#else
+            AuthenticationSignInView(coordinator: coordinator)
+#endif
         }
     }
 }
@@ -197,9 +215,6 @@ private struct AuthenticationLoadingView: View {
 
 private struct AuthenticationSignInView: View {
     @Bindable var coordinator: AuthenticationCoordinator
-#if DEBUG
-    let onContinueWithTesting: () -> Void = {}
-#endif
 
     var body: some View {
         ZStack {
@@ -250,7 +265,9 @@ private struct AuthenticationSignInView: View {
                     .accessibilityHint("Uses your Apple account to sign in")
 
 #if DEBUG
-                    Button(action: onContinueWithTesting) {
+                    Button {
+                        coordinator.enterTestingWorkspace()
+                    } label: {
                         TestingAuthenticationButtonLabel()
                     }
                     .buttonStyle(AuthenticationButtonStyle())

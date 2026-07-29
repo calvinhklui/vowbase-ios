@@ -22,7 +22,7 @@ struct VowbaseApp: App {
         WindowGroup {
             Group {
                 if let dependencies {
-                    VowbaseAppRoot(auth: dependencies.auth)
+                    VowbaseAppRoot(dependencies: dependencies)
                 } else {
                     VowbaseConfigurationErrorView()
                 }

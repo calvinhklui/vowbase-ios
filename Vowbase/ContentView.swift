@@ -11,15 +11,31 @@ struct ContentView: View {
 }
 
 struct VowbaseAuthenticatedContent: View {
-    @State private var store = VowbaseMVPStore()
+    @State private var store: VowbaseWorkspaceStore
     let onSignOut: () -> Void
 
-    init(onSignOut: @escaping () -> Void = {}) {
+    init(
+        repositories: RepositoryContainer? = nil,
+        onSignOut: @escaping () -> Void = {}
+    ) {
         self.onSignOut = onSignOut
+        _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
     }
+
+#if DEBUG
+    init(
+        testingWorkspace: Bool,
+        onSignOut: @escaping () -> Void = {}
+    ) {
+        precondition(testingWorkspace)
+        self.onSignOut = onSignOut
+        _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
+    }
+#endif
 
     var body: some View {
         WeddingAppShell(store: store, onSignOut: onSignOut)
+            .task { await store.load() }
     }
 }
 
@@ -58,14 +74,14 @@ private enum QuickAddDestination: String, Identifiable {
 
 @MainActor
 private struct WeddingAppShell: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     let onSignOut: () -> Void
     @State private var selectedTab: AppTab = .map
     @State private var quickAdd: QuickAddDestination?
     @State private var isActionMenuOpen = false
 
     init(
-        store: VowbaseMVPStore,
+        store: VowbaseWorkspaceStore,
         initialTab: AppTab = .map,
         onSignOut: @escaping () -> Void = {}
     ) {
@@ -92,6 +108,28 @@ private struct WeddingAppShell: View {
                 case .guests:
                     GuestsView(store: store, openQuickAdd: openQuickAdd, onSignOut: onSignOut)
                 }
+            }
+
+            if store.isLoading {
+                ProgressView("Loading your wedding")
+                    .tint(VowbaseTheme.rose)
+                    .padding(24)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            } else if let errorMessage = store.errorMessage {
+                VStack(spacing: 12) {
+                    Text(errorMessage)
+                        .multilineTextAlignment(.center)
+                    Button("Try again") {
+                        Task { await store.load() }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(VowbaseTheme.rose)
+                }
+                .font(.system(size: 16))
+                .foregroundStyle(VowbaseTheme.mutedInk)
+                .padding(24)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(24)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -152,12 +190,13 @@ private struct VowbaseTabBar: View {
 }
 
 private struct IdentityBar: View {
+    let weddingTitle: String
     let onSignOut: () -> Void
     @State private var isAccountMenuPresented = false
 
     var body: some View {
         HStack(spacing: 14) {
-            Text("A&C")
+            Text(weddingInitials)
                 .font(.system(size: 20, weight: .regular, design: .serif))
                 .frame(width: 58, height: 58)
                 .background(VowbaseTheme.blush)
@@ -167,7 +206,7 @@ private struct IdentityBar: View {
                 isAccountMenuPresented = true
             } label: {
                 HStack(spacing: 8) {
-                    Text("Andey & Calvin")
+                    Text(weddingTitle)
                         .font(.system(size: 24, weight: .regular, design: .serif))
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -176,7 +215,7 @@ private struct IdentityBar: View {
                 }
                 .foregroundStyle(VowbaseTheme.ink)
             }
-            .accessibilityLabel("Current wedding: Andey and Calvin")
+            .accessibilityLabel("Current wedding: \(weddingTitle)")
 
             Spacer(minLength: 0)
 
@@ -207,13 +246,22 @@ private struct IdentityBar: View {
         }
         .shadow(color: .black.opacity(0.08), radius: 14, y: 5)
     }
+
+    private var weddingInitials: String {
+        weddingTitle
+            .split { !$0.isLetter }
+            .compactMap(\.first)
+            .prefix(2)
+            .map { String($0).uppercased() }
+            .joined(separator: "&")
+    }
 }
 
 // MARK: - Map
 
 @MainActor
 private struct MapWorkspaceView: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     @Binding var isActionMenuOpen: Bool
     let addAction: (QuickAddDestination) -> Void
     let onSignOut: () -> Void
@@ -231,17 +279,19 @@ private struct MapWorkspaceView: View {
             Map(position: $position) {
                 if showsVenues {
                     ForEach(store.venues) { venue in
-                        Annotation(venue.name, coordinate: venue.coordinate, anchor: .bottom) {
-                            Button {
-                                store.selectedVenueID = venue.id
-                            } label: {
-                                VenueMapAnnotation(
-                                    venue: venue,
-                                    selected: store.selectedVenueID == venue.id
-                                )
+                        if let coordinate = venue.coordinate {
+                            Annotation(venue.name, coordinate: coordinate, anchor: .bottom) {
+                                Button {
+                                    store.selectedVenueID = venue.id
+                                } label: {
+                                    VenueMapAnnotation(
+                                        venue: venue,
+                                        selected: store.selectedVenueID == venue.id
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("\(venue.name), \(venue.status.title)")
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("\(venue.name), \(venue.status.title)")
                         }
                     }
                 }
@@ -259,7 +309,7 @@ private struct MapWorkspaceView: View {
             .ignoresSafeArea(edges: .top)
 
             VStack(alignment: .leading, spacing: 20) {
-                IdentityBar(onSignOut: onSignOut)
+                IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
                 HStack(spacing: 10) {
                     LayerChip(title: "Venues", icon: "mappin", isOn: $showsVenues, tint: VowbaseTheme.rose)
                     LayerChip(title: "Guests", icon: "person.2", isOn: $showsGuests, tint: VowbaseTheme.guestBlue)
@@ -346,13 +396,9 @@ private struct GuestClusterAnnotation: View {
 
 @MainActor
 private struct ShortlistPanel: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     @Binding var isActionMenuOpen: Bool
     let addAction: (QuickAddDestination) -> Void
-
-    private var selectedVenue: MVPVenue {
-        store.venues.first(where: { $0.id == store.selectedVenueID }) ?? store.venues[0]
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -371,17 +417,23 @@ private struct ShortlistPanel: View {
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(store.venues) { venue in
-                        Button { store.selectedVenueID = venue.id } label: {
-                            MapVenueCard(venue: venue, selected: venue.id == selectedVenue.id)
+            if let selectedVenue = store.venues.first(where: { $0.id == store.selectedVenueID }) ?? store.venues.first {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(store.venues) { venue in
+                            Button { store.selectedVenueID = venue.id } label: {
+                                MapVenueCard(venue: venue, selected: venue.id == selectedVenue.id)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .contentMargins(.trailing, 18, for: .scrollContent)
+            } else {
+                Text("Add a venue to start your shortlist.")
+                    .font(.system(size: 16))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
             }
-            .contentMargins(.trailing, 18, for: .scrollContent)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 14)
@@ -439,7 +491,7 @@ private struct MapVenueCard: View {
 
 @MainActor
 private struct VenuesView: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     let openQuickAdd: (QuickAddDestination) -> Void
     let onSignOut: () -> Void
     @State private var mode: VenueMode = .shortlist
@@ -455,7 +507,7 @@ private struct VenuesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    IdentityBar(onSignOut: onSignOut)
+                    IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("VENUE SEARCH")
                             .eyebrow()
@@ -523,7 +575,7 @@ private struct VenuesView: View {
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
-                VenueDetailView(venue: venue)
+                VenueDetailView(venue: venue, store: store)
             }
             .overlay(alignment: .bottomTrailing) {
                 VStack(alignment: .trailing, spacing: 10) {
@@ -659,6 +711,10 @@ private struct VenueFilterSheet: View {
 
 private struct VenueDetailView: View {
     let venue: MVPVenue
+    let store: VowbaseWorkspaceStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var isEditing = false
+    @State private var isConfirmingDeletion = false
 
     var body: some View {
         ScrollView {
@@ -679,13 +735,38 @@ private struct VenueDetailView: View {
                 .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 Text("Notes")
                     .font(.title2.weight(.semibold))
-                Text("A spacious, light-filled setting with room for the ceremony and dinner in one beautifully connected experience.")
+                Text(venue.notes?.nilIfBlank ?? "No notes added yet.")
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
             .padding(16)
         }
         .navigationTitle("Venue")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Edit venue") { isEditing = true }
+                    Button("Delete venue", role: .destructive) { isConfirmingDeletion = true }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(isPresented: $isEditing) {
+            EditVenueSheet(store: store, venue: venue)
+        }
+        .alert("Delete \(venue.name)?", isPresented: $isConfirmingDeletion) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    if await store.deleteVenue(venue) {
+                        dismiss()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the venue from your wedding workspace.")
+        }
     }
 }
 
@@ -693,7 +774,7 @@ private struct VenueDetailView: View {
 
 @MainActor
 private struct GuestsView: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     let openQuickAdd: (QuickAddDestination) -> Void
     let onSignOut: () -> Void
     @State private var query = ""
@@ -714,7 +795,7 @@ private struct GuestsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    IdentityBar(onSignOut: onSignOut)
+                    IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("GUEST LIST").eyebrow()
                         Text("Guests").displayTitle()
@@ -784,7 +865,7 @@ private struct GuestsView: View {
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPGuest.self) { guest in
-                GuestDetailView(guest: guest)
+                GuestDetailView(guest: guest, store: store)
             }
             .overlay(alignment: .bottomTrailing) {
                 VStack(alignment: .trailing, spacing: 10) {
@@ -859,6 +940,10 @@ private struct GuestRow: View {
 
 private struct GuestDetailView: View {
     let guest: MVPGuest
+    let store: VowbaseWorkspaceStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var isEditing = false
+    @State private var isConfirmingDeletion = false
 
     var body: some View {
         List {
@@ -883,6 +968,31 @@ private struct GuestDetailView: View {
         }
         .navigationTitle("Guest")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Edit guest") { isEditing = true }
+                    Button("Delete guest", role: .destructive) { isConfirmingDeletion = true }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(isPresented: $isEditing) {
+            EditGuestSheet(store: store, guest: guest)
+        }
+        .alert("Delete \(guest.name)?", isPresented: $isConfirmingDeletion) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    if await store.deleteGuest(guest) {
+                        dismiss()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the guest from your wedding workspace.")
+        }
     }
 }
 
@@ -932,12 +1042,13 @@ private struct QuickAddMenu: View {
 
 @MainActor
 private struct AddVenueSheet: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isNameFocused: Bool
     @State private var name = ""
     @State private var location = ""
     @State private var status: VenueStatus = .considering
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
@@ -963,11 +1074,20 @@ private struct AddVenueSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save venue") {
-                        store.addVenue(name: name, location: location, status: status)
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        dismiss()
+                        isSaving = true
+                        Task {
+                            let didSave = await store.createVenue(
+                                name: name,
+                                location: location,
+                                status: status
+                            )
+                            isSaving = false
+                            guard didSave else { return }
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            dismiss()
+                        }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(name.trimmed.isEmpty || isSaving)
                 }
             }
             .onAppear { isNameFocused = true }
@@ -977,13 +1097,14 @@ private struct AddVenueSheet: View {
 
 @MainActor
 private struct AddGuestSheet: View {
-    let store: VowbaseMVPStore
+    let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isFirstNameFocused: Bool
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var location = ""
     @State private var rsvp: RSVPStatus = .notInvited
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
@@ -1011,14 +1132,152 @@ private struct AddGuestSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save guest") {
-                        store.addGuest(firstName: firstName, lastName: lastName, location: location, rsvp: rsvp)
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        dismiss()
+                        isSaving = true
+                        Task {
+                            let didSave = await store.createGuest(
+                                firstName: firstName,
+                                lastName: lastName,
+                                location: location,
+                                rsvp: rsvp
+                            )
+                            isSaving = false
+                            guard didSave else { return }
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            dismiss()
+                        }
                     }
-                    .disabled(firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(firstName.trimmed.isEmpty || isSaving)
                 }
             }
             .onAppear { isFirstNameFocused = true }
+        }
+    }
+}
+
+@MainActor
+private struct EditVenueSheet: View {
+    let store: VowbaseWorkspaceStore
+    let venue: MVPVenue
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String
+    @State private var location: String
+    @State private var status: VenueStatus
+    @State private var isSaving = false
+
+    init(store: VowbaseWorkspaceStore, venue: MVPVenue) {
+        self.store = store
+        self.venue = venue
+        _name = State(initialValue: venue.name)
+        _location = State(initialValue: venue.location == "Location not added" ? "" : venue.location)
+        _status = State(initialValue: venue.status)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Venue details") {
+                    TextField("Venue name", text: $name)
+                        .textInputAutocapitalization(.words)
+                    TextField("Address or location (optional)", text: $location)
+                        .textInputAutocapitalization(.words)
+                    Picker("Status", selection: $status) {
+                        ForEach([
+                            VenueStatus.suggested, .considering, .contacted, .toured,
+                            .shortlisted, .negotiating, .booked, .passed,
+                        ], id: \.self) { status in
+                            Text(status.title).tag(status)
+                        }
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(VowbaseTheme.background)
+            .navigationTitle("Edit venue")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        isSaving = true
+                        Task {
+                            let didSave = await store.updateVenue(
+                                venue,
+                                name: name,
+                                location: location,
+                                status: status
+                            )
+                            isSaving = false
+                            if didSave { dismiss() }
+                        }
+                    }
+                    .disabled(name.trimmed.isEmpty || isSaving)
+                }
+            }
+        }
+    }
+}
+
+@MainActor
+private struct EditGuestSheet: View {
+    let store: VowbaseWorkspaceStore
+    let guest: MVPGuest
+    @Environment(\.dismiss) private var dismiss
+    @State private var firstName: String
+    @State private var lastName: String
+    @State private var location: String
+    @State private var rsvp: RSVPStatus
+    @State private var isSaving = false
+
+    init(store: VowbaseWorkspaceStore, guest: MVPGuest) {
+        self.store = store
+        self.guest = guest
+        _firstName = State(initialValue: guest.firstName)
+        _lastName = State(initialValue: guest.lastName)
+        _location = State(initialValue: guest.location ?? "")
+        _rsvp = State(initialValue: guest.rsvp)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Guest details") {
+                    TextField("First name", text: $firstName)
+                        .textInputAutocapitalization(.words)
+                    TextField("Last name (optional)", text: $lastName)
+                        .textInputAutocapitalization(.words)
+                    Picker("RSVP", selection: $rsvp) {
+                        ForEach(RSVPStatus.allCases, id: \.self) { status in
+                            Text(status.title).tag(status)
+                        }
+                    }
+                    TextField("Address or location (optional)", text: $location)
+                        .textInputAutocapitalization(.words)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(VowbaseTheme.background)
+            .navigationTitle("Edit guest")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        isSaving = true
+                        Task {
+                            let didSave = await store.updateGuest(
+                                guest,
+                                firstName: firstName,
+                                lastName: lastName,
+                                location: location,
+                                rsvp: rsvp
+                            )
+                            isSaving = false
+                            if didSave { dismiss() }
+                        }
+                    }
+                    .disabled(firstName.trimmed.isEmpty || isSaving)
+                }
+            }
         }
     }
 }
@@ -1029,11 +1288,29 @@ private struct VowbaseVenueImage: View {
     let url: URL?
 
     var body: some View {
-        Image("GlasshouseVenue")
-            .resizable()
-            .scaledToFill()
+        Group {
+            if let url {
+                AsyncImage(url: url) { phase in
+                    if case let .success(image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        venueImagePlaceholder
+                    }
+                }
+            } else {
+                venueImagePlaceholder
+            }
+        }
         .clipped()
         .accessibilityHidden(true)
+    }
+
+    private var venueImagePlaceholder: some View {
+        Image(systemName: "building.2")
+            .font(.system(size: 36, weight: .light))
+            .foregroundStyle(VowbaseTheme.rose.opacity(0.65))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(VowbaseTheme.blush)
     }
 }
 
@@ -1124,11 +1401,15 @@ private struct MVPVenue: Identifiable, Hashable {
     let capacity: String
     let estimate: String
     let travel: String
-    let latitude: Double
-    let longitude: Double
+    let latitude: Double?
+    let longitude: Double?
     let photoURL: URL?
+    let notes: String?
 
-    var coordinate: CLLocationCoordinate2D { .init(latitude: latitude, longitude: longitude) }
+    var coordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return .init(latitude: latitude, longitude: longitude)
+    }
 }
 
 private struct GuestCluster: Identifiable {
@@ -1161,77 +1442,451 @@ private struct MVPGuest: Identifiable, Hashable {
 
 @MainActor
 @Observable
-private final class VowbaseMVPStore {
+private final class VowbaseWorkspaceStore {
+    private let repositories: RepositoryContainer?
+    private var venueRecords = [Venue]()
+    private var guestRecords = [Guest]()
+
     var selectedVenueID: UUID?
     var isGlobalMenuOpen = false
-    var venues: [MVPVenue] = [
-        MVPVenue(
-            id: UUID(), name: "Glasshouse Chelsea", status: .toured,
-            location: "Chelsea, New York", capacity: "150–350", estimate: "$53.7K", travel: "1 hr 19 min",
-            latitude: 40.746, longitude: -74.003,
-            photoURL: URL(string: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=85")
-        ),
-        MVPVenue(
-            id: UUID(), name: "Brooklyn Museum", status: .toured,
-            location: "Brooklyn, New York", capacity: "120–300", estimate: "$48K", travel: "1 hr 12 min",
-            latitude: 40.671, longitude: -73.964,
-            photoURL: URL(string: "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=1200&q=85")
-        ),
-        MVPVenue(
-            id: UUID(), name: "The Lakehouse", status: .considering,
-            location: "Hudson Valley, New York", capacity: "100–220", estimate: "$39K", travel: "1 hr 31 min",
-            latitude: 42.653, longitude: -73.757,
-            photoURL: URL(string: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=85")
-        ),
-        MVPVenue(
-            id: UUID(), name: "Water's Edge", status: .shortlisted,
-            location: "Long Island, New York", capacity: "130–250", estimate: "$45K", travel: "1 hr 8 min",
-            latitude: 40.758, longitude: -73.83,
-            photoURL: URL(string: "https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=1200&q=85")
-        )
-    ]
-    var guests: [MVPGuest] = [
-        MVPGuest(id: UUID(), firstName: "Calvin", lastName: "Khuat", group: "Ng Family", location: "Bay Area", email: nil, rsvp: .pending),
-        MVPGuest(id: UUID(), firstName: "Kyle", lastName: "Ng", group: "Ng Family", location: "Fremont, CA", email: nil, rsvp: .pending),
-        MVPGuest(id: UUID(), firstName: "Dan", lastName: "Jung", group: "Calvin Friends", location: "New York", email: nil, rsvp: .pending),
-        MVPGuest(id: UUID(), firstName: "Lulu", lastName: "Lui", group: "Lui Family", location: "Commack, NY", email: nil, rsvp: .pending),
-        MVPGuest(id: UUID(), firstName: "Yusuf", lastName: "Mehkri", group: "Calvin Friends", location: "Florida", email: nil, rsvp: .notInvited),
-        MVPGuest(id: UUID(), firstName: "Maya", lastName: "Chen", group: "Andey Friends", location: "Boston, MA", email: nil, rsvp: .accepted),
-        MVPGuest(id: UUID(), firstName: "Priya", lastName: "Shah", group: "Andey Friends", location: "New York", email: nil, rsvp: .notInvited)
-    ]
-    let clusters: [GuestCluster] = [
-        GuestCluster(id: "hudson", city: "Hudson Valley", count: 12, latitude: 42.65, longitude: -73.75),
-        GuestCluster(id: "boston", city: "Boston", count: 8, latitude: 42.36, longitude: -71.06),
-        GuestCluster(id: "new-york", city: "New York", count: 28, latitude: 40.72, longitude: -74.0),
-        GuestCluster(id: "philadelphia", city: "Philadelphia", count: 6, latitude: 39.95, longitude: -75.17),
-        GuestCluster(id: "dc", city: "Washington", count: 9, latitude: 38.91, longitude: -77.04),
-        GuestCluster(id: "virginia", city: "Virginia Beach", count: 4, latitude: 36.85, longitude: -75.98)
-    ]
+    var wedding: WeddingSummary?
+    var isLoading = false
+    var errorMessage: String?
 
-    init() {
-        selectedVenueID = venues.first?.id
+    init(repositories: RepositoryContainer? = nil) {
+        self.repositories = repositories
     }
 
-    func addVenue(name: String, location: String, status: VenueStatus) {
-        let venue = MVPVenue(
-            id: UUID(), name: name, status: status,
-            location: location.isEmpty ? "Location not added" : location,
-            capacity: "Not added", estimate: "Not added", travel: "Unavailable",
-            latitude: 40.73, longitude: -74.01, photoURL: nil
-        )
-        venues.insert(venue, at: 0)
-        selectedVenueID = venue.id
-    }
+#if DEBUG
+    init(testingWorkspace: Bool) {
+        precondition(testingWorkspace)
+        repositories = nil
 
-    func addGuest(firstName: String, lastName: String, location: String, rsvp: RSVPStatus) {
-        guests.insert(
-            MVPGuest(
-                id: UUID(), firstName: firstName, lastName: lastName,
-                group: "Ungrouped", location: location.isEmpty ? nil : location,
-                email: nil, rsvp: rsvp
+        let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+        wedding = WeddingSummary(
+            id: weddingID,
+            name: "Example Wedding",
+            coupleNames: "Example Couple",
+            weddingDate: "2027-09-18",
+            location: "Example City"
+        )
+        venueRecords = [
+            Venue(
+                id: UUID(uuidString: "4B836FCF-0575-41F8-960C-3C69E70F1D84")!,
+                weddingID: weddingID,
+                name: "Riverside Pavilion",
+                status: .toured,
+                location: "Example District, Example City",
+                address: "100 Example Avenue, Example City",
+                city: "Example City",
+                state: "EX",
+                country: "US",
+                contactName: nil,
+                contactEmail: nil,
+                contactPhone: nil,
+                website: nil,
+                capacityMin: 150,
+                capacityMax: 350,
+                priceEstimate: 53_700,
+                priceNotes: nil,
+                notes: nil,
+                latitude: 39.5,
+                longitude: -98.35,
+                photoURL: nil,
+                rawResearch: nil,
+                createdAt: createdAt,
+                updatedAt: createdAt
             ),
-            at: 0
+            Venue(
+                id: UUID(uuidString: "75AC0474-624B-4106-8A1C-5D13B117A34F")!,
+                weddingID: weddingID,
+                name: "Harbor Gallery",
+                status: .toured,
+                location: "Harbor District, Example City",
+                address: "200 Example Street, Example City",
+                city: "Example City",
+                state: "EX",
+                country: "US",
+                contactName: nil,
+                contactEmail: nil,
+                contactPhone: nil,
+                website: nil,
+                capacityMin: 120,
+                capacityMax: 300,
+                priceEstimate: 48_000,
+                priceNotes: nil,
+                notes: nil,
+                latitude: 39.6,
+                longitude: -98.25,
+                photoURL: nil,
+                rawResearch: nil,
+                createdAt: createdAt,
+                updatedAt: createdAt
+            ),
+            Venue(
+                id: UUID(uuidString: "2A2B8F0C-A065-499B-BC92-847152B6E0D6")!,
+                weddingID: weddingID,
+                name: "Meadow House",
+                status: .considering,
+                location: "Lakeside, Example City",
+                address: "300 Example Road, Example City",
+                city: "Example City",
+                state: "EX",
+                country: "US",
+                contactName: nil,
+                contactEmail: nil,
+                contactPhone: nil,
+                website: nil,
+                capacityMin: 100,
+                capacityMax: 220,
+                priceEstimate: 39_000,
+                priceNotes: nil,
+                notes: nil,
+                latitude: 39.4,
+                longitude: -98.45,
+                photoURL: nil,
+                rawResearch: nil,
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        guestRecords = [
+            Guest(id: UUID(uuidString: "AE67A07D-D565-4A7D-A960-4B6A186C4D6D")!, weddingID: weddingID, firstName: "Avery", lastName: "Rowan", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .accepted, rsvpDate: nil, originLabel: "Lumen Bay", originLatitude: 39.5, originLongitude: -98.35, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(uuidString: "167E1A25-7B99-499B-9A66-872B2A3B784A")!, weddingID: weddingID, firstName: "Mira", lastName: "Vale", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .pending, rsvpDate: nil, originLabel: "Northvale", originLatitude: 39.6, originLongitude: -98.25, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(uuidString: "3F8DB09C-44F3-4888-8D2B-31EB26F5C487")!, weddingID: weddingID, firstName: "Theo", lastName: "Lark", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .pending, rsvpDate: nil, originLabel: "Willow Coast", originLatitude: 39.4, originLongitude: -98.45, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(uuidString: "DE25BD36-69A1-4DC3-A5E0-5E0AF076E34E")!, weddingID: weddingID, firstName: "Nora", lastName: "Wynn", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .notInvited, rsvpDate: nil, originLabel: "Solace Point", originLatitude: 39.45, originLongitude: -98.3, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
+        ]
+        selectedVenueID = venueRecords.first?.id
+    }
+#endif
+
+    var venues: [MVPVenue] { venueRecords.map(MVPVenue.init) }
+    var guests: [MVPGuest] { guestRecords.map(MVPGuest.init) }
+    var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
+
+    /// Map guest locations only when the server marks them as city-precision.
+    /// This keeps individual household addresses out of the planning map.
+    var clusters: [GuestCluster] {
+        let locatedGuests = guestRecords.compactMap { guest -> (String, Double, Double)? in
+            guard guest.originPrecision == "city",
+                  let city = guest.originLabel,
+                  let latitude = guest.originLatitude,
+                  let longitude = guest.originLongitude else {
+                return nil
+            }
+            return (city, latitude, longitude)
+        }
+        return Dictionary(grouping: locatedGuests, by: { $0.0.lowercased() })
+            .compactMap { key, entries in
+                guard let first = entries.first else { return nil }
+                let count = Double(entries.count)
+                return GuestCluster(
+                    id: key,
+                    city: first.0,
+                    count: entries.count,
+                    latitude: entries.reduce(0) { $0 + $1.1 } / count,
+                    longitude: entries.reduce(0) { $0 + $1.2 } / count
+                )
+            }
+            .sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
+    }
+
+    func load() async {
+        guard let repositories else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            guard let membership = try await repositories.workspace.memberships().first else {
+                venueRecords = []
+                guestRecords = []
+                wedding = nil
+                errorMessage = "This account is not a member of a wedding workspace yet."
+                return
+            }
+
+            wedding = membership.wedding
+            async let venues = repositories.venues.venues(weddingID: membership.weddingId)
+            async let guests = repositories.guests.guests(weddingID: membership.weddingId)
+            venueRecords = try await venues
+            guestRecords = try await guests
+            if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
+                selectedVenueID = venueRecords.first?.id
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            errorMessage = userMessage(for: error)
+        }
+    }
+
+    func createVenue(name: String, location: String, status: VenueStatus) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        do {
+            let location = await resolvedLocation(for: location, repositories: repositories)
+            let venue = try await repositories.venues.createVenue(
+                VenueDraft(
+                    name: name.trimmed,
+                    status: status,
+                    location: location.displayName,
+                    address: location.displayName,
+                    city: location.city,
+                    state: location.region,
+                    country: location.country,
+                    contactName: nil,
+                    contactEmail: nil,
+                    contactPhone: nil,
+                    website: nil,
+                    capacityMin: nil,
+                    capacityMax: nil,
+                    priceEstimate: nil,
+                    priceNotes: nil,
+                    notes: nil,
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    photoURL: nil
+                ),
+                weddingID: weddingID
+            )
+            venueRecords.insert(venue, at: 0)
+            selectedVenueID = venue.id
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func updateVenue(_ venue: MVPVenue, name: String, location: String, status: VenueStatus) async -> Bool {
+        guard let repositories else { return unavailable() }
+        do {
+            let resolved = await resolvedLocation(for: location, repositories: repositories)
+            let updated = try await repositories.venues.updateVenue(
+                id: venue.id,
+                patch: VenuePatch(
+                    name: name.trimmed,
+                    status: status,
+                    location: resolved.displayName,
+                    address: resolved.displayName,
+                    city: resolved.city,
+                    state: resolved.region,
+                    country: resolved.country,
+                    contactName: nil,
+                    contactEmail: nil,
+                    contactPhone: nil,
+                    website: nil,
+                    capacityMin: nil,
+                    capacityMax: nil,
+                    priceEstimate: nil,
+                    priceNotes: nil,
+                    notes: nil,
+                    latitude: resolved.latitude,
+                    longitude: resolved.longitude,
+                    photoURL: nil,
+                    rawResearch: nil
+                )
+            )
+            replace(updated, in: &venueRecords)
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func deleteVenue(_ venue: MVPVenue) async -> Bool {
+        guard let repositories else { return unavailable() }
+        do {
+            try await repositories.venues.deleteVenue(id: venue.id)
+            venueRecords.removeAll { $0.id == venue.id }
+            if selectedVenueID == venue.id {
+                selectedVenueID = venueRecords.first?.id
+            }
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func createGuest(firstName: String, lastName: String, location: String, rsvp: RSVPStatus) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        do {
+            let resolved = await resolvedLocation(for: location, repositories: repositories)
+            let guest = try await repositories.guests.createGuest(
+                GuestDraft(
+                    firstName: firstName.trimmed,
+                    lastName: lastName.nilIfBlank,
+                    address: resolved.displayName,
+                    rsvpStatus: rsvp,
+                    originLabel: resolved.city ?? resolved.displayName,
+                    originLatitude: resolved.latitude,
+                    originLongitude: resolved.longitude,
+                    originPrecision: resolved.city == nil ? nil : "city",
+                    geocodeStatus: resolved.latitude == nil ? nil : "resolved"
+                ),
+                weddingID: weddingID
+            )
+            guestRecords.insert(guest, at: 0)
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func updateGuest(_ guest: MVPGuest, firstName: String, lastName: String, location: String, rsvp: RSVPStatus) async -> Bool {
+        guard let repositories else { return unavailable() }
+        do {
+            let resolved = await resolvedLocation(for: location, repositories: repositories)
+            let updated = try await repositories.guests.updateGuest(
+                id: guest.id,
+                patch: GuestPatch(
+                    firstName: firstName.trimmed,
+                    lastName: lastName.nilIfBlank.map(NullablePatch.value) ?? .null,
+                    address: resolved.displayName.map(NullablePatch.value) ?? .null,
+                    rsvpStatus: .value(rsvp),
+                    originLabel: (resolved.city ?? resolved.displayName).map(NullablePatch.value) ?? .null,
+                    originLatitude: resolved.latitude.map(NullablePatch.value) ?? .null,
+                    originLongitude: resolved.longitude.map(NullablePatch.value) ?? .null,
+                    originPrecision: resolved.city == nil ? .null : .value("city"),
+                    geocodeStatus: resolved.latitude == nil ? .null : .value("resolved")
+                )
+            )
+            replace(updated, in: &guestRecords)
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func deleteGuest(_ guest: MVPGuest) async -> Bool {
+        guard let repositories else { return unavailable() }
+        do {
+            try await repositories.guests.deleteGuest(id: guest.id)
+            guestRecords.removeAll { $0.id == guest.id }
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    private func unavailable() -> Bool {
+        errorMessage = "Your wedding workspace is not ready yet. Please try again."
+        return false
+    }
+
+    private func resolvedLocation(
+        for input: String,
+        repositories: RepositoryContainer
+    ) async -> ResolvedLocation {
+        let query = input.trimmed
+        guard !query.isEmpty else { return .empty }
+        guard let result = try? await repositories.maps.geocode(query: query).first else {
+            return .init(displayName: query, city: nil, region: nil, country: nil, latitude: nil, longitude: nil)
+        }
+        return .init(
+            displayName: result.displayName,
+            city: result.city,
+            region: result.region,
+            country: result.country,
+            latitude: result.latitude,
+            longitude: result.longitude
         )
+    }
+
+    private func replace<T: Identifiable>(_ value: T, in records: inout [T]) where T.ID: Equatable {
+        guard let index = records.firstIndex(where: { $0.id == value.id }) else { return }
+        records[index] = value
+    }
+
+    private func userMessage(for error: Error) -> String {
+        switch error as? BackendError {
+        case .forbidden:
+            "You don’t have permission to make that change."
+        case .networkUnavailable:
+            "Vowbase couldn’t reach the server. Check your connection and try again."
+        case .authenticationRequired:
+            "Your session has ended. Please sign in again."
+        default:
+            "We couldn’t save that change. Please try again."
+        }
+    }
+}
+
+private struct ResolvedLocation {
+    let displayName: String?
+    let city: String?
+    let region: String?
+    let country: String?
+    let latitude: Double?
+    let longitude: Double?
+
+    static let empty = ResolvedLocation(
+        displayName: nil, city: nil, region: nil, country: nil, latitude: nil, longitude: nil
+    )
+}
+
+private extension MVPVenue {
+    init(_ venue: Venue) {
+        id = venue.id
+        name = venue.name
+        status = venue.status
+        location = venue.location ?? venue.city ?? venue.address ?? "Location not added"
+        capacity = VenueCapacityFormatter.string(minimum: venue.capacityMin, maximum: venue.capacityMax)
+        estimate = venue.priceEstimate.map(VenuePriceFormatter.string) ?? "Not added"
+        travel = "Unavailable"
+        latitude = venue.latitude
+        longitude = venue.longitude
+        photoURL = venue.photoURL.flatMap(URL.init(string:))
+        notes = venue.notes
+    }
+}
+
+private extension MVPGuest {
+    init(_ guest: Guest) {
+        id = guest.id
+        firstName = guest.firstName
+        lastName = guest.lastName ?? ""
+        group = guest.customFields.stringValue(for: "group")
+            ?? guest.customFields.stringValue(for: "group_name")
+            ?? "No group"
+        location = guest.originLabel ?? guest.address
+        email = guest.email
+        rsvp = guest.rsvpStatus ?? .notInvited
+    }
+}
+
+private extension JSONValue {
+    func stringValue(for key: String) -> String? {
+        guard case let .object(values) = self, case let .string(value)? = values[key] else { return nil }
+        return value
+    }
+}
+
+private extension String {
+    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
+    var nilIfBlank: String? { trimmed.isEmpty ? nil : trimmed }
+}
+
+private enum VenueCapacityFormatter {
+    static func string(minimum: Int?, maximum: Int?) -> String {
+        switch (minimum, maximum) {
+        case let (minimum?, maximum?): "\(minimum)–\(maximum)"
+        case let (minimum?, nil): "\(minimum)+"
+        case let (nil, maximum?): "Up to \(maximum)"
+        case (nil, nil): "Not added"
+        }
+    }
+}
+
+private enum VenuePriceFormatter {
+    static func string(_ value: Double) -> String {
+        value.formatted(.currency(code: "USD").precision(.fractionLength(0)))
     }
 }
 
@@ -1240,17 +1895,17 @@ private final class VowbaseMVPStore {
 }
 
 #Preview("Venues") {
-    WeddingAppShell(store: VowbaseMVPStore(), initialTab: .venues)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), initialTab: .venues)
 }
 
 #Preview("Guests") {
-    WeddingAppShell(store: VowbaseMVPStore(), initialTab: .guests)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), initialTab: .guests)
 }
 
 #Preview("Add venue") {
-    AddVenueSheet(store: VowbaseMVPStore())
+    AddVenueSheet(store: VowbaseWorkspaceStore())
 }
 
 #Preview("Add guest") {
-    AddGuestSheet(store: VowbaseMVPStore())
+    AddGuestSheet(store: VowbaseWorkspaceStore())
 }
