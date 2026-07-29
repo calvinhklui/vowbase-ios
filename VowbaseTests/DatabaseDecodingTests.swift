@@ -33,8 +33,8 @@ struct DatabaseDecodingTests {
         #expect(
             membership.wedding == FixtureWedding(
                 id: UUID(uuidString: "01908f9d-2265-789a-bcde-f0123456789b")!,
-                name: "Alex & Calvin",
-                coupleNames: "Alex and Calvin",
+                name: "Example Wedding",
+                coupleNames: "Example Couple",
                 weddingDate: "2027-06-12",
                 location: "Brooklyn, NY"
             )
