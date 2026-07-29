@@ -215,6 +215,7 @@ private struct AuthenticationLoadingView: View {
 
 private struct AuthenticationSignInView: View {
     @Bindable var coordinator: AuthenticationCoordinator
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -258,7 +259,7 @@ private struct AuthenticationSignInView: View {
                     } onCompletion: { result in
                         coordinator.completeAppleSignIn(result)
                     }
-                    .signInWithAppleButtonStyle(.black)
+                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                     .frame(height: 54)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .disabled(coordinator.isSigningIn || coordinator.operation == .signOut)
@@ -387,9 +388,10 @@ private struct AuthenticationButtonStyle: ButtonStyle {
 
 private struct VowbaseMark: View {
     let size: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Image("VowbaseIcon")
+        Image(colorScheme == .dark ? "VowbaseIcon-iOS-Dark-1024x1024" : "VowbaseIcon-iOS-Default-1024x1024")
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)

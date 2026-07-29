@@ -495,6 +495,7 @@ private struct MapVenueCard: View {
             .frame(width: 165, height: 148, alignment: .leading)
         }
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(selected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selected ? 1.5 : 1)
@@ -701,6 +702,7 @@ private struct VenueCard: View {
             .padding(18)
         }
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(selectedForComparison ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selectedForComparison ? 2 : 1)
@@ -1404,20 +1406,25 @@ private struct VowbaseVenueImage: View {
     let url: URL?
 
     var body: some View {
-        Group {
-            if let url {
-                AsyncImage(url: url) { phase in
-                    if case let .success(image) = phase {
-                        image.resizable().scaledToFill()
-                    } else {
-                        venueImagePlaceholder
+        GeometryReader { proxy in
+            Group {
+                if let url {
+                    AsyncImage(url: url) { phase in
+                        if case let .success(image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            venueImagePlaceholder
+                        }
                     }
+                } else {
+                    venueImagePlaceholder
                 }
-            } else {
-                venueImagePlaceholder
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
         }
-        .clipped()
         .accessibilityHidden(true)
     }
 
