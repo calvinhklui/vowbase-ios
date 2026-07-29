@@ -277,7 +277,7 @@ Use the existing web dark tokens for dark mode. Map overlays require separate co
 - Maintain 44 pt hit targets and visible focus states for keyboard/switch access.
 - Status, selection, and layer state use text/icon/state in addition to color.
 - VoiceOver order follows visual hierarchy and excludes decorative map labels and venue photography.
-- Provide concise custom actions such as `View Glasshouse Chelsea on map` and `Filter guests by Commack`.
+- Provide concise custom actions such as `View Example Venue on map` and `Filter guests by Example City`.
 - Respect Reduce Motion, Reduce Transparency, Increase Contrast, Bold Text, and Differentiate Without Color.
 - Keep all couple and guest names as user-entered Unicode; never assume Latin initials.
 

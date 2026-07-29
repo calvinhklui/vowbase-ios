@@ -19,7 +19,7 @@ struct ProfileInvitationRepositoryTests {
 
         let profile = try await repository.currentProfile()
         let updated = try await repository.updateCurrentProfile(
-            ProfilePatch(firstName: "Calvin")
+            ProfilePatch(firstName: "Sample")
         )
 
         #expect(profile == expectedProfile)
@@ -41,7 +41,7 @@ struct ProfileInvitationRepositoryTests {
                 columns: "id,email,full_name,first_name,last_name,avatar_url",
                 equalityFilters: expectedScope,
                 singleRow: true,
-                patch: ProfilePatch(firstName: "Calvin")
+                patch: ProfilePatch(firstName: "Sample")
             ),
         ])
     }
@@ -187,10 +187,10 @@ struct ProfileInvitationRepositoryTests {
     private var expectedProfile: Profile {
         Profile(
             id: userID,
-            email: "calvin@example.com",
-            fullName: "Calvin Hobbes",
-            firstName: "Calvin",
-            lastName: "Hobbes",
+            email: "sample@example.com",
+            fullName: "Sample User",
+            firstName: "Sample",
+            lastName: "User",
             avatarURL: "https://example.com/avatar.png"
         )
     }
@@ -199,7 +199,7 @@ struct ProfileInvitationRepositoryTests {
         InvitationPreview(
             id: UUID(uuidString: "01908f9d-2265-789a-bcde-f0123456789a")!,
             weddingID: weddingID,
-            weddingName: "Alex & Calvin",
+            weddingName: "Example Wedding",
             email: nil,
             role: .partner,
             status: .pending,
@@ -224,13 +224,13 @@ struct ProfileInvitationRepositoryTests {
 
     private var profileData: Data {
         Data("""
-        {"id":"01908f9d-2265-789a-bcde-f0123456789c","email":"calvin@example.com","full_name":"Calvin Hobbes","first_name":"Calvin","last_name":"Hobbes","avatar_url":"https://example.com/avatar.png"}
+        {"id":"01908f9d-2265-789a-bcde-f0123456789c","email":"sample@example.com","full_name":"Sample User","first_name":"Sample","last_name":"User","avatar_url":"https://example.com/avatar.png"}
         """.utf8)
     }
 
     private var invitationPreviewData: Data {
         Data("""
-        [{"id":"01908f9d-2265-789a-bcde-f0123456789a","wedding_id":"01908f9d-2265-789a-bcde-f0123456789b","wedding_name":"Alex & Calvin","email":null,"role":"partner","status":"pending","expires_at":"2028-07-01T00:00:00Z"}]
+        [{"id":"01908f9d-2265-789a-bcde-f0123456789a","wedding_id":"01908f9d-2265-789a-bcde-f0123456789b","wedding_name":"Example Wedding","email":null,"role":"partner","status":"pending","expires_at":"2028-07-01T00:00:00Z"}]
         """.utf8)
     }
 

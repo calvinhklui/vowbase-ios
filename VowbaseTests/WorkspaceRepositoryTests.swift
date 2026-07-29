@@ -29,8 +29,8 @@ struct WorkspaceRepositoryTests {
         #expect(membership.role == .partner)
         #expect(membership.status == "active")
         #expect(membership.wedding.id == weddingID)
-        #expect(membership.wedding.name == "Alex & Calvin")
-        #expect(membership.wedding.coupleNames == "Alex and Calvin")
+        #expect(membership.wedding.name == "Example Wedding")
+        #expect(membership.wedding.coupleNames == "Example Couple")
         #expect(membership.wedding.weddingDate == "2027-06-12")
         #expect(membership.wedding.location == "Brooklyn, NY")
         #expect(await adapter.selectRequests == [
@@ -82,7 +82,7 @@ struct WorkspaceRepositoryTests {
             database: adapter,
             api: SessionAPIClientSpy()
         )
-        let patch = WeddingPatch(name: "Alex & Calvin")
+        let patch = WeddingPatch(name: "Example Wedding")
 
         let wedding = try await repository.updateWedding(id: weddingID, patch: patch)
 
@@ -110,7 +110,7 @@ struct WorkspaceRepositoryTests {
         let summary = try await repository.sessionSummary()
 
         #expect(summary == SessionSummary(
-            user: .init(id: userID, email: "calvin@example.com"),
+            user: .init(id: userID, email: "sample@example.com"),
             weddingIDs: [weddingID]
         ))
         #expect(api.methods == ["GET"])
@@ -313,8 +313,8 @@ struct WorkspaceRepositoryTests {
     private var expectedWedding: WeddingSummary {
         WeddingSummary(
             id: weddingID,
-            name: "Alex & Calvin",
-            coupleNames: "Alex and Calvin",
+            name: "Example Wedding",
+            coupleNames: "Example Couple",
             weddingDate: "2027-06-12",
             location: "Brooklyn, NY"
         )
@@ -341,8 +341,8 @@ struct WorkspaceRepositoryTests {
           "status": "active",
           "wedding": {
             "id": "01908f9d-2265-789a-bcde-f0123456789b",
-            "name": "Alex & Calvin",
-            "couple_names": "Alex and Calvin",
+            "name": "Example Wedding",
+            "couple_names": "Example Couple",
             "wedding_date": "2027-06-12",
             "location": "Brooklyn, NY"
           }
@@ -354,8 +354,8 @@ struct WorkspaceRepositoryTests {
         Data("""
         {
           "id": "01908f9d-2265-789a-bcde-f0123456789b",
-          "name": "Alex & Calvin",
-          "couple_names": "Alex and Calvin",
+          "name": "Example Wedding",
+          "couple_names": "Example Couple",
           "wedding_date": "2027-06-12",
           "location": "Brooklyn, NY"
         }
