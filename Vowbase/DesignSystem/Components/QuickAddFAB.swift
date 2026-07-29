@@ -43,8 +43,7 @@ struct QuickAddPanel: View {
     var body: some View {
         VStack(spacing: 4) {
             quickAddRow(
-                title: "Add venue",
-                subtitle: "Save a place you are considering",
+                title: "Add Venue",
                 icon: "mappin.and.ellipse",
                 tint: VowbaseTheme.rose,
                 action: onAddVenue
@@ -54,15 +53,14 @@ struct QuickAddPanel: View {
                 .padding(.leading, 64)
 
             quickAddRow(
-                title: "Add guest",
-                subtitle: "Add someone to your celebration",
+                title: "Add Guest",
                 icon: "person.badge.plus",
                 tint: VowbaseTheme.guestBlue,
                 action: onAddGuest
             )
         }
         .padding(8)
-        .frame(minWidth: 280, maxWidth: 340)
+        .frame(minWidth: 240, maxWidth: 300)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -76,7 +74,6 @@ struct QuickAddPanel: View {
 
     private func quickAddRow(
         title: String,
-        subtitle: String,
         icon: String,
         tint: Color,
         action: @escaping () -> Void
@@ -91,31 +88,18 @@ struct QuickAddPanel: View {
                     .frame(width: 40, height: 40)
                     .background(tint.opacity(0.13), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(VowbaseTheme.ink)
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(VowbaseTheme.ink)
 
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(VowbaseTheme.mutedInk)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                    .accessibilityHidden(true)
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 10)
-            .frame(minHeight: 60)
+            .frame(minHeight: 56)
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(QuickAddRowStyle())
         .accessibilityLabel(title)
-        .accessibilityHint(subtitle)
     }
 
     private func dismissThenPerform(_ action: @escaping () -> Void) {

@@ -133,7 +133,7 @@ private struct WeddingAppShell: View {
                 onAddGuest: { quickAdd = .guest }
             )
             .padding(.trailing, VowbaseControlMetric.screenInset)
-            .padding(.bottom, VowbaseSpace.standard)
+            .padding(.bottom, VowbaseTabBar.fabBottomClearance)
         }
         .sheet(item: $quickAdd) { destination in
             switch destination {
@@ -151,6 +151,8 @@ private struct WeddingAppShell: View {
 }
 
 private struct VowbaseTabBar: View {
+    static let fabBottomClearance: CGFloat = 90
+
     @Binding var selection: AppTab
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
