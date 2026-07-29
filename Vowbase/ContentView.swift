@@ -112,13 +112,28 @@ private struct WeddingAppShell: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VowbaseTabBar(selection: $navigation.selectedTab)
         }
+        .overlay {
+            if isQuickAddPresented {
+                Color.black.opacity(0.22)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
+                            isQuickAddPresented = false
+                        }
+                    }
+                    .accessibilityHidden(true)
+                    .transition(.opacity)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             QuickAddOverlay(
                 isPresented: $isQuickAddPresented,
                 onAddVenue: { quickAdd = .venue },
                 onAddGuest: { quickAdd = .guest }
             )
-            .padding(.bottom, 78)
+            .padding(.trailing, VowbaseControlMetric.screenInset)
+            .padding(.bottom, VowbaseSpace.standard)
         }
         .sheet(item: $quickAdd) { destination in
             switch destination {
@@ -143,13 +158,11 @@ private struct VowbaseTabBar: View {
     var body: some View {
         Group {
             if #available(iOS 26, *) {
-                GlassEffectContainer(spacing: 0) {
-                    tabContent
-                        .glassEffect(
-                            .regular.tint(Color.black.opacity(0.54)),
-                            in: Capsule()
-                        )
-                }
+                tabContent
+                    .glassEffect(
+                        .regular.tint(Color.black.opacity(0.54)),
+                        in: Capsule()
+                    )
             } else {
                 tabContent
                     .background(.ultraThinMaterial, in: Capsule())
@@ -171,46 +184,14 @@ private struct VowbaseTabBar: View {
                 Button {
                     select(tab)
                 } label: {
-                    ZStack {
-                        if selection == tab {
-                            selectedTabBackground
-                        }
-
-                        VStack(spacing: 4) {
-                            Image(systemName: tab.systemImage)
-                                .font(.system(size: 20, weight: .semibold))
-                                .symbolVariant(.fill)
-
-                            Text(tab.title)
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundStyle(selection == tab ? .white : .white.opacity(0.72))
-                        .frame(maxWidth: .infinity, minHeight: 58)
-                    }
-                    .contentShape(Capsule())
-                    .accessibilityAddTraits(selection == tab ? .isSelected : [])
+                    VowbaseTabBarItem(tab: tab, isSelected: selection == tab)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(6)
         .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    private var selectedTabBackground: some View {
-        if #available(iOS 26, *) {
-            Capsule()
-                .fill(.white.opacity(0.16))
-                .glassEffect(.regular.tint(.white.opacity(0.18)), in: Capsule())
-        } else {
-            Capsule()
-                .fill(.white.opacity(0.16))
-                .overlay {
-                    Capsule()
-                        .stroke(.white.opacity(0.16), lineWidth: 1)
-                }
-        }
+        .frame(height: 70)
     }
 
     private func select(_ tab: AppTab) {
@@ -220,6 +201,37 @@ private struct VowbaseTabBar: View {
         withAnimation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08)) {
             selection = tab
         }
+    }
+}
+
+private struct VowbaseTabBarItem: View {
+    let tab: AppTab
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: tab.systemImage)
+                .font(.system(size: 20, weight: .semibold))
+                .symbolVariant(.fill)
+
+            Text(tab.title)
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundStyle(isSelected ? .white : .white.opacity(0.72))
+        .frame(maxWidth: .infinity)
+        .frame(height: 58)
+        .background {
+            if isSelected {
+                Capsule()
+                    .fill(.white.opacity(0.16))
+                    .overlay {
+                        Capsule()
+                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                    }
+            }
+        }
+        .contentShape(Capsule())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

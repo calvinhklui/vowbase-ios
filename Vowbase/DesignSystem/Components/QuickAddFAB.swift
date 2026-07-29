@@ -130,8 +130,10 @@ struct QuickAddPanel: View {
     }
 }
 
-/// A drop-in overlay that supplies both outside-tap dismissal and the anchored
-/// panel/FAB layout. Place it with `.overlay { ... }` on any tab's root view.
+/// A compact control that keeps its panel anchored directly above the FAB.
+///
+/// The parent owns any full-screen dismissal backdrop so this view retains its
+/// intrinsic size when used with `.overlay(alignment: .bottomTrailing)`.
 struct QuickAddOverlay: View {
     @Binding var isPresented: Bool
     let onAddVenue: () -> Void
@@ -140,31 +142,17 @@ struct QuickAddOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        VStack(alignment: .trailing, spacing: 12) {
             if isPresented {
-                Color.black.opacity(0.22)
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: dismiss)
-                    .accessibilityHidden(true)
-                    .transition(.opacity)
+                QuickAddPanel(
+                    isPresented: $isPresented,
+                    onAddVenue: onAddVenue,
+                    onAddGuest: onAddGuest
+                )
             }
 
-            VStack(alignment: .trailing, spacing: 12) {
-                if isPresented {
-                    QuickAddPanel(
-                        isPresented: $isPresented,
-                        onAddVenue: onAddVenue,
-                        onAddGuest: onAddGuest
-                    )
-                }
-
-                QuickAddFAB(isExpanded: isPresented, action: toggle)
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 16)
+            QuickAddFAB(isExpanded: isPresented, action: toggle)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08), value: isPresented)
     }
 
@@ -174,13 +162,6 @@ struct QuickAddOverlay: View {
         }
     }
 
-    private func dismiss() {
-        guard isPresented else { return }
-        QuickAddHaptics.impact()
-        withAnimation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.22, extraBounce: 0.04)) {
-            isPresented = false
-        }
-    }
 }
 
 private struct QuickAddPressStyle: ButtonStyle {
