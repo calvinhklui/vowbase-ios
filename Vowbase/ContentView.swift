@@ -230,11 +230,16 @@ private struct IdentityBar: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(weddingInitials)
-                .font(.system(size: 20, weight: .regular, design: .serif))
-                .frame(width: 58, height: 58)
-                .background(VowbaseTheme.blush)
-                .clipShape(Circle())
+            Button { isAccountMenuPresented = true } label: {
+                Text(weddingInitials)
+                    .font(.system(size: 20, weight: .regular, design: .serif))
+                    .frame(width: 58, height: 58)
+                    .background(VowbaseTheme.blush)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Account")
+            .accessibilityHint("Opens account actions")
 
             Text(weddingTitle)
                 .font(VowbaseType.detailTitle)
@@ -244,15 +249,6 @@ private struct IdentityBar: View {
                 .accessibilityLabel("Current wedding: \(weddingTitle)")
 
             Spacer(minLength: 0)
-
-            Button { isAccountMenuPresented = true } label: {
-                Image(systemName: "person")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.rose)
-                    .frame(width: VowbaseControlMetric.minimumTapTarget, height: VowbaseControlMetric.minimumTapTarget)
-                    .overlay(Circle().stroke(VowbaseTheme.border, lineWidth: 1))
-            }
-            .accessibilityLabel("Account")
         }
         .confirmationDialog(
             "Your Vowbase account",
