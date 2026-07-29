@@ -316,14 +316,10 @@ private struct AuthenticationButtonLabel: View {
     let title: String
 
     var body: some View {
-        ZStack {
+        HStack(spacing: 10) {
+            GoogleSignInIcon()
             Text(title)
-                .font(.system(size: 17, weight: .medium))
-
-            HStack {
-                GoogleSignInIcon()
-                Spacer(minLength: 0)
-            }
+                .font(.system(size: 20, weight: .medium))
         }
         .foregroundStyle(VowbaseTheme.ink)
         .frame(maxWidth: .infinity, minHeight: 54)
@@ -350,7 +346,7 @@ private struct TestingAuthenticationButtonLabel: View {
 
 private struct GoogleSignInIcon: View {
     var body: some View {
-        Image("Google-SignIn-iOS/SVG/Light/Theme=Light, Show text=No, Shape=Square, Platform=iOS")
+        Image("Theme=Light, Show text=No, Shape=Square, Platform=iOS")
             .resizable()
             .interpolation(.high)
             .frame(width: 44, height: 44)
@@ -376,12 +372,11 @@ private struct VowbaseMark: View {
     let size: CGFloat
 
     var body: some View {
-        Text("V")
-            .font(.system(size: size * 0.54, weight: .regular, design: .serif))
-            .foregroundStyle(VowbaseTheme.rose)
+        Image("VowbaseIcon")
+            .resizable()
+            .scaledToFit()
             .frame(width: size, height: size)
-            .background(VowbaseTheme.blush, in: Circle())
-            .overlay(Circle().stroke(VowbaseTheme.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.223, style: .continuous))
     }
 }
 
