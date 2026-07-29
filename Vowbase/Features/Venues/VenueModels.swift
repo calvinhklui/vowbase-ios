@@ -1,7 +1,61 @@
 import Foundation
 enum VenueStatus: String, Codable, Equatable, Sendable { case suggested, considering, contacted, toured, shortlisted, negotiating, booked, passed }
-struct Venue: Codable, Equatable, Sendable, Identifiable { let id:UUID;let weddingID:UUID;let name:String;let status:VenueStatus;let location:String?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let notes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?;let rawResearch:JSONValue?;let createdAt:Date;let updatedAt:Date
-enum CodingKeys:String,CodingKey{case id;case weddingID="wedding_id";case name;case status;case location;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case notes;case latitude;case longitude;case photoURL="photo_url";case rawResearch="raw_research";case createdAt="created_at";case updatedAt="updated_at"}}
+struct Venue: Codable, Equatable, Sendable, Identifiable {
+    let id: UUID
+    let weddingID: UUID
+    let name: String
+    let status: VenueStatus
+    let location: String?
+    let locationText: String?
+    let address: String?
+    let city: String?
+    let state: String?
+    let country: String?
+    let contactName: String?
+    let contactEmail: String?
+    let contactPhone: String?
+    let website: String?
+    let capacityMin: Int?
+    let capacityMax: Int?
+    let capacityText: String?
+    let priceEstimate: Double?
+    let priceNotes: String?
+    let venueEstimateText: String?
+    let allInEstimateText: String?
+    let availableDatesText: String?
+    let notes: String?
+    let ourNotes: String?
+    let summary: String?
+    let latitude: Double?
+    let longitude: Double?
+    let photoURL: String?
+    let rawResearch: JSONValue?
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case weddingID = "wedding_id"
+        case name, status, location, address, city, state, country, website, notes, summary, latitude, longitude
+        case locationText = "location_text"
+        case contactName = "contact_name"
+        case contactEmail = "contact_email"
+        case contactPhone = "contact_phone"
+        case capacityMin = "capacity_min"
+        case capacityMax = "capacity_max"
+        case capacityText = "capacity_text"
+        case priceEstimate = "price_estimate"
+        case priceNotes = "price_notes"
+        case venueEstimateText = "venue_est_text"
+        case allInEstimateText = "all_in_est_text"
+        case availableDatesText = "available_dates_text"
+        case ourNotes = "our_notes"
+        case photoURL = "photo_url"
+        case rawResearch = "raw_research"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
 struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let location:String?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let notes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?
 enum CodingKeys:String,CodingKey{case name;case status;case location;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case notes;case latitude;case longitude;case photoURL="photo_url"}}
 struct VenuePatch:Codable,Equatable,Sendable{let name:String?;let status:VenueStatus?;let location:String?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let notes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?;let rawResearch:JSONValue?;var isEmpty:Bool{name==nil&&status==nil&&location==nil&&address==nil&&city==nil&&state==nil&&country==nil&&contactName==nil&&contactEmail==nil&&contactPhone==nil&&website==nil&&capacityMin==nil&&capacityMax==nil&&priceEstimate==nil&&priceNotes==nil&&notes==nil&&latitude==nil&&longitude==nil&&photoURL==nil&&rawResearch==nil}

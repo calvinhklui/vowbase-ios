@@ -15,9 +15,14 @@ struct SignedVenuePhoto: Codable, Equatable, Sendable {
 
 final class VenuePhotoService: VenuePhotoServicing, @unchecked Sendable {
     private let api: any VowbaseAPIClientProtocol
+    private let signStoragePhoto: (@Sendable (String) async throws -> URL)?
 
-    init(api: any VowbaseAPIClientProtocol) {
+    init(
+        api: any VowbaseAPIClientProtocol,
+        signStoragePhoto: (@Sendable (String) async throws -> URL)? = nil
+    ) {
         self.api = api
+        self.signStoragePhoto = signStoragePhoto
     }
 
     func signedPhoto(
@@ -56,12 +61,21 @@ struct VenuePhotoURLResolver: Sendable {
         photoURL: String?,
         width: Int = 1_200
     ) async -> URL? {
-        guard let reference = Self.googlePhotoReference(in: photoURL) else { return nil }
-        return try? await photoService.signedPhoto(
-            venueID: venueID,
-            photoReference: reference,
-            width: width
-        ).url
+        if let directURL = Self.directPhotoURL(from: photoURL) {
+            return directURL
+        }
+        if let reference = Self.googlePhotoReference(in: photoURL) {
+            return try? await photoService.signedPhoto(
+                venueID: venueID,
+                photoReference: reference,
+                width: width
+            ).url
+        }
+        guard let photoURL, Self.isStoragePath(photoURL),
+              let service = photoService as? VenuePhotoService else {
+            return nil
+        }
+        return try? await service.signedStoragePhoto(path: photoURL)
     }
 
     static func directPhotoURL(from value: String?) -> URL? {
@@ -84,6 +98,24 @@ struct VenuePhotoURLResolver: Sendable {
             return nil
         }
         return reference
+    }
+
+    private static func isStoragePath(_ value: String) -> Bool {
+        guard !value.isEmpty,
+              !value.hasPrefix("/"),
+              !value.contains("://") else {
+            return false
+        }
+        return value.split(separator: "/", omittingEmptySubsequences: false).allSatisfy {
+            !$0.isEmpty && $0 != "." && $0 != ".."
+        }
+    }
+}
+
+private extension VenuePhotoService {
+    func signedStoragePhoto(path: String) async throws -> URL {
+        guard let signStoragePhoto else { throw BackendError.invalidResponse }
+        return try await signStoragePhoto(path)
     }
 }
 

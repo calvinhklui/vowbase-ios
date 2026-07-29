@@ -75,6 +75,23 @@ struct VenuePhotoServiceTests {
         #expect(VenuePhotoURLResolver.directPhotoURL(from: "gplaces:abcdefghijklmnopqrstuvwxyz123456") == nil)
         #expect(VenuePhotoURLResolver.directPhotoURL(from: "http://images.example/venue.jpg") == nil)
     }
+
+    @Test("resolves private venue gallery paths through the authenticated storage signer")
+    func resolvesPrivateStoragePath() async throws {
+        let signer = VenueStorageSigningSpy()
+        let resolver = VenuePhotoURLResolver(photoService: VenuePhotoService(
+            api: VenuePhotoAPIStub(),
+            signStoragePhoto: { path in await signer.sign(path) }
+        ))
+
+        let url = await resolver.resolve(
+            venueID: UUID(),
+            photoURL: "wedding-id/venue-id/cover.jpg"
+        )
+
+        #expect(url?.absoluteString == "https://storage.example/signed-cover.jpg")
+        #expect(await signer.path == "wedding-id/venue-id/cover.jpg")
+    }
 }
 
 private actor VenuePhotoAPIStub: VowbaseAPIClientProtocol {
@@ -91,6 +108,15 @@ private actor VenuePhotoAPIStub: VowbaseAPIClientProtocol {
         self.request = .init(method: request.method, path: request.path, body: request.body)
         if let error { throw error }
         return try JSONDecoder().decode(Response.self, from: try #require(response))
+    }
+}
+
+private actor VenueStorageSigningSpy {
+    private(set) var path: String?
+
+    func sign(_ path: String) -> URL {
+        self.path = path
+        return URL(string: "https://storage.example/signed-cover.jpg")!
     }
 }
 

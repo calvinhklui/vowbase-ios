@@ -32,6 +32,10 @@ struct RepositoryContainer: Sendable {
         attachments = SupabaseAttachmentRepository(provider: supabase)
         maps = APIMapWorkflowRepository(api: api)
         venueResearch = APIVenueResearchRepository(api: api)
-        venuePhotos = VenuePhotoService(api: api)
+        venuePhotos = VenuePhotoService(api: api) { path in
+            try await supabase.client.storage
+                .from("venue-photos")
+                .createSignedURL(path: path, expiresIn: 60 * 60)
+        }
     }
 }

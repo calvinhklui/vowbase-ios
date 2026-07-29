@@ -140,32 +140,29 @@ struct QuickAddOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        GeometryReader { _ in
-            ZStack(alignment: .bottomTrailing) {
-                if isPresented {
-                    Color.black.opacity(0.22)
-                        .ignoresSafeArea()
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: dismiss)
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                }
-
-                VStack(alignment: .trailing, spacing: 12) {
-                    if isPresented {
-                        QuickAddPanel(
-                            isPresented: $isPresented,
-                            onAddVenue: onAddVenue,
-                            onAddGuest: onAddGuest
-                        )
-                    }
-
-                    QuickAddFAB(isExpanded: isPresented, action: toggle)
-                }
-                .padding(.trailing, 20)
-                .padding(.bottom, 16)
+        ZStack(alignment: .bottomTrailing) {
+            if isPresented {
+                Color.black.opacity(0.22)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: dismiss)
+                    .accessibilityHidden(true)
+                    .transition(.opacity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VStack(alignment: .trailing, spacing: 12) {
+                if isPresented {
+                    QuickAddPanel(
+                        isPresented: $isPresented,
+                        onAddVenue: onAddVenue,
+                        onAddGuest: onAddGuest
+                    )
+                }
+
+                QuickAddFAB(isExpanded: isPresented, action: toggle)
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08), value: isPresented)

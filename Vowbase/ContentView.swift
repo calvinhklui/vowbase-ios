@@ -751,17 +751,49 @@ private struct VenueDetailView: View {
                 VowbaseVenueImage(url: venue.photoURL)
                     .frame(height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                if venue.photoURLs.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(venue.photoURLs.dropFirst(), id: \.absoluteString) { photoURL in
+                                VowbaseVenueImage(url: photoURL)
+                                    .frame(width: 108, height: 76)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                        }
+                    }
+                }
                 Text(venue.name).displayTitle()
                 StatusCapsule(status: venue.status)
                 Label(venue.location, systemImage: "mappin.and.ellipse")
                     .foregroundStyle(VowbaseTheme.mutedInk)
-                HStack {
+                if let summary = venue.summary?.nilIfBlank {
+                    Text(summary)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+                LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], alignment: .leading, spacing: 18) {
                     VenueFact(icon: "person.2", value: venue.capacity, caption: "guests")
                     VenueFact(icon: "dollarsign.circle", value: venue.estimate, caption: "venue est.")
-                    VenueFact(icon: "airplane", value: venue.travel, caption: "guest travel")
+                    VenueFact(icon: "dollarsign.square", value: venue.allInEstimate, caption: "all-in est.")
+                    VenueFact(icon: "calendar", value: venue.availableDates, caption: "available dates")
                 }
                 .padding()
                 .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                if venue.website != nil || venue.contactName != nil || venue.contactEmail != nil || venue.contactPhone != nil {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Venue details")
+                            .font(.title2.weight(.semibold))
+                        if let website = venue.website { VenueDetailRow(title: "Website", value: website, icon: "link") }
+                        if let contact = venue.contactName { VenueDetailRow(title: "Contact", value: contact, icon: "person") }
+                        if let email = venue.contactEmail { VenueDetailRow(title: "Email", value: email, icon: "envelope") }
+                        if let phone = venue.contactPhone { VenueDetailRow(title: "Phone", value: phone, icon: "phone") }
+                    }
+                    .padding()
+                    .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(VowbaseTheme.border, lineWidth: 1)
+                    }
+                }
                 Text("Notes")
                     .font(.title2.weight(.semibold))
                 Text(venue.notes?.nilIfBlank ?? "No notes added yet.")
@@ -795,6 +827,21 @@ private struct VenueDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the venue from your wedding workspace.")
+        }
+    }
+}
+
+private struct VenueDetailRow: View {
+    let title: String
+    let value: String
+    let icon: String
+
+    var body: some View {
+        LabeledContent(title) {
+            Label(value, systemImage: icon)
+                .font(.subheadline)
+                .foregroundStyle(VowbaseTheme.mutedInk)
+                .multilineTextAlignment(.trailing)
         }
     }
 }
@@ -1457,10 +1504,19 @@ private struct MVPVenue: Identifiable, Hashable {
     let capacity: String
     let estimate: String
     let travel: String
+    let allInEstimate: String
+    let availableDates: String
+    let summary: String?
+    let website: String?
+    let contactName: String?
+    let contactEmail: String?
+    let contactPhone: String?
     let latitude: Double?
     let longitude: Double?
-    let photoURL: URL?
+    let photoURLs: [URL]
     let notes: String?
+
+    var photoURL: URL? { photoURLs.first }
 
     var coordinate: CLLocationCoordinate2D? {
         guard let latitude, let longitude else { return nil }
@@ -1501,7 +1557,7 @@ private struct MVPGuest: Identifiable, Hashable {
 private final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
-    private var signedVenuePhotoURLs = [UUID: URL]()
+    private var signedVenuePhotoURLs = [UUID: [URL]]()
     private var guestRecords = [Guest]()
 
     var selectedVenueID: UUID?
@@ -1535,6 +1591,7 @@ private final class VowbaseWorkspaceStore {
                 name: "Riverside Pavilion",
                 status: .toured,
                 location: "Example District, Example City",
+                locationText: "Example District, Example City",
                 address: "100 Example Avenue, Example City",
                 city: "Example City",
                 state: "EX",
@@ -1545,9 +1602,15 @@ private final class VowbaseWorkspaceStore {
                 website: nil,
                 capacityMin: 150,
                 capacityMax: 350,
+                capacityText: "150–350",
                 priceEstimate: 53_700,
                 priceNotes: nil,
+                venueEstimateText: "$53.7k",
+                allInEstimateText: "$90k–$125k",
+                availableDatesText: "Weekends in September",
                 notes: nil,
+                ourNotes: nil,
+                summary: "An airy riverside venue for a joyful, relaxed celebration.",
                 latitude: 39.5,
                 longitude: -98.35,
                 photoURL: nil,
@@ -1561,6 +1624,7 @@ private final class VowbaseWorkspaceStore {
                 name: "Harbor Gallery",
                 status: .toured,
                 location: "Harbor District, Example City",
+                locationText: "Harbor District, Example City",
                 address: "200 Example Street, Example City",
                 city: "Example City",
                 state: "EX",
@@ -1571,9 +1635,15 @@ private final class VowbaseWorkspaceStore {
                 website: nil,
                 capacityMin: 120,
                 capacityMax: 300,
+                capacityText: "120–300",
                 priceEstimate: 48_000,
                 priceNotes: nil,
+                venueEstimateText: "$48k",
+                allInEstimateText: nil,
+                availableDatesText: "October weekends",
                 notes: nil,
+                ourNotes: nil,
+                summary: nil,
                 latitude: 39.6,
                 longitude: -98.25,
                 photoURL: nil,
@@ -1587,6 +1657,7 @@ private final class VowbaseWorkspaceStore {
                 name: "Meadow House",
                 status: .considering,
                 location: "Lakeside, Example City",
+                locationText: "Lakeside, Example City",
                 address: "300 Example Road, Example City",
                 city: "Example City",
                 state: "EX",
@@ -1597,9 +1668,15 @@ private final class VowbaseWorkspaceStore {
                 website: nil,
                 capacityMin: 100,
                 capacityMax: 220,
+                capacityText: "100–220",
                 priceEstimate: 39_000,
                 priceNotes: nil,
+                venueEstimateText: "$39k",
+                allInEstimateText: nil,
+                availableDatesText: nil,
                 notes: nil,
+                ourNotes: nil,
+                summary: nil,
                 latitude: 39.4,
                 longitude: -98.45,
                 photoURL: nil,
@@ -1620,7 +1697,7 @@ private final class VowbaseWorkspaceStore {
 
     var venues: [MVPVenue] {
         venueRecords.map { venue in
-            MVPVenue(venue, signedPhotoURL: signedVenuePhotoURLs[venue.id])
+            MVPVenue(venue, photoURLs: signedVenuePhotoURLs[venue.id] ?? [])
         }
     }
     var guests: [MVPGuest] { guestRecords.map(MVPGuest.init) }
@@ -1853,11 +1930,17 @@ private final class VowbaseWorkspaceStore {
         Task { [weak self] in
             for venue in venues {
                 guard !Task.isCancelled else { return }
-                guard let url = await resolver.resolve(venueID: venue.id, photoURL: venue.photoURL) else {
-                    continue
+                let gallery = (try? await repositories.venues.venuePhotos(venueID: venue.id)) ?? []
+                let references = [venue.photoURL] + gallery.map(\.url)
+                var urls = [URL]()
+                for reference in references {
+                    guard !Task.isCancelled else { return }
+                    if let url = await resolver.resolve(venueID: venue.id, photoURL: reference), !urls.contains(url) {
+                        urls.append(url)
+                    }
                 }
                 guard !Task.isCancelled else { return }
-                self?.signedVenuePhotoURLs[venue.id] = url
+                self?.signedVenuePhotoURLs[venue.id] = urls
             }
         }
     }
@@ -1914,18 +1997,29 @@ private struct ResolvedLocation {
 }
 
 private extension MVPVenue {
-    init(_ venue: Venue, signedPhotoURL: URL? = nil) {
+    init(_ venue: Venue, photoURLs: [URL] = []) {
         id = venue.id
         name = venue.name
         status = venue.status
-        location = venue.location ?? venue.city ?? venue.address ?? "Location not added"
-        capacity = VenueCapacityFormatter.string(minimum: venue.capacityMin, maximum: venue.capacityMax)
-        estimate = venue.priceEstimate.map(VenuePriceFormatter.string) ?? "Not added"
+        location = venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? venue.address ?? "Location not added"
+        capacity = venue.capacityText?.nilIfBlank ?? VenueCapacityFormatter.string(minimum: venue.capacityMin, maximum: venue.capacityMax)
+        estimate = venue.venueEstimateText?.nilIfBlank ?? venue.priceEstimate.map(VenuePriceFormatter.string) ?? "Not added"
         travel = "Unavailable"
+        allInEstimate = venue.allInEstimateText?.nilIfBlank ?? "Not added"
+        availableDates = venue.availableDatesText?.nilIfBlank ?? "Not added"
+        summary = venue.summary?.nilIfBlank
+        website = venue.website?.nilIfBlank
+        contactName = venue.contactName?.nilIfBlank
+        contactEmail = venue.contactEmail?.nilIfBlank
+        contactPhone = venue.contactPhone?.nilIfBlank
         latitude = venue.latitude
         longitude = venue.longitude
-        photoURL = signedPhotoURL ?? VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)
-        notes = venue.notes
+        var uniquePhotoURLs = [URL]()
+        for url in ([VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)] + photoURLs).compactMap({ $0 }) where !uniquePhotoURLs.contains(url) {
+            uniquePhotoURLs.append(url)
+        }
+        self.photoURLs = uniquePhotoURLs
+        notes = venue.ourNotes?.nilIfBlank ?? venue.notes?.nilIfBlank
     }
 }
 
