@@ -118,7 +118,7 @@ private struct WeddingAppShell: View {
                 onAddVenue: { quickAdd = .venue },
                 onAddGuest: { quickAdd = .guest }
             )
-            .padding(.bottom, 64)
+            .padding(.bottom, 78)
         }
         .sheet(item: $quickAdd) { destination in
             switch destination {
@@ -138,35 +138,88 @@ private struct WeddingAppShell: View {
 private struct VowbaseTabBar: View {
     @Binding var selection: AppTab
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        HStack(spacing: 0) {
+        Group {
+            if #available(iOS 26, *) {
+                GlassEffectContainer(spacing: 0) {
+                    tabContent
+                        .glassEffect(
+                            .regular.tint(Color.black.opacity(0.54)),
+                            in: Capsule()
+                        )
+                }
+            } else {
+                tabContent
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(.white.opacity(0.18), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+            }
+        }
+        .padding(.horizontal, VowbaseControlMetric.screenInset)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
+    }
+
+    private var tabContent: some View {
+        HStack(spacing: 4) {
             ForEach(AppTab.allCases) { tab in
                 Button {
-                    selection = tab
-                    UISelectionFeedbackGenerator().selectionChanged()
+                    select(tab)
                 } label: {
-                    VStack(spacing: 5) {
-                        Image(systemName: tab.systemImage)
-                            .font(.system(size: 22, weight: .medium))
-                            .symbolVariant(selection == tab ? .fill : .none)
-                        Text(tab.title)
-                            .font(.system(size: 12, weight: selection == tab ? .semibold : .regular))
-                        Circle()
-                            .fill(selection == tab ? VowbaseTheme.rose : .clear)
-                            .frame(width: 6, height: 6)
+                    ZStack {
+                        if selection == tab {
+                            selectedTabBackground
+                        }
+
+                        VStack(spacing: 4) {
+                            Image(systemName: tab.systemImage)
+                                .font(.system(size: 20, weight: .semibold))
+                                .symbolVariant(.fill)
+
+                            Text(tab.title)
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(selection == tab ? .white : .white.opacity(0.72))
+                        .frame(maxWidth: .infinity, minHeight: 58)
                     }
-                    .foregroundStyle(selection == tab ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
-                    .frame(maxWidth: .infinity, minHeight: 60)
-                    .contentShape(Rectangle())
+                    .contentShape(Capsule())
                     .accessibilityAddTraits(selection == tab ? .isSelected : [])
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) { Divider().opacity(0.55) }
+        .padding(6)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var selectedTabBackground: some View {
+        if #available(iOS 26, *) {
+            Capsule()
+                .fill(.white.opacity(0.16))
+                .glassEffect(.regular.tint(.white.opacity(0.18)), in: Capsule())
+        } else {
+            Capsule()
+                .fill(.white.opacity(0.16))
+                .overlay {
+                    Capsule()
+                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                }
+        }
+    }
+
+    private func select(_ tab: AppTab) {
+        guard selection != tab else { return }
+
+        UISelectionFeedbackGenerator().selectionChanged()
+        withAnimation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08)) {
+            selection = tab
+        }
     }
 }
 
