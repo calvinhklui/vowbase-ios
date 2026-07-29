@@ -1445,6 +1445,7 @@ private struct MVPGuest: Identifiable, Hashable {
 private final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
+    private var signedVenuePhotoURLs = [UUID: URL]()
     private var guestRecords = [Guest]()
 
     var selectedVenueID: UUID?
@@ -1561,7 +1562,11 @@ private final class VowbaseWorkspaceStore {
     }
 #endif
 
-    var venues: [MVPVenue] { venueRecords.map(MVPVenue.init) }
+    var venues: [MVPVenue] {
+        venueRecords.map { venue in
+            MVPVenue(venue, signedPhotoURL: signedVenuePhotoURLs[venue.id])
+        }
+    }
     var guests: [MVPGuest] { guestRecords.map(MVPGuest.init) }
     var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
 
@@ -1612,6 +1617,9 @@ private final class VowbaseWorkspaceStore {
             async let guests = repositories.guests.guests(weddingID: membership.weddingId)
             venueRecords = try await venues
             guestRecords = try await guests
+            let currentVenueIDs = Set(venueRecords.map(\.id))
+            signedVenuePhotoURLs = signedVenuePhotoURLs.filter { currentVenueIDs.contains($0.key) }
+            resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
             }
@@ -1701,6 +1709,7 @@ private final class VowbaseWorkspaceStore {
         do {
             try await repositories.venues.deleteVenue(id: venue.id)
             venueRecords.removeAll { $0.id == venue.id }
+            signedVenuePhotoURLs[venue.id] = nil
             if selectedVenueID == venue.id {
                 selectedVenueID = venueRecords.first?.id
             }
@@ -1780,6 +1789,23 @@ private final class VowbaseWorkspaceStore {
         return false
     }
 
+    private func resolveVenuePhotoURLs(
+        for venues: [Venue],
+        repositories: RepositoryContainer
+    ) {
+        let resolver = VenuePhotoURLResolver(photoService: repositories.venuePhotos)
+        Task { [weak self] in
+            for venue in venues {
+                guard !Task.isCancelled else { return }
+                guard let url = await resolver.resolve(venueID: venue.id, photoURL: venue.photoURL) else {
+                    continue
+                }
+                guard !Task.isCancelled else { return }
+                self?.signedVenuePhotoURLs[venue.id] = url
+            }
+        }
+    }
+
     private func resolvedLocation(
         for input: String,
         repositories: RepositoryContainer
@@ -1832,7 +1858,7 @@ private struct ResolvedLocation {
 }
 
 private extension MVPVenue {
-    init(_ venue: Venue) {
+    init(_ venue: Venue, signedPhotoURL: URL? = nil) {
         id = venue.id
         name = venue.name
         status = venue.status
@@ -1842,7 +1868,7 @@ private extension MVPVenue {
         travel = "Unavailable"
         latitude = venue.latitude
         longitude = venue.longitude
-        photoURL = venue.photoURL.flatMap(URL.init(string:))
+        photoURL = signedPhotoURL ?? VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)
         notes = venue.notes
     }
 }

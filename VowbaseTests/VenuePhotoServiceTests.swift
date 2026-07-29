@@ -42,6 +42,39 @@ struct VenuePhotoServiceTests {
         }
         #expect(await api.request != nil)
     }
+
+    @Test("resolves Google photo tokens through the authorized signing service")
+    func resolvesGooglePhotoToken() async throws {
+        let api = VenuePhotoAPIStub(
+            response: Data("{\"url\":\"https://photos.example/signed?sig=opaque\",\"expiresAt\":1784995200}".utf8)
+        )
+        let venueID = UUID(uuidString: "20000000-0000-4000-8000-000000000001")!
+        let reference = "abcdefghijklmnopqrstuvwxyz123456"
+        let resolver = VenuePhotoURLResolver(photoService: VenuePhotoService(api: api))
+
+        let url = await resolver.resolve(
+            venueID: venueID,
+            photoURL: "gplaces:\(reference)",
+            width: 1_200
+        )
+
+        #expect(url?.host == "photos.example")
+        let request = try #require(await api.request)
+        let payload = try #require(try requestJSON(request.body) as? [String: Any])
+        #expect(payload["venueId"] as? String == venueID.uuidString.uppercased())
+        #expect(payload["photoReference"] as? String == reference)
+        #expect(payload["width"] as? Int == 1_200)
+    }
+
+    @Test("keeps trusted HTTPS venue photos direct")
+    func keepsHTTPSPhotoDirect() {
+        #expect(
+            VenuePhotoURLResolver.directPhotoURL(from: "https://images.example/venue.jpg")?.host
+                == "images.example"
+        )
+        #expect(VenuePhotoURLResolver.directPhotoURL(from: "gplaces:abcdefghijklmnopqrstuvwxyz123456") == nil)
+        #expect(VenuePhotoURLResolver.directPhotoURL(from: "http://images.example/venue.jpg") == nil)
+    }
 }
 
 private actor VenuePhotoAPIStub: VowbaseAPIClientProtocol {
