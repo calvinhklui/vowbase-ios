@@ -338,7 +338,7 @@ private struct AuthenticationButtonLabel: View {
             Text(title)
                 .font(.system(size: 20, weight: .medium))
         }
-        .foregroundStyle(VowbaseTheme.ink)
+        .foregroundStyle(.black)
         .frame(maxWidth: .infinity, minHeight: 54)
         .padding(.horizontal, 18)
     }
@@ -352,9 +352,9 @@ private struct TestingAuthenticationButtonLabel: View {
                 .font(.system(size: 18, weight: .medium))
                 .accessibilityHidden(true)
             Text("Continue with Testing")
-                .font(.system(size: 17, weight: .medium))
+                .font(.system(size: 20, weight: .medium))
         }
-        .foregroundStyle(VowbaseTheme.ink)
+        .foregroundStyle(.black)
         .frame(maxWidth: .infinity, minHeight: 54)
         .padding(.horizontal, 18)
     }
