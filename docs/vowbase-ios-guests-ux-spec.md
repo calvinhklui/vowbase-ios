@@ -3,6 +3,7 @@
 Status: Proposed
 Date: July 30, 2026
 Platform: Native SwiftUI, iOS 18+
+Prototype: `prototypes/vowbase-ios-guests-ux.html`
 Supersedes: the Guests sections of `vowbase-ios-mvp-ux-spec.md`, and lifts three of its explicit MVP exclusions (custom-column administration, richer guest editing, bulk-adjacent filtering)
 
 ## Why this exists

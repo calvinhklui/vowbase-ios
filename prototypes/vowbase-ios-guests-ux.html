@@ -692,7 +692,7 @@
       var subVal = sub ? g.cf[sub.key] : null;
       var bits = [];
       if (subVal) bits.push(esc(subVal));
-      bits.push(esc(g.origin || "Location not added"));
+      bits.push(esc(g.origin || "No location"));
       h += '<button class="grow" type="button" data-act="openGuest" data-id="' + g.id + '">' +
         '<span class="initials">' + esc(initials(g)) + '</span>' +
         '<span class="gmain"><span class="gname">' + esc(fullName(g)) + '</span>' +
@@ -723,7 +723,8 @@
       inner = '<span class="fvalue"><input type="' + (opts.type || "text") + '" value="' + esc(opts.raw != null ? opts.raw : "") +
         '" data-act="fieldInput" data-id="' + id + '" aria-label="' + esc(opts.label) + '"></span>';
     } else {
-      var disp = opts.value;
+      // A failed write keeps the value the user typed on screen — never reverts to the stored one.
+      var disp = (st === "failed" && S.pendingValue[id] != null) ? S.pendingValue[id] : opts.value;
       inner = '<span class="fvalue' + (disp ? "" : " empty") + '">' + esc(disp || "Not added") + '</span>';
     }
     var row = '<div class="' + cls + '" role="button" tabindex="0" data-act="editField" data-id="' + id + '">' +
@@ -1119,8 +1120,14 @@
       statusbar() + '<div class="screen">' + body + '</div>' + sheet + overlays();
 
     // restore focus into an active inline editor
-    var live = document.querySelector('#phone [data-act="fieldInput"], #phone [data-act="nameInput"]');
-    if (live && S.editingField) { live.focus(); live.setSelectionRange(live.value.length, live.value.length); }
+    if (S.editingField) {
+      requestAnimationFrame(function () {
+        var live = document.querySelector('#phone [data-act="fieldInput"], #phone [data-act="nameInput"]');
+        if (!live || document.activeElement === live) return;
+        live.focus();
+        try { live.setSelectionRange(live.value.length, live.value.length); } catch (err) { /* number inputs */ }
+      });
+    }
 
     renderNotes();
     renderRail();
@@ -1225,7 +1232,7 @@
   }
 
   /* ============================ commit machinery ============================ */
-  function commit(id, apply) {
+  function commit(id, apply, onSaved) {
     var g = guest(S.guestId);
     if (S.simulateFailure && !S.failedOnce[id]) {
       S.failedOnce[id] = true;
@@ -1239,6 +1246,7 @@
       apply(g);
       delete S.pendingValue[id];
       S.saveState[id] = "saved";
+      if (onSaved) onSaved();
       render();
       later(function () {
         if (S.saveState[id] === "saved") { delete S.saveState[id]; render(); }
@@ -1314,6 +1322,7 @@
   function toast(text, undo, undoFn) {
     S.toast = { text: text, undo: !!undo, fn: undoFn };
     var mine = S.toast;
+    render();
     later(function () { if (S.toast === mine) { S.toast = null; render(); } }, 5000);
   }
 
@@ -1391,11 +1400,18 @@
 
   phone.addEventListener("click", function (e) {
     var el = e.target.closest("[data-act]");
-    if (!el) return;
-    var act = el.getAttribute("data-act");
-    var k = el.getAttribute("data-k");
-    var id = el.getAttribute("data-id");
+    var act = el ? el.getAttribute("data-act") : null;
+    var k = el ? el.getAttribute("data-k") : null;
+    var id = el ? el.getAttribute("data-id") : null;
 
+    // Commit any open inline editor as soon as the tap lands anywhere else.
+    // Focus loss alone is not reliable enough to be the only commit trigger.
+    if (S.editingField && act !== "fieldInput" && act !== "nameInput") {
+      if (act === "editField" && id === S.editingField) return;
+      commitEditing();
+    }
+
+    if (!el) return;
     if (act === "noop") return;
 
     // navigation
@@ -1459,9 +1475,10 @@
       commit("rsvp", function (x) {
         x.rsvp = k;
         x.rsvpDate = (k === "accepted" || k === "declined") ? "Jul 30, 2026" : null;
-      });
-      toast("RSVP set to " + RSVP_LABEL[k], true, function () {
-        var y = guest(S.guestId); y.rsvp = prev; y.rsvpDate = prevDate;
+      }, function () {
+        toast("RSVP set to " + RSVP_LABEL[k], true, function () {
+          var y = guest(S.guestId); y.rsvp = prev; y.rsvpDate = prevDate;
+        });
       });
       return;
     }
@@ -1485,8 +1502,9 @@
       S.menu = null;
       var prevV = guest(S.guestId).cf[k];
       if (prevV === v || (!prevV && !v)) { render(); return; }
-      commit("cf:" + k, function (x) { if (v === "") delete x.cf[k]; else x.cf[k] = v; });
-      if (v === "") toast(columnByKey(k).label + " cleared", true, function () { guest(S.guestId).cf[k] = prevV; });
+      commit("cf:" + k, function (x) { if (v === "") delete x.cf[k]; else x.cf[k] = v; }, function () {
+        if (v === "") toast(columnByKey(k).label + " cleared", true, function () { guest(S.guestId).cf[k] = prevV; });
+      });
       return;
     }
     if (act === "cfToggle") {
