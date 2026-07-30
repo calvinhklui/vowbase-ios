@@ -898,87 +898,34 @@ private struct GuestsView: View {
     let store: VowbaseWorkspaceStore
     let onSignOut: () -> Void
     @State private var query = ""
-    @State private var filter: GuestFilter = .all
-    @State private var onlyLocated = false
+    @State private var filters = GuestFilterSet()
+    @State private var sort: GuestSortOrder = .nameAscending
     @State private var showsFilter = false
+    @State private var path = NavigationPath()
 
     private var visibleGuests: [MVPGuest] {
-        store.guests.filter { guest in
-            let matchingFilter = filter.matches(guest)
-            let matchingLocation = !onlyLocated || guest.location != nil
-            guard matchingFilter && matchingLocation else { return false }
-            guard !query.isEmpty else { return true }
-            return guest.searchText.localizedCaseInsensitiveContains(query)
-        }
+        store.filteredGuests(searchText: query, filters: filters, sort: sort)
     }
 
+    private var records: [Guest] { store.allGuestRecords }
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("GUEST LIST").eyebrow()
                         Text("Guests").displayTitle()
-                        Text("\(store.guests.count) guests")
+                        Text("\(records.count) guests")
                             .font(.system(size: 18))
                             .foregroundStyle(VowbaseTheme.mutedInk)
                     }
-                    HStack(spacing: 12) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(VowbaseTheme.mutedInk)
-                            TextField("Search guests", text: $query)
-                                .textInputAutocapitalization(.words)
-                        }
-                        .padding(.horizontal, 16)
-                        .frame(minHeight: 52)
-                        .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
-                        Button {
-                            showsFilter = true
-                        } label: {
-                            Label("Filters", systemImage: "slider.horizontal.3")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(onlyLocated ? .white : VowbaseTheme.ink)
-                                .padding(.horizontal, 16)
-                                .frame(minHeight: 52)
-                                .background(onlyLocated ? VowbaseTheme.rose : VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
+                    toolRow
+                    if filters.conditionCount > 0 {
+                        activeFilterTokens
                     }
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(GuestFilter.allCases) { item in
-                                Button { filter = item } label: {
-                                    Text(item.title(total: store.guests.count, guests: store.guests))
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundStyle(filter == item ? .white : VowbaseTheme.mutedInk)
-                                        .padding(.horizontal, 18)
-                                        .frame(minHeight: 44)
-                                        .background(filter == item ? VowbaseTheme.rose : VowbaseTheme.background, in: Capsule())
-                                        .overlay(Capsule().stroke(filter == item ? .clear : VowbaseTheme.border, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-
-                    LazyVStack(spacing: 0) {
-                        ForEach(visibleGuests) { guest in
-                            NavigationLink(value: guest) {
-                                GuestRow(guest: guest)
-                            }
-                            .buttonStyle(.plain)
-                            Divider().padding(.leading, 72)
-                        }
-                    }
-                    if visibleGuests.isEmpty {
-                        ContentUnavailableView("No guests found", systemImage: "person.2.slash", description: Text("Try a different name or RSVP filter."))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 36)
-                    }
+                    guestList
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
@@ -991,61 +938,582 @@ private struct GuestsView: View {
             .navigationDestination(for: MVPGuest.self) { guest in
                 GuestDetailView(guest: guest, store: store)
             }
+            .navigationDestination(for: GuestsRoute.self) { route in
+                switch route {
+                case .customFields:
+                    GuestFieldListView(store: store)
+                }
+            }
             .sheet(isPresented: $showsFilter) {
-                GuestFilterSheet(onlyLocated: $onlyLocated)
-                    .presentationDetents([.height(280)])
+                GuestFilterSheet(store: store, searchText: query, filters: $filters)
             }
         }
     }
-}
 
-private enum GuestFilter: String, CaseIterable, Identifiable {
-    case all, pending, notInvited, accepted
-    var id: String { rawValue }
+    // MARK: Controls
 
-    func matches(_ guest: MVPGuest) -> Bool {
-        switch self {
-        case .all: true
-        case .pending: guest.rsvp == .pending
-        case .notInvited: guest.rsvp == .notInvited
-        case .accepted: guest.rsvp == .accepted
+    private var toolRow: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                TextField("Search guests", text: $query)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 52)
+            .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+
+            filtersButton
+            overflowMenu
         }
     }
 
-    func title(total: Int, guests: [MVPGuest]) -> String {
-        let count = self == .all ? total : guests.filter { matches($0) }.count
-        let label: String = switch self {
-        case .all: "All"
-        case .pending: "Pending"
-        case .notInvited: "Not invited"
-        case .accepted: "Accepted"
+    private var filtersButton: some View {
+        Button {
+            showsFilter = true
+        } label: {
+            Label("Filters", systemImage: "slider.horizontal.3")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(filters.conditionCount > 0 ? .white : VowbaseTheme.ink)
+                .frame(width: 52, height: 52)
+                .background(
+                    filters.conditionCount > 0 ? VowbaseTheme.rose : VowbaseTheme.background,
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+                .overlay(alignment: .topTrailing) {
+                    if filters.conditionCount > 0 {
+                        Text("\(filters.conditionCount)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(VowbaseTheme.rose)
+                            .padding(4)
+                            .background(VowbaseTheme.background, in: Circle())
+                            .overlay(Circle().stroke(VowbaseTheme.rose, lineWidth: 1))
+                            .offset(x: 5, y: -5)
+                    }
+                }
         }
-        return "\(label) \(count)"
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            filters.conditionCount > 0
+                ? "Filters, \(filters.conditionCount) active"
+                : "Filters"
+        )
+    }
+
+    private var overflowMenu: some View {
+        Menu {
+            Picker("Sort", selection: $sort) {
+                ForEach(GuestSortOrder.allCases) { order in
+                    Text(order.title).tag(order)
+                }
+            }
+            Divider()
+            Button {
+                path.append(GuestsRoute.customFields)
+            } label: {
+                Label("Manage fields", systemImage: "list.bullet.rectangle")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.ink)
+                .frame(width: 52, height: 52)
+                .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+        }
+        .accessibilityLabel("Sort and manage fields")
+    }
+
+    /// A filtered list should never look like the whole list. Every active
+    /// condition — RSVP included, now that it has no dedicated chip row —
+    /// is named here and removable in one tap. One consistent capsule shape
+    /// and size for every active filter, not two different components.
+    private var activeFilterTokens: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(tokens, id: \.id) { token in
+                    Button {
+                        token.remove(&filters)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(token.title)
+                                .font(.system(size: 16, weight: .medium))
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 44)
+                        .background(VowbaseTheme.rose, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Remove filter \(token.title)")
+                }
+                Button("Clear all") {
+                    filters = GuestFilterSet()
+                }
+                .font(.system(size: 16, weight: .medium))
+                .tint(VowbaseTheme.mutedInk)
+            }
+        }
+    }
+
+    private var tokens: [GuestFilterToken] {
+        GuestFilterToken.tokens(for: filters, columns: store.visibleCustomColumns)
+    }
+
+    // MARK: List and empty states
+
+    @ViewBuilder
+    private var guestList: some View {
+        if visibleGuests.isEmpty {
+            emptyState
+        } else {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(visibleGuests.enumerated()), id: \.element.id) { index, guest in
+                    NavigationLink(value: guest) {
+                        GuestRow(guest: guest)
+                    }
+                    .buttonStyle(.plain)
+                    if index < visibleGuests.count - 1 {
+                        Divider().padding(.leading, 72)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if records.isEmpty {
+            ContentUnavailableView {
+                Text("Start your guest list.")
+            } description: {
+                Text("Add the people you want there, then track RSVPs and where they’re travelling from.")
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 36)
+        } else if filters.conditionCount > 0 {
+            VStack(spacing: 12) {
+                ContentUnavailableView(
+                    "No guests match these filters",
+                    systemImage: "line.3.horizontal.decrease.circle",
+                    description: Text(filterSummary)
+                )
+                Button("Clear filters") {
+                    filters = GuestFilterSet()
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .tint(VowbaseTheme.rose)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 36)
+        } else {
+            ContentUnavailableView(
+                "No guests match “\(query)”",
+                systemImage: "magnifyingglass",
+                description: Text("Search covers names, email, phone, custom fields, and city.")
+            )
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 36)
+        }
+    }
+
+    private var filterSummary: String {
+        "Active: " + tokens.map(\.title).joined(separator: ", ")
     }
 }
 
+private enum GuestsRoute: Hashable {
+    case customFields
+}
+
+/// One removable condition shown beneath the chips.
+private struct GuestFilterToken: Identifiable {
+    let id: String
+    let title: String
+    let remove: (inout GuestFilterSet) -> Void
+
+    static func tokens(
+        for filters: GuestFilterSet,
+        columns: [GuestCustomColumn]
+    ) -> [GuestFilterToken] {
+        var tokens = [GuestFilterToken]()
+
+        for status in RSVPStatus.allCases where filters.rsvpStatuses.contains(status) {
+            tokens.append(
+                GuestFilterToken(id: "rsvp-\(status.rawValue)", title: status.title) { set in
+                    set.rsvpStatuses.remove(status)
+                }
+            )
+        }
+        for bucket in filters.locations.sorted(by: { $0.title < $1.title }) {
+            tokens.append(
+                GuestFilterToken(id: "location-\(bucket.title)", title: bucket.title) { set in
+                    set.locations.remove(bucket)
+                }
+            )
+        }
+        if filters.mappableOnly {
+            tokens.append(GuestFilterToken(id: "mappable", title: "Mappable only") { $0.mappableOnly = false })
+        }
+        if filters.email != .any {
+            let title = filters.email == .present ? "Has email" : "No email"
+            tokens.append(GuestFilterToken(id: "email", title: title) { $0.email = .any })
+        }
+        if filters.phone != .any {
+            let title = filters.phone == .present ? "Has phone" : "No phone"
+            tokens.append(GuestFilterToken(id: "phone", title: title) { $0.phone = .any })
+        }
+        for column in columns {
+            guard let condition = filters.customConditions[column.key], condition.isActive else { continue }
+            let value: String
+            switch condition {
+            case let .anyOf(values):
+                value = values
+                    .sorted()
+                    .map { $0 == GuestCustomCondition.emptyToken ? "Empty" : $0 }
+                    .joined(separator: ", ")
+            case let .checkbox(expected):
+                value = expected ? "Yes" : "No"
+            }
+            tokens.append(
+                GuestFilterToken(id: "custom-\(column.key)", title: "\(column.label): \(value)") { set in
+                    set.customConditions.removeValue(forKey: column.key)
+                }
+            )
+        }
+        return tokens
+    }
+}
+
+/// Structured conditions, not a query builder.
+///
+/// One sentence at the top states the AND/OR rule, which is what lets the sheet
+/// omit a boolean operator control entirely.
+@MainActor
 private struct GuestFilterSheet: View {
+    let store: VowbaseWorkspaceStore
+    let searchText: String
+    @Binding var filters: GuestFilterSet
     @Environment(\.dismiss) private var dismiss
-    @Binding var onlyLocated: Bool
+    @State private var draft: GuestFilterSet
+    @State private var expandedColumn: String?
+
+    init(store: VowbaseWorkspaceStore, searchText: String, filters: Binding<GuestFilterSet>) {
+        self.store = store
+        self.searchText = searchText
+        _filters = filters
+        _draft = State(initialValue: filters.wrappedValue)
+    }
+
+    private var records: [Guest] { store.allGuestRecords }
+
+    /// The exact list the button promises, search included, so the count can
+    /// never disagree with what appears after applying.
+    private var previewCount: Int {
+        GuestQuery.apply(
+            to: records,
+            columns: store.visibleCustomColumns,
+            searchText: searchText,
+            filters: draft,
+            sort: .nameAscending
+        ).count
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Guest information") {
-                    Toggle("Only guests with a location", isOn: $onlyLocated)
-                        .tint(VowbaseTheme.rose)
+                Section {
+                    Text("Guests match **all** of the conditions below.")
+                        .font(.footnote)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .listRowBackground(Color.clear)
                 }
+                rsvpSection
+                locationSection
+                detailsSection
+                customSection
             }
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.groupedBackground)
+            .tint(VowbaseTheme.rose)
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .tint(VowbaseTheme.rose)
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                footer
+            }
+        }
+    }
+
+    private var rsvpSection: some View {
+        Section("RSVP") {
+            ForEach(RSVPStatus.allCases, id: \.self) { status in
+                checkRow(
+                    title: status.title,
+                    count: GuestQuery.count(records, rsvp: status),
+                    isOn: draft.rsvpStatuses.contains(status)
+                ) {
+                    if draft.rsvpStatuses.contains(status) {
+                        draft.rsvpStatuses.remove(status)
+                    } else {
+                        draft.rsvpStatuses.insert(status)
+                    }
+                }
+            }
+        }
+    }
+
+    private var locationSection: some View {
+        Section {
+            ForEach(GuestQuery.locationBuckets(in: records), id: \.self) { bucket in
+                checkRow(
+                    title: bucket.title,
+                    count: GuestQuery.count(records, in: bucket),
+                    isOn: draft.locations.contains(bucket)
+                ) {
+                    if draft.locations.contains(bucket) {
+                        draft.locations.remove(bucket)
+                    } else {
+                        draft.locations.insert(bucket)
+                    }
+                }
+            }
+            Toggle("Only mappable guests", isOn: $draft.mappableOnly)
+                .tint(VowbaseTheme.rose)
+        } header: {
+            Text("Location")
+        } footer: {
+            Text("Mappable means the address resolved to city precision, which is all the map ever receives.")
+        }
+    }
+
+    private var detailsSection: some View {
+        Section("Details") {
+            presenceRow("Email", selection: $draft.email)
+            presenceRow("Phone", selection: $draft.phone)
+        }
+    }
+
+    @ViewBuilder
+    private var customSection: some View {
+        let columns = store.visibleCustomColumns
+        if store.customFieldsUnavailable {
+            Section("Custom fields") {
+                Text("Custom fields couldn’t be loaded, so they can’t be filtered right now.")
+                    .font(.footnote)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        } else if !columns.isEmpty {
+            Section("Custom fields") {
+                ForEach(columns) { column in
+                    customRows(for: column)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func customRows(for column: GuestCustomColumn) -> some View {
+        switch column.kind {
+        case .checkbox:
+            let current = draft.customConditions[column.key]
+            LabeledContent(column.label) {
+                Picker(column.label, selection: Binding(
+                    get: {
+                        if case let .checkbox(flag) = current { return flag ? "yes" : "no" }
+                        return "any"
+                    },
+                    set: { value in
+                        switch value {
+                        case "yes": draft.customConditions[column.key] = .checkbox(true)
+                        case "no": draft.customConditions[column.key] = .checkbox(false)
+                        default: draft.customConditions.removeValue(forKey: column.key)
+                        }
+                    }
+                )) {
+                    Text("Any").tag("any")
+                    Text("Yes").tag("yes")
+                    Text("No").tag("no")
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 170)
+            }
+        case .select, .text, .number:
+            let counts = GuestQuery.optionCounts(records, column: column)
+            let selected = selectedValues(for: column.key)
+            Button {
+                expandedColumn = expandedColumn == column.key ? nil : column.key
+            } label: {
+                HStack {
+                    Text(column.label).foregroundStyle(VowbaseTheme.ink)
+                    Spacer()
+                    Text(summary(for: column))
+                        .foregroundStyle(selected.isEmpty ? VowbaseTheme.mutedInk : VowbaseTheme.rose)
+                        .lineLimit(1)
+                    Image(systemName: expandedColumn == column.key ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            }
+            if expandedColumn == column.key {
+                ForEach(availableValues(for: column, counts: counts.options), id: \.self) { value in
+                    checkRow(
+                        title: value,
+                        count: counts.options[value] ?? 0,
+                        isOn: selected.contains(value),
+                        indented: true
+                    ) {
+                        toggleValue(value, for: column.key)
+                    }
+                }
+                checkRow(
+                    title: "Empty",
+                    count: counts.empty,
+                    isOn: selected.contains(GuestCustomCondition.emptyToken),
+                    indented: true
+                ) {
+                    toggleValue(GuestCustomCondition.emptyToken, for: column.key)
+                }
+            }
+        }
+    }
+
+    private var footer: some View {
+        VStack(spacing: 8) {
+            Button {
+                filters = draft
+                dismiss()
+            } label: {
+                Text(previewCount == 0
+                     ? "No guests match"
+                     : "Show \(previewCount) guest\(previewCount == 1 ? "" : "s")")
+            }
+            .buttonStyle(VowbasePrimaryButtonStyle())
+            .disabled(previewCount == 0)
+
+            if previewCount == 0 {
+                Text("Loosen a condition to get results back.")
+                    .font(.footnote)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+
+            Button("Clear all") {
+                draft = GuestFilterSet()
+                expandedColumn = nil
+            }
+            .font(.system(size: 16))
+            .tint(VowbaseTheme.rose)
+            .disabled(draft.isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .background(.bar)
+    }
+
+    // MARK: Row helpers
+
+    private func checkRow(
+        title: String,
+        count: Int,
+        isOn: Bool,
+        indented: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: isOn ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 19))
+                    .foregroundStyle(isOn ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
+                Text(title)
+                    .foregroundStyle(VowbaseTheme.ink)
+                Spacer()
+                Text("\(count)")
+                    .monospacedDigit()
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            .padding(.leading, indented ? 16 : 0)
+        }
+        .accessibilityAddTraits(isOn ? [.isSelected] : [])
+    }
+
+    private func presenceRow(_ label: String, selection: Binding<GuestPresenceFilter>) -> some View {
+        LabeledContent(label) {
+            Picker(label, selection: selection) {
+                ForEach(GuestPresenceFilter.allCases, id: \.self) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 170)
+        }
+    }
+
+    // MARK: Condition plumbing
+
+    private func selectedValues(for key: String) -> Set<String> {
+        if case let .anyOf(values) = draft.customConditions[key] { return values }
+        return []
+    }
+
+    private func toggleValue(_ value: String, for key: String) {
+        var values = selectedValues(for: key)
+        if values.contains(value) {
+            values.remove(value)
+        } else {
+            values.insert(value)
+        }
+        if values.isEmpty {
+            draft.customConditions.removeValue(forKey: key)
+        } else {
+            draft.customConditions[key] = .anyOf(values)
+        }
+    }
+
+    /// Declared options plus any value guests actually hold, so a renamed or
+    /// removed option is still filterable while data references it.
+    private func availableValues(for column: GuestCustomColumn, counts: [String: Int]) -> [String] {
+        var values = GuestCustomFields.options(in: column)
+        for stored in counts.keys where !values.contains(stored) {
+            values.append(stored)
+        }
+        return values
+    }
+
+    private func summary(for column: GuestCustomColumn) -> String {
+        switch draft.customConditions[column.key] {
+        case let .anyOf(values) where !values.isEmpty:
+            return values
+                .sorted()
+                .map { $0 == GuestCustomCondition.emptyToken ? "Empty" : $0 }
+                .joined(separator: ", ")
+        case let .checkbox(flag):
+            return flag ? "Yes" : "No"
+        default:
+            return "Any"
         }
     }
 }
@@ -1061,20 +1529,14 @@ private struct GuestRow: View {
                 .background(VowbaseTheme.blush, in: Circle())
             VStack(alignment: .leading, spacing: 5) {
                 Text(guest.name)
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold, design: .serif))
                     .foregroundStyle(VowbaseTheme.ink)
-                HStack(spacing: 6) {
-                    Text(guest.group)
-                    Text("•")
-                    Text(guest.location ?? "Location not added")
-                    if guest.location != nil {
-                        Image(systemName: "mappin")
-                            .foregroundStyle(VowbaseTheme.guestBlue)
-                    }
+                if let subtitle = guest.subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 15))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .lineLimit(1)
                 }
-                .font(.system(size: 15))
-                .foregroundStyle(VowbaseTheme.mutedInk)
-                .lineLimit(1)
             }
             Spacer(minLength: 8)
             RSVPStatusCapsule(status: guest.rsvp)
@@ -1084,49 +1546,58 @@ private struct GuestRow: View {
     }
 }
 
+/// The guest record, edited in place.
+///
+/// There is no view mode and no edit mode: every row is a live control styled
+/// to read as static text until focused, and each commits on its own.
+@MainActor
 private struct GuestDetailView: View {
     let guest: MVPGuest
     let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
-    @State private var isEditing = false
     @State private var isConfirmingDeletion = false
+    @State private var undo: GuestUndo?
+
+    /// The server-confirmed record. Rows read through this so a successful save
+    /// adopts whatever the server actually stored.
+    private var record: Guest? { store.guestRecord(id: guest.id) }
 
     var body: some View {
         List {
-            Section {
-                HStack(spacing: 16) {
-                    Text(guest.initials)
-                        .font(.system(size: 30, design: .serif))
-                        .frame(width: 76, height: 76)
-                        .background(VowbaseTheme.blush, in: Circle())
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(guest.name).font(.title2.weight(.semibold))
-                        RSVPStatusCapsule(status: guest.rsvp)
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            Section("Guest details") {
-                LabeledContent("Group", value: guest.group)
-                LabeledContent("Location", value: guest.location ?? "Not added")
-                LabeledContent("Email", value: guest.email ?? "Not added")
+            if let record {
+                header(record)
+                rsvpSection(record)
+                contactSection(record)
+                locationSection(record)
+                customFieldsSection(record)
+                metadataSection(record)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(VowbaseTheme.blush)
         .navigationTitle("Guest")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Edit guest") { isEditing = true }
+                    NavigationLink(value: GuestsRoute.customFields) {
+                        Label("Manage fields", systemImage: "list.bullet.rectangle")
+                    }
                     Button("Delete guest", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
             }
         }
-        .sheet(isPresented: $isEditing) {
-            EditGuestSheet(store: store, guest: guest)
+        .overlay(alignment: .bottom) {
+            if let undo {
+                GuestUndoToast(undo: undo) { self.undo = nil }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.snappy(duration: 0.22), value: undo?.id)
         .alert("Delete \(guest.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
                 deleteGuest()
@@ -1137,6 +1608,190 @@ private struct GuestDetailView: View {
         }
     }
 
+    // MARK: Sections
+
+    private func header(_ record: Guest) -> some View {
+        Section {
+            HStack(spacing: 16) {
+                Text(guest.initials)
+                    .font(.system(size: 30, design: .serif))
+                    .frame(width: 76, height: 76)
+                    .background(VowbaseTheme.blush, in: Circle())
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        GuestInlineField(
+                            stored: record.firstName,
+                            placeholder: "First",
+                            isRequired: true,
+                            font: .system(size: 21, design: .serif),
+                            saveState: store.saveState(.init(guestID: guest.id, field: .firstName)),
+                            capitalization: .words,
+                            hugsContent: true,
+                            commit: { await store.commitField(.firstName, for: guest.id, value: $0) }
+                        )
+                        GuestInlineField(
+                            stored: record.lastName ?? "",
+                            placeholder: "Last",
+                            font: .system(size: 21, design: .serif),
+                            saveState: store.saveState(.init(guestID: guest.id, field: .lastName)),
+                            capitalization: .words,
+                            hugsContent: true,
+                            commit: { await store.commitField(.lastName, for: guest.id, value: $0) }
+                        )
+                        Spacer(minLength: 0)
+                    }
+                    RSVPStatusCapsule(status: record.rsvpStatus ?? .notInvited)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func rsvpSection(_ record: Guest) -> some View {
+        Section {
+            let key = GuestFieldKey(guestID: guest.id, field: "rsvpStatus")
+            let current = record.rsvpStatus ?? .notInvited
+            LabeledContent("Status") {
+                HStack(spacing: 8) {
+                    GuestSaveIndicator(state: store.saveState(key))
+                    Menu {
+                        ForEach(RSVPStatus.allCases, id: \.self) { status in
+                            Button {
+                                changeRSVP(to: status, from: current)
+                            } label: {
+                                if status == current {
+                                    Label(status.title, systemImage: "checkmark")
+                                } else {
+                                    Text(status.title)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(current.title)
+                            Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                        }
+                        .foregroundStyle(VowbaseTheme.ink)
+                    }
+                }
+            }
+            if let responded = record.rsvpDate {
+                LabeledContent("Responded", value: responded.formatted(date: .abbreviated, time: .omitted))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        } header: {
+            Text("RSVP")
+        } footer: {
+            Text("The response date is set by the server when the status changes.")
+        }
+    }
+
+    private func contactSection(_ record: Guest) -> some View {
+        Section("Contact") {
+            inlineRow(.email, stored: record.email ?? "", keyboard: .emailAddress)
+            inlineRow(.phone, stored: record.phone ?? "", keyboard: .phonePad)
+        }
+    }
+
+    private func locationSection(_ record: Guest) -> some View {
+        Section("Location") {
+            let key = GuestFieldKey(guestID: guest.id, field: "address")
+            LabeledContent("Address") {
+                GuestInlineField(
+                    stored: record.address ?? "",
+                    placeholder: "Not added",
+                    saveState: store.saveState(key),
+                    capitalization: .words,
+                    commit: { await store.commitAddress(for: guest.id, value: $0) }
+                )
+            }
+            GuestDerivedLocationRow(record: record, isResolving: store.saveState(key) == .saving)
+        }
+    }
+
+    @ViewBuilder
+    private func customFieldsSection(_ record: Guest) -> some View {
+        let columns = store.visibleCustomColumns
+        Section {
+            if store.customFieldsUnavailable {
+                Text("Custom fields couldn’t be loaded. The rest of this guest is up to date.")
+                    .font(.footnote)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else if columns.isEmpty {
+                NavigationLink(value: GuestsRoute.customFields) {
+                    Text("Add a field").foregroundStyle(VowbaseTheme.rose)
+                }
+            } else {
+                ForEach(columns) { column in
+                    GuestCustomFieldRow(
+                        column: column,
+                        record: record,
+                        state: store.saveState(.customField(guestID: guest.id, key: column.key)),
+                        commit: { value in store.commitCustomField(column, for: guest.id, value: value) },
+                        onCleared: { previous in
+                            offerUndo("\(column.label) cleared") {
+                                store.commitCustomField(column, for: guest.id, value: previous)
+                            }
+                        }
+                    )
+                }
+                NavigationLink(value: GuestsRoute.customFields) {
+                    Text("Add a field").foregroundStyle(VowbaseTheme.rose)
+                }
+            }
+        } header: {
+            Text("Custom fields")
+        } footer: {
+            if !columns.isEmpty {
+                Text("Fields appear in the order set on Manage fields. Hidden fields keep their data.")
+            }
+        }
+    }
+
+    private func metadataSection(_ record: Guest) -> some View {
+        Section {
+            LabeledContent("Added", value: record.createdAt.formatted(date: .abbreviated, time: .omitted))
+                .foregroundStyle(VowbaseTheme.mutedInk)
+        }
+    }
+
+    // MARK: Helpers
+
+    private func inlineRow(
+        _ field: GuestEditableField,
+        stored: String,
+        keyboard: UIKeyboardType
+    ) -> some View {
+        LabeledContent(field.label) {
+            GuestInlineField(
+                stored: stored,
+                placeholder: "Not added",
+                isRequired: field.isRequired,
+                saveState: store.saveState(.init(guestID: guest.id, field: field)),
+                keyboard: keyboard,
+                commit: { await store.commitField(field, for: guest.id, value: $0) }
+            )
+        }
+    }
+
+    private func changeRSVP(to status: RSVPStatus, from previous: RSVPStatus) {
+        Task {
+            guard await store.commitRSVP(status, for: guest.id) else { return }
+            offerUndo("RSVP set to \(status.title)") {
+                Task { await store.commitRSVP(previous, for: guest.id) }
+            }
+        }
+    }
+
+    private func offerUndo(_ message: String, action: @escaping () -> Void) {
+        let entry = GuestUndo(message: message, action: action)
+        undo = entry
+        Task {
+            try? await Task.sleep(for: .seconds(5))
+            if undo?.id == entry.id { undo = nil }
+        }
+    }
+
     private func deleteGuest() {
         Task {
             guard await store.deleteGuest(guest) else {
@@ -1144,6 +1799,350 @@ private struct GuestDetailView: View {
                 return
             }
             dismiss()
+        }
+    }
+}
+
+private struct GuestUndo: Identifiable, Equatable {
+    let id = UUID()
+    let message: String
+    let action: () -> Void
+
+    static func == (lhs: GuestUndo, rhs: GuestUndo) -> Bool { lhs.id == rhs.id }
+}
+
+private struct GuestUndoToast: View {
+    let undo: GuestUndo
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(undo.message)
+                .font(.system(size: 15))
+                .foregroundStyle(VowbaseTheme.background)
+            Spacer(minLength: 8)
+            Button("Undo") {
+                undo.action()
+                dismiss()
+            }
+            .font(.system(size: 15, weight: .semibold))
+            .tint(VowbaseTheme.rose)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .background(VowbaseTheme.ink, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// A value that reads as text and edits as text, with no mode switch.
+///
+/// Commits on blur or return. A failed save leaves the typed value in place
+/// rather than reverting to what the server holds.
+/// Reports the natural width of whatever it's attached to, so a sibling can
+/// be resized to match. `TextField` alone won't hug its own text reliably
+/// when unconstrained — its ideal-size computation isn't as precise as
+/// `Text`'s — so measuring a hidden `Text` with the same string is the
+/// robust way to size a field to its content rather than to available space.
+private struct GuestInlineFieldWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct GuestInlineField: View {
+    let stored: String
+    var placeholder: String = "Not added"
+    var isRequired: Bool = false
+    var font: Font = .body
+    let saveState: GuestFieldSaveState?
+    var keyboard: UIKeyboardType = .default
+    var capitalization: TextInputAutocapitalization = .sentences
+    /// When true, the field sizes itself to its own text instead of expanding
+    /// to fill the row — for adjacent short fields like First/Last name,
+    /// where a flexible TextField would otherwise claim roughly half the row
+    /// no matter how short the actual name is, leaving a wide gap between them.
+    var hugsContent: Bool = false
+    let commit: (String) async -> Void
+
+    @State private var draft = ""
+    @State private var showsRequiredWarning = false
+    @State private var measuredWidth: CGFloat?
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                TextField(placeholder, text: $draft)
+                    .font(font)
+                    .focused($isFocused)
+                    .keyboardType(keyboard)
+                    .textInputAutocapitalization(capitalization)
+                    .autocorrectionDisabled(keyboard == .emailAddress)
+                    .submitLabel(.done)
+                    .onSubmit { isFocused = false }
+                    .background(alignment: .leading) {
+                        if hugsContent {
+                            Text(draft.isEmpty ? placeholder : draft)
+                                .font(font)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .hidden()
+                                .background(
+                                    GeometryReader { proxy in
+                                        Color.clear.preference(
+                                            key: GuestInlineFieldWidthKey.self,
+                                            value: proxy.size.width
+                                        )
+                                    }
+                                )
+                        }
+                    }
+                    .onPreferenceChange(GuestInlineFieldWidthKey.self) { width in
+                        guard hugsContent else { return }
+                        measuredWidth = width
+                    }
+                    .frame(width: hugsContent ? max(measuredWidth ?? 0, 16) + 6 : nil)
+                if saveState == .saving || saveState == .saved {
+                    GuestSaveIndicator(state: saveState)
+                }
+            }
+            .padding(.horizontal, isFocused ? 8 : 0)
+            .padding(.vertical, isFocused ? 6 : 0)
+            .background {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(VowbaseTheme.blush)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(VowbaseTheme.rose, lineWidth: 1.5)
+                        )
+                }
+            }
+
+            if showsRequiredWarning {
+                Text("First name can’t be empty.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.rose)
+            }
+            if case let .failed(pending) = saveState {
+                GuestSaveFailureNote {
+                    Task { await commit(pending ?? draft) }
+                }
+            }
+        }
+        .onAppear { draft = stored }
+        .onChange(of: stored) { _, newValue in
+            // Adopt the server-confirmed value, but never yank text out from
+            // under someone who is still typing.
+            if !isFocused { draft = newValue }
+        }
+        .onChange(of: isFocused) { wasFocused, focused in
+            guard wasFocused, !focused else { return }
+            let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRequired, trimmed.isEmpty {
+                draft = stored
+                showsRequiredWarning = true
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    showsRequiredWarning = false
+                }
+                return
+            }
+            Task { await commit(draft) }
+        }
+    }
+}
+
+private struct GuestSaveIndicator: View {
+    let state: GuestFieldSaveState?
+
+    var body: some View {
+        switch state {
+        case .saving:
+            ProgressView().controlSize(.mini)
+        case .saved:
+            Image(systemName: "checkmark")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.green)
+                .transition(.opacity)
+        case .failed, .none:
+            EmptyView()
+        }
+    }
+}
+
+private struct GuestSaveFailureNote: View {
+    let retry: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("Couldn’t save. Your value is still here.")
+                .font(.caption)
+                .foregroundStyle(VowbaseTheme.rose)
+            Spacer(minLength: 4)
+            Button("Retry", action: retry)
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.bordered)
+                .tint(VowbaseTheme.rose)
+        }
+        .padding(.top, 2)
+    }
+}
+
+/// Read-only context derived from the address.
+///
+/// These are outputs of geocoding, not blanks the user failed to fill, so the
+/// row explains their state instead of presenting empty inputs.
+private struct GuestDerivedLocationRow: View {
+    let record: Guest
+    let isResolving: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if isResolving {
+                HStack(spacing: 8) {
+                    Text("Locating…").foregroundStyle(VowbaseTheme.mutedInk)
+                    ProgressView().controlSize(.mini)
+                }
+            } else if record.originPrecision == "city", let label = record.originLabel {
+                HStack(spacing: 8) {
+                    Text(label)
+                    Text("City")
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(VowbaseTheme.guestBlue.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(VowbaseTheme.guestBlue)
+                }
+                Text("Shown on the map as part of a city cluster. The exact address never leaves this screen.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else if record.address?.nilIfBlank != nil {
+                Text("Location not mapped").foregroundStyle(VowbaseTheme.mutedInk)
+                Text("This address didn’t resolve to a city, so no map cluster includes this guest.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else {
+                Text("No location").foregroundStyle(VowbaseTheme.mutedInk)
+                Text("Add an address to include this guest in the map’s city clusters.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// One custom field, rendered with the single control its kind allows.
+private struct GuestCustomFieldRow: View {
+    let column: GuestCustomColumn
+    let record: Guest
+    let state: GuestFieldSaveState?
+    let commit: (JSONValue?) -> Void
+    let onCleared: (JSONValue?) -> Void
+
+    private var stored: JSONValue? {
+        GuestCustomFields.value(in: record.customFields, for: column.key)
+    }
+
+    var body: some View {
+        if GuestCustomFields.isUnsupported(stored, kind: column.kind) {
+            unsupportedRow
+        } else {
+            switch column.kind {
+            case .checkbox: checkboxRow
+            case .select: selectRow
+            case .text, .number: textRow
+            }
+        }
+    }
+
+    private var unsupportedRow: some View {
+        LabeledContent(column.label) {
+            HStack(spacing: 8) {
+                Text("Unsupported value")
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                Button("Clear") { commit(nil) }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .tint(VowbaseTheme.rose)
+            }
+        }
+    }
+
+    private var checkboxRow: some View {
+        Toggle(isOn: Binding(
+            get: { stored == .bool(true) },
+            set: { commit($0 ? .bool(true) : nil) }
+        )) {
+            HStack(spacing: 8) {
+                Text(column.label)
+                GuestSaveIndicator(state: state)
+            }
+        }
+        .tint(VowbaseTheme.rose)
+    }
+
+    private var selectRow: some View {
+        let options = GuestCustomFields.options(in: column)
+        let current = GuestCustomFields.displayText(stored, kind: column.kind)
+        // A value the column no longer offers is still shown, so the user can
+        // see what is there before replacing it.
+        let isOrphaned = current.map { !options.contains($0) } ?? false
+
+        return LabeledContent(column.label) {
+            HStack(spacing: 8) {
+                GuestSaveIndicator(state: state)
+                Menu {
+                    if let current, isOrphaned {
+                        Button {
+                        } label: {
+                            Label("\(current) — no longer an option", systemImage: "checkmark")
+                        }
+                        .disabled(true)
+                    }
+                    ForEach(options, id: \.self) { option in
+                        Button {
+                            commit(.string(option))
+                        } label: {
+                            if option == current {
+                                Label(option, systemImage: "checkmark")
+                            } else {
+                                Text(option)
+                            }
+                        }
+                    }
+                    if current != nil {
+                        Divider()
+                        Button("Clear", role: .destructive) {
+                            let previous = stored
+                            commit(nil)
+                            onCleared(previous)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(current ?? "Not set")
+                            .foregroundStyle(current == nil ? VowbaseTheme.mutedInk : VowbaseTheme.ink)
+                        Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                    }
+                }
+            }
+        }
+    }
+
+    private var textRow: some View {
+        LabeledContent(column.label) {
+            GuestInlineField(
+                stored: GuestCustomFields.displayText(stored, kind: column.kind) ?? "",
+                saveState: state,
+                keyboard: column.kind == .number ? .decimalPad : .default,
+                capitalization: column.kind == .number ? .never : .sentences,
+                commit: { text in
+                    commit(GuestCustomFields.encode(text, kind: column.kind))
+                }
+            )
         }
     }
 }
@@ -1251,33 +2250,55 @@ private struct AddVenueSheet: View {
     }
 }
 
+/// Creation stays an atomic commit with an explicit Save.
+///
+/// Inline autosave is right for a record that exists and wrong for one that
+/// does not, so this sheet keeps a Save button — but it no longer caps what can
+/// be captured. Essentials sit at the medium detent; More details grows the
+/// sheet in place so the name you just typed stays visible.
 @MainActor
 private struct AddGuestSheet: View {
     let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isFirstNameFocused: Bool
+
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var location = ""
+    @State private var email = ""
+    @State private var phone = ""
     @State private var rsvp: RSVPStatus = .notInvited
+    @State private var customValues = [String: JSONValue]()
     @State private var isSaving = false
+    @State private var failureMessage: String?
+    @State private var detent: PresentationDetent = .medium
+
+    /// Someone who adds one guest with a meal choice is adding forty, so the
+    /// disclosure state persists for the session.
+    @AppStorage("guestAddShowsMoreDetails") private var showsMoreDetails = false
+
+    private var canSave: Bool { !firstName.trimmed.isEmpty && !isSaving }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("First, the essentials") {
-                    TextField("First name", text: $firstName)
-                        .focused($isFirstNameFocused)
-                        .textInputAutocapitalization(.words)
-                    TextField("Last name (optional)", text: $lastName)
-                        .textInputAutocapitalization(.words)
-                    Picker("RSVP", selection: $rsvp) {
-                        ForEach(RSVPStatus.allCases, id: \.self) { status in
-                            Text(status.title).tag(status)
+                essentialsSection
+                if showsMoreDetails {
+                    moreDetailsSection
+                }
+                if let failureMessage {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(failureMessage)
+                                .font(.footnote)
+                                .foregroundStyle(VowbaseTheme.rose)
+                            Button("Retry") { save() }
+                                .font(.footnote.weight(.semibold))
+                                .buttonStyle(.bordered)
+                                .tint(VowbaseTheme.rose)
                         }
+                        .padding(.vertical, 2)
                     }
-                    TextField("Address or location (optional)", text: $location)
-                        .textInputAutocapitalization(.words)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -1288,30 +2309,142 @@ private struct AddGuestSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save guest") {
-                        saveGuest()
-                    }
-                    .disabled(firstName.trimmed.isEmpty || isSaving)
+                    Button("Save guest") { save() }
+                        .disabled(!canSave)
                 }
             }
             .onAppear { isFirstNameFocused = true }
         }
+        .presentationDetents([.medium, .large], selection: $detent)
     }
 
-    private func saveGuest() {
+    // MARK: Sections
+
+    private var essentialsSection: some View {
+        Section {
+            TextField("First name", text: $firstName)
+                .focused($isFirstNameFocused)
+                .textInputAutocapitalization(.words)
+            TextField("Last name (optional)", text: $lastName)
+                .textInputAutocapitalization(.words)
+            Picker("RSVP", selection: $rsvp) {
+                ForEach(RSVPStatus.allCases, id: \.self) { status in
+                    Text(status.title).tag(status)
+                }
+            }
+            TextField("Address or location (optional)", text: $location)
+                .textInputAutocapitalization(.words)
+
+            Button {
+                withAnimation(.snappy(duration: 0.2)) {
+                    showsMoreDetails.toggle()
+                    // Grow in place rather than pushing: the essentials must
+                    // stay on screen while the rest is filled in.
+                    detent = showsMoreDetails ? .large : .medium
+                }
+            } label: {
+                HStack {
+                    Spacer()
+                    Text(showsMoreDetails ? "Fewer details" : "More details")
+                    Image(systemName: showsMoreDetails ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                }
+            }
+            .tint(VowbaseTheme.rose)
+            .accessibilityHint(showsMoreDetails
+                               ? "Hides contact and custom fields"
+                               : "Shows contact and custom fields")
+        } header: {
+            Text("First, the essentials")
+        }
+    }
+
+    /// Contact and custom fields share one section rather than three separate
+    /// blocks of header/footer chrome — the disclosure button already explains
+    /// what "More details" reveals, so the fields don't need their own
+    /// sub-headings to be legible.
+    private var moreDetailsSection: some View {
+        Section {
+            TextField("Email (optional)", text: $email)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+                .autocorrectionDisabled()
+            TextField("Phone (optional)", text: $phone)
+                .keyboardType(.phonePad)
+            ForEach(store.visibleCustomColumns) { column in
+                customField(column)
+            }
+        } header: {
+            Text("More details")
+        } footer: {
+            if store.customFieldsUnavailable {
+                Text("Custom fields couldn’t be loaded. You can still save this guest and fill them in later.")
+            } else if store.visibleCustomColumns.isEmpty {
+                Text("Add custom fields from Manage fields on the Guests tab.")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func customField(_ column: GuestCustomColumn) -> some View {
+        switch column.kind {
+        case .checkbox:
+            Toggle(column.label, isOn: Binding(
+                get: { customValues[column.key] == .bool(true) },
+                set: { customValues[column.key] = $0 ? .bool(true) : nil }
+            ))
+            .tint(VowbaseTheme.rose)
+
+        case .select:
+            Picker(column.label, selection: Binding(
+                get: { GuestCustomFields.displayText(customValues[column.key], kind: column.kind) ?? "" },
+                set: { customValues[column.key] = $0.isEmpty ? nil : .string($0) }
+            )) {
+                Text("Not set").tag("")
+                ForEach(GuestCustomFields.options(in: column), id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+
+        case .text, .number:
+            // A bare TextField loses its identity once filled in — its
+            // placeholder is the only label, and placeholders disappear on
+            // input. LabeledContent keeps the field's name pinned in place,
+            // matching how Group and Meal choice already read.
+            LabeledContent(column.label) {
+                TextField("", text: Binding(
+                    get: { GuestCustomFields.displayText(customValues[column.key], kind: column.kind) ?? "" },
+                    set: { customValues[column.key] = GuestCustomFields.encode($0, kind: column.kind) }
+                ))
+                .multilineTextAlignment(.trailing)
+                .keyboardType(column.kind == .number ? .decimalPad : .default)
+            }
+        }
+    }
+
+    // MARK: Save
+
+    private func save() {
         isSaving = true
+        failureMessage = nil
         Task {
-            let didSave = await store.createGuest(
+            let created = await store.createGuest(
                 firstName: firstName,
                 lastName: lastName,
                 location: location,
-                rsvp: rsvp
+                rsvp: rsvp,
+                email: email,
+                phone: phone,
+                customFields: customValues
             )
             isSaving = false
-            guard didSave else {
-                store.presentSaveFailure(retry: saveGuest, discard: { dismiss() })
+            guard let created else {
+                // Everything entered stays on the sheet; only the error is new.
+                failureMessage = store.errorMessage ?? "Couldn’t save this guest. Your details are still here."
                 return
             }
+            _ = created
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             dismiss()
         }
@@ -1385,79 +2518,445 @@ private struct EditVenueSheet: View {
     }
 }
 
+// MARK: - Custom field administration
+
+private extension GuestCustomColumnKind {
+    var title: String {
+        switch self {
+        case .text: "Text"
+        case .number: "Number"
+        case .select: "Select"
+        case .checkbox: "Checkbox"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .text: "textformat"
+        case .number: "number"
+        case .select: "list.bullet"
+        case .checkbox: "checkmark.square"
+        }
+    }
+
+    /// What happens to values already stored when a column changes to this kind.
+    var coercionWarning: String {
+        switch self {
+        case .number: "Values that aren’t numbers will be cleared."
+        case .text: "Values are preserved as text."
+        case .select: "Existing distinct values become the starting option list."
+        case .checkbox: "Any non-empty value becomes checked."
+        }
+    }
+}
+
+/// The wedding's own field schema.
+///
+/// Order set here drives guest detail, Add guest, and the filter sheet, so this
+/// is the one place ordering is decided.
 @MainActor
-private struct EditGuestSheet: View {
+private struct GuestFieldListView: View {
     let store: VowbaseWorkspaceStore
-    let guest: MVPGuest
+    @State private var editingColumn: GuestCustomColumn?
+    @State private var isCreating = false
+    @State private var pendingDeletion: GuestCustomColumn?
+
+    private var columns: [GuestCustomColumn] { store.allCustomColumns }
+
+    var body: some View {
+        List {
+            if columns.isEmpty {
+                emptyState
+            } else {
+                Section {
+                    ForEach(columns) { column in
+                        Button {
+                            editingColumn = column
+                        } label: {
+                            row(column)
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button(column.hidden ? "Show" : "Hide") {
+                                Task { await store.updateCustomColumn(column, hidden: !column.hidden) }
+                            }
+                            .tint(VowbaseTheme.mutedInk)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button("Delete", role: .destructive) { pendingDeletion = column }
+                        }
+                    }
+                    .onMove { source, destination in
+                        Task { await store.reorderCustomColumns(from: source, to: destination) }
+                    }
+                    .onDelete { offsets in
+                        // Edit mode replaces swipe actions with its own delete
+                        // control, so this is the only path to Delete once
+                        // reordering is active. Route it through the same
+                        // confirmation rather than deleting immediately.
+                        if let index = offsets.first {
+                            pendingDeletion = columns[index]
+                        }
+                    }
+                } header: {
+                    Text("\(columns.count) field\(columns.count == 1 ? "" : "s")")
+                } footer: {
+                    Text("Drag to reorder. This order controls guest detail, Add guest, and the filter sheet. The number is how many guests hold a value.")
+                }
+            }
+
+            Section {
+                Button {
+                    isCreating = true
+                } label: {
+                    Label("Add a field", systemImage: "plus")
+                }
+                .tint(VowbaseTheme.rose)
+            }
+
+            if columns.filter { !$0.hidden }.count > 12 {
+                Section {
+                    Text("Long field lists make guest rows harder to scan. Consider hiding seasonal fields instead of deleting them.")
+                        .font(.footnote)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(VowbaseTheme.groupedBackground)
+        .tint(VowbaseTheme.rose)
+        .navigationTitle("Manage fields")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { EditButton().tint(VowbaseTheme.rose) }
+        }
+        .sheet(item: $editingColumn) { column in
+            GuestFieldEditorView(store: store, column: column)
+        }
+        .sheet(isPresented: $isCreating) {
+            GuestFieldEditorView(store: store, column: nil)
+        }
+        .alert(
+            "Delete “\(pendingDeletion?.label ?? "")”?",
+            isPresented: Binding(
+                get: { pendingDeletion != nil },
+                set: { if !$0 { pendingDeletion = nil } }
+            ),
+            presenting: pendingDeletion
+        ) { column in
+            Button("Delete field", role: .destructive) {
+                Task { await store.deleteCustomColumn(column) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { column in
+            let used = store.usageCount(for: column)
+            Text(
+                used == 0
+                    ? "No guests hold a value for this field."
+                    : "This permanently removes the value stored for \(used) guest\(used == 1 ? "" : "s"). It can’t be undone."
+            )
+        }
+    }
+
+    private var emptyState: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("No custom fields yet.")
+                    .font(.headline)
+                Text("Add fields for the things you track per guest — Group, Meal choice, Plus one, Table.")
+                    .font(.subheadline)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func row(_ column: GuestCustomColumn) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: column.kind.symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.rose)
+                .frame(width: 30, height: 30)
+                .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(column.label)
+                    .foregroundStyle(VowbaseTheme.ink)
+                Text(column.key)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            Spacer(minLength: 8)
+            if column.hidden {
+                Text("Hidden")
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(VowbaseTheme.border.opacity(0.5), in: Capsule())
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else {
+                Text("\(store.usageCount(for: column))")
+                    .monospacedDigit()
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        }
+        .opacity(column.hidden ? 0.55 : 1)
+    }
+}
+
+/// Creates or edits one column. Both flows share this form because the only
+/// real difference is whether the key is still up for grabs.
+@MainActor
+private struct GuestFieldEditorView: View {
+    let store: VowbaseWorkspaceStore
+    /// Nil when creating.
+    let column: GuestCustomColumn?
+
     @Environment(\.dismiss) private var dismiss
-    @State private var firstName: String
-    @State private var lastName: String
-    @State private var location: String
-    @State private var rsvp: RSVPStatus
+    @State private var label: String
+    @State private var kind: GuestCustomColumnKind
+    @State private var options: [String]
+    @State private var hidden: Bool
+    @State private var newOption = ""
+    @State private var pendingKind: GuestCustomColumnKind?
+    @State private var renameTarget: String?
+    @State private var renameText = ""
     @State private var isSaving = false
 
-    init(store: VowbaseWorkspaceStore, guest: MVPGuest) {
+    init(store: VowbaseWorkspaceStore, column: GuestCustomColumn?) {
         self.store = store
-        self.guest = guest
-        _firstName = State(initialValue: guest.firstName)
-        _lastName = State(initialValue: guest.lastName)
-        _location = State(initialValue: guest.location ?? "")
-        _rsvp = State(initialValue: guest.rsvp)
+        self.column = column
+        _label = State(initialValue: column?.label ?? "")
+        _kind = State(initialValue: column?.kind ?? .text)
+        _options = State(initialValue: column.map(GuestCustomFields.options(in:)) ?? [])
+        _hidden = State(initialValue: column?.hidden ?? false)
     }
+
+    private var isCreating: Bool { column == nil }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Guest details") {
-                    TextField("First name", text: $firstName)
-                        .textInputAutocapitalization(.words)
-                    TextField("Last name (optional)", text: $lastName)
-                        .textInputAutocapitalization(.words)
-                    Picker("RSVP", selection: $rsvp) {
-                        ForEach(RSVPStatus.allCases, id: \.self) { status in
-                            Text(status.title).tag(status)
-                        }
-                    }
-                    TextField("Address or location (optional)", text: $location)
-                        .textInputAutocapitalization(.words)
+                identitySection
+                kindSection
+                if kind == .select {
+                    optionsSection
                 }
+                visibilitySection
             }
             .scrollContentBackground(.hidden)
-            .background(VowbaseTheme.background)
+            .background(VowbaseTheme.groupedBackground)
             .tint(VowbaseTheme.rose)
-            .navigationTitle("Edit guest")
+            .navigationTitle(isCreating ? "Add field" : "Edit field")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveGuest()
-                    }
-                    .disabled(firstName.trimmed.isEmpty || isSaving)
+                    Button(isCreating ? "Add" : "Save") { save() }
+                        .disabled(label.trimmed.isEmpty || isSaving)
+                }
+            }
+            .alert(
+                "Change “\(label)” to \(pendingKind?.title.lowercased() ?? "")?",
+                isPresented: Binding(
+                    get: { pendingKind != nil },
+                    set: { if !$0 { pendingKind = nil } }
+                ),
+                presenting: pendingKind
+            ) { target in
+                Button("Change kind") { apply(kind: target) }
+                Button("Cancel", role: .cancel) {}
+            } message: { target in
+                let affected = column.map(store.usageCount(for:)) ?? 0
+                Text("\(target.coercionWarning) \(affected) guest\(affected == 1 ? "" : "s") hold a value for this field.")
+            }
+            .alert(
+                "Rename “\(renameTarget ?? "")”",
+                isPresented: Binding(
+                    get: { renameTarget != nil },
+                    set: { if !$0 { renameTarget = nil } }
+                )
+            ) {
+                TextField("Option name", text: $renameText)
+                Button("Rename and rewrite") { commitRename(rewriting: true) }
+                Button("Rename only") { commitRename(rewriting: false) }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                if let target = renameTarget, let column {
+                    let used = store.usageCount(for: column, option: target)
+                    Text("\(used) guest\(used == 1 ? "" : "s") use this option. Rewriting updates them; renaming only leaves them on the old label.")
                 }
             }
         }
     }
 
-    private func saveGuest() {
+    // MARK: Sections
+
+    private var identitySection: some View {
+        Section {
+            TextField("Label", text: $label)
+                .textInputAutocapitalization(.words)
+            LabeledContent("Key") {
+                Text(column?.key ?? store.proposedKey(for: label))
+                    .font(.callout.monospaced())
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        } footer: {
+            Text(isCreating
+                 ? "The key is generated from the label and shared with the web workspace. It can’t change later."
+                 : "The key is shared with the web workspace and can’t change after the field is created. Renaming the label is safe and updates every screen.")
+        }
+    }
+
+    private var kindSection: some View {
+        Section {
+            ForEach([GuestCustomColumnKind.text, .number, .select, .checkbox], id: \.self) { option in
+                Button {
+                    select(kind: option)
+                } label: {
+                    HStack {
+                        Image(systemName: option.symbol)
+                            .foregroundStyle(VowbaseTheme.rose)
+                            .frame(width: 24)
+                        Text(option.title).foregroundStyle(VowbaseTheme.ink)
+                        Spacer()
+                        if option == kind {
+                            Image(systemName: "checkmark").foregroundStyle(VowbaseTheme.rose)
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Kind")
+        } footer: {
+            if !isCreating {
+                Text("Changing the kind converts stored values. You’ll see how many guests are affected first.")
+            }
+        }
+    }
+
+    private var optionsSection: some View {
+        Section {
+            ForEach(options, id: \.self) { option in
+                HStack {
+                    Text(option)
+                    Spacer()
+                    if let column {
+                        Text("\(store.usageCount(for: column, option: option))")
+                            .monospacedDigit()
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                        Button {
+                            renameTarget = option
+                            renameText = option
+                        } label: {
+                            Image(systemName: "pencil")
+                        }
+                        .buttonStyle(.borderless)
+                        .tint(VowbaseTheme.rose)
+                    }
+                }
+                .swipeActions {
+                    Button("Delete", role: .destructive) {
+                        options.removeAll { $0 == option }
+                    }
+                }
+            }
+            .onMove { source, destination in
+                options.move(fromOffsets: source, toOffset: destination)
+            }
+            HStack {
+                TextField("Add an option", text: $newOption)
+                Button("Add") {
+                    let trimmed = newOption.trimmed
+                    guard !trimmed.isEmpty, !options.contains(trimmed) else { return }
+                    options.append(trimmed)
+                    newOption = ""
+                }
+                .disabled(newOption.trimmed.isEmpty)
+            }
+        } header: {
+            Text("Options")
+        } footer: {
+            Text(isCreating
+                 ? "Add the choices this field offers."
+                 : "Renaming asks whether to rewrite the guests using an option. Removing one leaves their value in place, shown as no longer an option.")
+        }
+    }
+
+    private var visibilitySection: some View {
+        Section {
+            Toggle("Hidden", isOn: $hidden)
+                .tint(VowbaseTheme.rose)
+        } footer: {
+            Text("Hidden fields keep their data and stay visible in the web workspace. Use this for seasonal fields instead of deleting them.")
+        }
+    }
+
+    // MARK: Actions
+
+    private func select(kind target: GuestCustomColumnKind) {
+        guard target != kind else { return }
+        // Creating a field has no stored values to convert, so no warning.
+        guard !isCreating, let column, store.usageCount(for: column) > 0 else {
+            apply(kind: target)
+            return
+        }
+        pendingKind = target
+    }
+
+    private func apply(kind target: GuestCustomColumnKind) {
+        if target == .select, options.isEmpty, let column {
+            // Seed the option list from what guests already hold.
+            let existing = store.allGuestRecords.compactMap { guest -> String? in
+                let stored = GuestCustomFields.value(in: guest.customFields, for: column.key)
+                return GuestCustomFields.displayText(stored, kind: column.kind)
+            }
+            options = Set(existing).sorted()
+        }
+        kind = target
+        pendingKind = nil
+    }
+
+    private func commitRename(rewriting: Bool) {
+        guard let column, let original = renameTarget else { return }
+        let replacement = renameText.trimmed
+        renameTarget = nil
+        guard !replacement.isEmpty, replacement != original else { return }
+        Task {
+            await store.renameOption(
+                column,
+                from: original,
+                to: replacement,
+                rewritingGuests: rewriting
+            )
+            let refreshed = store.allCustomColumns.first { $0.id == column.id } ?? column
+            options = GuestCustomFields.options(in: refreshed)
+        }
+    }
+
+    private func save() {
         isSaving = true
         Task {
-            let didSave = await store.updateGuest(
-                guest,
-                firstName: firstName,
-                lastName: lastName,
-                location: location,
-                rsvp: rsvp
-            )
-            isSaving = false
-            guard didSave else {
-                store.presentSaveFailure(retry: saveGuest, discard: { dismiss() })
-                return
+            let didSave: Bool
+            if let column {
+                didSave = await store.updateCustomColumn(
+                    column,
+                    label: label,
+                    kind: kind,
+                    options: kind == .select ? options : [],
+                    hidden: hidden
+                )
+            } else {
+                didSave = await store.createCustomColumn(
+                    label: label,
+                    kind: kind,
+                    options: kind == .select ? options : []
+                )
             }
-            dismiss()
+            isSaving = false
+            if didSave { dismiss() }
         }
     }
 }
+
 
 // MARK: - Reusable views and MVP fixtures
 
@@ -1617,10 +3116,16 @@ struct MVPGuest: Identifiable, Hashable {
     let id: UUID
     let firstName: String
     let lastName: String
-    let group: String
+    /// Row subtitle resolved from this wedding's own column definitions.
+    /// Nil when no suitable column exists or the guest has no value for it.
+    let subtitle: String?
     let location: String?
     let email: String?
+    let phone: String?
     let rsvp: RSVPStatus
+    let isMappable: Bool
+    /// Flattened custom values so search reaches custom fields too.
+    let customSearchText: String
 
     var name: String { [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ") }
     var initials: String {
@@ -1629,7 +3134,11 @@ struct MVPGuest: Identifiable, Hashable {
             .map { String($0).uppercased() }
             .joined()
     }
-    var searchText: String { [name, group, location, email].compactMap { $0 }.joined(separator: " ") }
+    var searchText: String {
+        [name, subtitle, location, email, phone, customSearchText]
+            .compactMap { $0 }
+            .joined(separator: " ")
+    }
 }
 
 @MainActor
@@ -1639,6 +3148,12 @@ final class VowbaseWorkspaceStore {
     private var venueRecords = [Venue]()
     private var signedVenuePhotoURLs = [UUID: [URL]]()
     private var guestRecords = [Guest]()
+    private var customColumnRecords = [GuestCustomColumn]()
+
+    /// Serializes each guest's custom-field writes. `GuestPatch.customFields`
+    /// replaces the whole JSON object, so two concurrent row commits would
+    /// clobber one another without this chain.
+    private var customFieldWrites = [UUID: Task<Void, Never>]()
 
     var selectedVenueID: UUID?
     var isGlobalMenuOpen = false
@@ -1652,6 +3167,13 @@ final class VowbaseWorkspaceStore {
         guard let role = activeMembership?.role else { return false }
         return role == .owner || role == .partner || role == .planner
     }
+
+    /// Set when column definitions fail to load. Custom-field rows are hidden
+    /// rather than shown broken, and the guest list stays usable.
+    var customFieldsUnavailable = false
+
+    /// Per-row save state for inline editing, keyed by guest and field.
+    private(set) var fieldSaveStates = [GuestFieldKey: GuestFieldSaveState]()
 
     init(repositories: RepositoryContainer? = nil) {
         self.repositories = repositories
@@ -1783,6 +3305,12 @@ final class VowbaseWorkspaceStore {
             Guest(id: UUID(uuidString: "3F8DB09C-44F3-4888-8D2B-31EB26F5C487")!, weddingID: weddingID, firstName: "Theo", lastName: "Lark", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .pending, rsvpDate: nil, originLabel: "Willow Coast", originLatitude: 39.4, originLongitude: -98.45, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
             Guest(id: UUID(uuidString: "DE25BD36-69A1-4DC3-A5E0-5E0AF076E34E")!, weddingID: weddingID, firstName: "Nora", lastName: "Wynn", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .notInvited, rsvpDate: nil, originLabel: "Solace Point", originLatitude: 39.45, originLongitude: -98.3, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
         ]
+        customColumnRecords = [
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C01")!, weddingID: weddingID, key: "group", label: "Group", kind: .select, options: .array([.string("Cedar Circle"), .string("Juniper Guild")]), position: 0, hidden: false, createdAt: createdAt, updatedAt: createdAt),
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C02")!, weddingID: weddingID, key: "meal_choice", label: "Meal choice", kind: .select, options: .array([.string("Chicken"), .string("Fish"), .string("Vegetarian")]), position: 1, hidden: false, createdAt: createdAt, updatedAt: createdAt),
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C03")!, weddingID: weddingID, key: "plus_one", label: "Plus one", kind: .checkbox, options: .array([]), position: 2, hidden: false, createdAt: createdAt, updatedAt: createdAt),
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C04")!, weddingID: weddingID, key: "table", label: "Table", kind: .number, options: .array([]), position: 3, hidden: false, createdAt: createdAt, updatedAt: createdAt)
+        ]
         selectedVenueID = venueRecords.first?.id
     }
 #endif
@@ -1792,8 +3320,44 @@ final class VowbaseWorkspaceStore {
             MVPVenue(venue, photoURLs: signedVenuePhotoURLs[venue.id] ?? [])
         }
     }
-    var guests: [MVPGuest] { guestRecords.map(MVPGuest.init) }
+    var guests: [MVPGuest] {
+        let columns = customColumnRecords
+        return guestRecords.map { MVPGuest($0, columns: columns) }
+    }
     var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
+
+    /// Columns offered for editing and filtering, in their configured order.
+    /// Empty while definitions are unavailable so rows never render broken.
+    var visibleCustomColumns: [GuestCustomColumn] {
+        customFieldsUnavailable ? [] : GuestDisplayResolver.visibleColumns(customColumnRecords)
+    }
+
+    /// Every column including hidden ones, for the administration screen.
+    var allCustomColumns: [GuestCustomColumn] {
+        GuestDisplayResolver.orderedColumns(customColumnRecords)
+    }
+
+    func guestRecord(id: UUID) -> Guest? {
+        guestRecords.first { $0.id == id }
+    }
+
+    /// Raw records, for the counts the filter sheet shows before applying.
+    var allGuestRecords: [Guest] { guestRecords }
+
+    func filteredGuests(
+        searchText: String,
+        filters: GuestFilterSet,
+        sort: GuestSortOrder
+    ) -> [MVPGuest] {
+        let columns = customColumnRecords
+        return GuestQuery
+            .apply(to: guestRecords, columns: columns, searchText: searchText, filters: filters, sort: sort)
+            .map { MVPGuest($0, columns: columns) }
+    }
+
+    func saveState(_ key: GuestFieldKey) -> GuestFieldSaveState? {
+        fieldSaveStates[key]
+    }
 
     /// Map guest locations only when the server marks them as city-precision.
     /// This keeps individual household addresses out of the planning map.
@@ -1832,6 +3396,7 @@ final class VowbaseWorkspaceStore {
             guard let membership = try await repositories.workspace.memberships().first else {
                 venueRecords = []
                 guestRecords = []
+                customColumnRecords = []
                 wedding = nil
                 activeMembership = nil
                 errorMessage = "This account is not a member of a wedding workspace yet."
@@ -1843,8 +3408,18 @@ final class VowbaseWorkspaceStore {
             activeMembership = membership
             async let venues = repositories.venues.venues(weddingID: membership.weddingId)
             async let guests = repositories.guests.guests(weddingID: membership.weddingId)
+            // Column definitions degrade on their own: losing them should hide
+            // custom fields, never take the guest list down with them.
+            async let columns = try? repositories.guests.customColumns(weddingID: membership.weddingId)
             venueRecords = try await venues
             guestRecords = try await guests
+            if let loadedColumns = await columns {
+                customColumnRecords = GuestDisplayResolver.orderedColumns(loadedColumns)
+                customFieldsUnavailable = false
+            } else {
+                customColumnRecords = []
+                customFieldsUnavailable = true
+            }
             let currentVenueIDs = Set(venueRecords.map(\.id))
             signedVenuePhotoURLs = signedVenuePhotoURLs.filter { currentVenueIDs.contains($0.key) }
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
@@ -1958,15 +3533,34 @@ final class VowbaseWorkspaceStore {
         }
     }
 
-    func createGuest(firstName: String, lastName: String, location: String, rsvp: RSVPStatus) async -> Bool {
-        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+    /// Creates a guest from every field the Add sheet can capture.
+    ///
+    /// Returns the created record so the caller can navigate to it. Geocoding
+    /// runs first but never blocks the save: an unresolvable address is still
+    /// stored, just without a map origin.
+    func createGuest(
+        firstName: String,
+        lastName: String,
+        location: String,
+        rsvp: RSVPStatus,
+        email: String = "",
+        phone: String = "",
+        customFields: [String: JSONValue] = [:]
+    ) async -> Guest? {
+        guard let repositories, let weddingID = wedding?.id else {
+            _ = unavailable()
+            return nil
+        }
         do {
             let resolved = await resolvedLocation(for: location, repositories: repositories)
             let guest = try await repositories.guests.createGuest(
                 GuestDraft(
                     firstName: firstName.trimmed,
                     lastName: lastName.nilIfBlank,
+                    email: email.nilIfBlank,
+                    phone: phone.nilIfBlank,
                     address: resolved.displayName,
+                    customFields: .object(customFields),
                     rsvpStatus: rsvp,
                     originLabel: resolved.city ?? resolved.displayName,
                     originLatitude: resolved.latitude,
@@ -1977,37 +3571,171 @@ final class VowbaseWorkspaceStore {
                 weddingID: weddingID
             )
             guestRecords.insert(guest, at: 0)
-            return true
+            errorMessage = nil
+            return guest
         } catch {
             errorMessage = userMessage(for: error)
+            return nil
+        }
+    }
+
+    // MARK: - Inline guest editing
+
+    /// Commits one plain-text field.
+    ///
+    /// Returns false without touching the network when the value is unchanged
+    /// or fails validation, so an unmodified row costs nothing.
+    @discardableResult
+    func commitField(
+        _ field: GuestEditableField,
+        for guestID: UUID,
+        value: String
+    ) async -> Bool {
+        guard let record = guestRecord(id: guestID) else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: field)
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmed != (field.currentValue(in: record) ?? "") else {
+            fieldSaveStates[key] = nil
+            return false
+        }
+        guard let patch = field.patch(newValue: trimmed) else {
+            // Required and empty. The row restores itself and says why.
+            fieldSaveStates[key] = nil
+            return false
+        }
+        return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+    }
+
+    /// Commits the address, then re-derives the coarse map origin from it.
+    ///
+    /// Geocoding runs after the write lands and never blocks or reverts it: an
+    /// address that cannot be resolved is still the user's address.
+    @discardableResult
+    func commitAddress(for guestID: UUID, value: String) async -> Bool {
+        guard let repositories, let record = guestRecord(id: guestID) else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: "address")
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != (record.address ?? "") else {
+            fieldSaveStates[key] = nil
+            return false
+        }
+
+        guard !trimmed.isEmpty else {
+            // Clearing the address clears everything derived from it.
+            let patch = GuestPatch(
+                address: .null,
+                originLabel: .null,
+                originLatitude: .null,
+                originLongitude: .null,
+                originPrecision: .null,
+                geocodeStatus: .null
+            )
+            return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+        }
+
+        // Show progress across the geocode too, not just the write that follows.
+        fieldSaveStates[key] = .saving
+        let resolved = await resolvedLocation(for: trimmed, repositories: repositories)
+        let patch = GuestPatch(
+            address: .value(trimmed),
+            originLabel: (resolved.city ?? resolved.displayName).map(NullablePatch.value) ?? .null,
+            originLatitude: resolved.latitude.map(NullablePatch.value) ?? .null,
+            originLongitude: resolved.longitude.map(NullablePatch.value) ?? .null,
+            originPrecision: resolved.city == nil ? .null : .value("city"),
+            geocodeStatus: resolved.latitude == nil ? .null : .value("resolved")
+        )
+        return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+    }
+
+    @discardableResult
+    func commitRSVP(_ status: RSVPStatus, for guestID: UUID) async -> Bool {
+        guard let record = guestRecord(id: guestID), record.rsvpStatus != status else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: "rsvpStatus")
+        return await applyPatch(
+            GuestPatch(rsvpStatus: .value(status)),
+            guestID: guestID,
+            key: key,
+            pendingValue: nil
+        )
+    }
+
+    /// Queues a custom-field write behind this guest's other custom-field
+    /// writes. The merge base is read when the write runs, not when the row was
+    /// focused, so edits to different keys cannot erase each other.
+    func commitCustomField(_ column: GuestCustomColumn, for guestID: UUID, value: JSONValue?) {
+        let previous = customFieldWrites[guestID]
+        customFieldWrites[guestID] = Task { [weak self] in
+            await previous?.value
+            guard let self, !Task.isCancelled else { return }
+            await self.writeCustomField(column, guestID: guestID, value: value)
+        }
+    }
+
+    private func writeCustomField(
+        _ column: GuestCustomColumn,
+        guestID: UUID,
+        value: JSONValue?
+    ) async {
+        guard let repositories, let record = guestRecord(id: guestID) else { return }
+        let key = GuestFieldKey.customField(guestID: guestID, key: column.key)
+        fieldSaveStates[key] = .saving
+
+        let merged = GuestCustomFields.merging(record.customFields, key: column.key, value: value)
+        do {
+            let updated = try await repositories.guests.updateGuest(
+                id: guestID,
+                patch: GuestPatch(customFields: merged)
+            )
+            replace(updated, in: &guestRecords)
+            markSaved(key)
+        } catch is CancellationError {
+            fieldSaveStates[key] = nil
+        } catch {
+            let pending = GuestCustomFields.displayText(value, kind: column.kind)
+            fieldSaveStates[key] = .failed(pendingValue: pending)
+        }
+    }
+
+    /// Sends a single-field patch and reconciles the row's save state.
+    ///
+    /// A failure keeps `pendingValue` on the row so the user's input survives;
+    /// nothing is reverted and nothing is discarded.
+    private func applyPatch(
+        _ patch: GuestPatch,
+        guestID: UUID,
+        key: GuestFieldKey,
+        pendingValue: String?
+    ) async -> Bool {
+        guard let repositories else { return unavailable() }
+        guard !patch.isEmpty else { return false }
+        fieldSaveStates[key] = .saving
+        do {
+            let updated = try await repositories.guests.updateGuest(id: guestID, patch: patch)
+            replace(updated, in: &guestRecords)
+            markSaved(key)
+            return true
+        } catch is CancellationError {
+            fieldSaveStates[key] = nil
+            return false
+        } catch {
+            fieldSaveStates[key] = .failed(pendingValue: pendingValue)
             return false
         }
     }
 
-    func updateGuest(_ guest: MVPGuest, firstName: String, lastName: String, location: String, rsvp: RSVPStatus) async -> Bool {
-        guard let repositories else { return unavailable() }
-        do {
-            let resolved = await resolvedLocation(for: location, repositories: repositories)
-            let updated = try await repositories.guests.updateGuest(
-                id: guest.id,
-                patch: GuestPatch(
-                    firstName: firstName.trimmed,
-                    lastName: lastName.nilIfBlank.map(NullablePatch.value) ?? .null,
-                    address: resolved.displayName.map(NullablePatch.value) ?? .null,
-                    rsvpStatus: .value(rsvp),
-                    originLabel: (resolved.city ?? resolved.displayName).map(NullablePatch.value) ?? .null,
-                    originLatitude: resolved.latitude.map(NullablePatch.value) ?? .null,
-                    originLongitude: resolved.longitude.map(NullablePatch.value) ?? .null,
-                    originPrecision: resolved.city == nil ? .null : .value("city"),
-                    geocodeStatus: resolved.latitude == nil ? .null : .value("resolved")
-                )
-            )
-            replace(updated, in: &guestRecords)
-            return true
-        } catch {
-            errorMessage = userMessage(for: error)
-            return false
+    /// Shows the confirmation tick briefly, then clears it.
+    private func markSaved(_ key: GuestFieldKey) {
+        fieldSaveStates[key] = .saved
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard let self, self.fieldSaveStates[key] == .saved else { return }
+            self.fieldSaveStates[key] = nil
         }
+    }
+
+    func clearSaveState(_ key: GuestFieldKey) {
+        fieldSaveStates[key] = nil
     }
 
     func deleteGuest(_ guest: MVPGuest) async -> Bool {
@@ -2015,6 +3743,184 @@ final class VowbaseWorkspaceStore {
         do {
             try await repositories.guests.deleteGuest(id: guest.id)
             guestRecords.removeAll { $0.id == guest.id }
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    // MARK: - Custom column administration
+
+    /// How many guests hold a value for a column. Every destructive action
+    /// quotes this so the blast radius is stated before it happens.
+    func usageCount(for column: GuestCustomColumn) -> Int {
+        guestRecords.filter { guest in
+            GuestCustomFields.value(in: guest.customFields, for: column.key) != nil
+        }.count
+    }
+
+    func usageCount(for column: GuestCustomColumn, option: String) -> Int {
+        guestRecords.filter { guest in
+            let stored = GuestCustomFields.value(in: guest.customFields, for: column.key)
+            return GuestCustomFields.displayText(stored, kind: column.kind) == option
+        }.count
+    }
+
+    /// Slugifies a label into a key, suffixing on collision.
+    ///
+    /// Keys are shared with the web workspace and immutable once created, so
+    /// this runs only at creation time.
+    func proposedKey(for label: String) -> String {
+        let slug = label
+            .lowercased()
+            .map { $0.isLetter || $0.isNumber ? String($0) : "_" }
+            .joined()
+            .split(separator: "_", omittingEmptySubsequences: true)
+            .joined(separator: "_")
+        let base = slug.isEmpty ? "field" : slug
+        let existing = Set(customColumnRecords.map(\.key))
+        guard existing.contains(base) else { return base }
+        var index = 2
+        while existing.contains("\(base)_\(index)") { index += 1 }
+        return "\(base)_\(index)"
+    }
+
+    @discardableResult
+    func createCustomColumn(
+        label: String,
+        kind: GuestCustomColumnKind,
+        options: [String]
+    ) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        let trimmed = label.trimmed
+        guard !trimmed.isEmpty else { return false }
+        do {
+            let column = try await repositories.guests.createCustomColumn(
+                GuestCustomColumnDraft(
+                    key: proposedKey(for: trimmed),
+                    label: trimmed,
+                    kind: kind,
+                    options: .array(options.map(JSONValue.string)),
+                    position: (customColumnRecords.map(\.position).max() ?? -1) + 1,
+                    hidden: false
+                ),
+                weddingID: weddingID
+            )
+            customColumnRecords = GuestDisplayResolver.orderedColumns(customColumnRecords + [column])
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func updateCustomColumn(
+        _ column: GuestCustomColumn,
+        label: String? = nil,
+        kind: GuestCustomColumnKind? = nil,
+        options: [String]? = nil,
+        hidden: Bool? = nil
+    ) async -> Bool {
+        guard let repositories else { return unavailable() }
+        do {
+            let updated = try await repositories.guests.updateCustomColumn(
+                id: column.id,
+                patch: GuestCustomColumnPatch(
+                    label: label?.trimmed.nilIfBlank,
+                    kind: kind,
+                    options: options.map { .array($0.map(JSONValue.string)) },
+                    hidden: hidden
+                )
+            )
+            replace(updated, in: &customColumnRecords)
+            customColumnRecords = GuestDisplayResolver.orderedColumns(customColumnRecords)
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    /// Persists a new ordering. Position drives guest detail, Add guest, and
+    /// the filter sheet, so this is the single place order is decided.
+    func reorderCustomColumns(from source: IndexSet, to destination: Int) async {
+        guard let repositories else { _ = unavailable(); return }
+        var ordered = GuestDisplayResolver.orderedColumns(customColumnRecords)
+        ordered.move(fromOffsets: source, toOffset: destination)
+        customColumnRecords = ordered
+
+        for (index, column) in ordered.enumerated() where column.position != index {
+            do {
+                let updated = try await repositories.guests.updateCustomColumn(
+                    id: column.id,
+                    patch: GuestCustomColumnPatch(position: index)
+                )
+                replace(updated, in: &customColumnRecords)
+            } catch {
+                errorMessage = userMessage(for: error)
+                // Re-read the server's truth rather than leave a half-applied order.
+                await load()
+                return
+            }
+        }
+        customColumnRecords = GuestDisplayResolver.orderedColumns(customColumnRecords)
+    }
+
+    /// Renames one option of a select column.
+    ///
+    /// `rewritingGuests` decides what happens to guests already holding the old
+    /// label: rewrite them, or leave them pointing at a label the column no
+    /// longer offers (where the detail row shows it as no longer an option).
+    @discardableResult
+    func renameOption(
+        _ column: GuestCustomColumn,
+        from oldValue: String,
+        to newValue: String,
+        rewritingGuests: Bool
+    ) async -> Bool {
+        guard let repositories else { return unavailable() }
+        let trimmed = newValue.trimmed
+        guard !trimmed.isEmpty, trimmed != oldValue else { return false }
+
+        var options = GuestCustomFields.options(in: column)
+        guard let index = options.firstIndex(of: oldValue) else { return false }
+        options[index] = trimmed
+
+        guard await updateCustomColumn(column, options: options) else { return false }
+        guard rewritingGuests else { return true }
+
+        for guest in guestRecords {
+            let stored = GuestCustomFields.value(in: guest.customFields, for: column.key)
+            guard GuestCustomFields.displayText(stored, kind: column.kind) == oldValue else { continue }
+            do {
+                let merged = GuestCustomFields.merging(
+                    guest.customFields,
+                    key: column.key,
+                    value: .string(trimmed)
+                )
+                let updated = try await repositories.guests.updateGuest(
+                    id: guest.id,
+                    patch: GuestPatch(customFields: merged)
+                )
+                replace(updated, in: &guestRecords)
+            } catch {
+                errorMessage = userMessage(for: error)
+                return false
+            }
+        }
+        return true
+    }
+
+    @discardableResult
+    func deleteCustomColumn(_ column: GuestCustomColumn) async -> Bool {
+        guard let repositories else { return unavailable() }
+        do {
+            try await repositories.guests.deleteCustomColumn(id: column.id)
+            customColumnRecords.removeAll { $0.id == column.id }
+            // The values live on the guests, so refresh them to match.
+            await load()
             return true
         } catch {
             errorMessage = userMessage(for: error)
@@ -2137,16 +4043,26 @@ private extension MVPVenue {
 }
 
 private extension MVPGuest {
-    init(_ guest: Guest) {
+    init(_ guest: Guest, columns: [GuestCustomColumn]) {
         id = guest.id
         firstName = guest.firstName
         lastName = guest.lastName ?? ""
-        group = guest.customFields.stringValue(for: "group")
-            ?? guest.customFields.stringValue(for: "group_name")
-            ?? "No group"
+        subtitle = GuestDisplayResolver.subtitle(for: guest, columns: columns)
         location = guest.originLabel ?? guest.address
         email = guest.email
+        phone = guest.phone
         rsvp = guest.rsvpStatus ?? .notInvited
+        isMappable = guest.originPrecision == "city"
+        customSearchText = GuestCustomFields.object(in: guest.customFields)
+            .values
+            .compactMap { value in
+                switch value {
+                case let .string(text): text
+                case let .number(number): String(number)
+                default: nil
+                }
+            }
+            .joined(separator: " ")
     }
 }
 
@@ -2188,7 +4104,31 @@ private enum VenuePriceFormatter {
 }
 
 #Preview("Guests") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialTab: .guests)
+    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), initialTab: .guests)
+}
+
+#Preview("Guest detail") {
+    let store = VowbaseWorkspaceStore(testingWorkspace: true)
+    return NavigationStack {
+        if let guest = store.guests.first {
+            GuestDetailView(guest: guest, store: store)
+        }
+    }
+}
+
+#Preview("Manage fields") {
+    NavigationStack {
+        GuestFieldListView(store: VowbaseWorkspaceStore(testingWorkspace: true))
+    }
+}
+
+#Preview("Filters") {
+    @Previewable @State var filters = GuestFilterSet()
+    return GuestFilterSheet(
+        store: VowbaseWorkspaceStore(testingWorkspace: true),
+        searchText: "",
+        filters: $filters
+    )
 }
 
 #Preview("Add venue") {
@@ -2196,5 +4136,5 @@ private enum VenuePriceFormatter {
 }
 
 #Preview("Add guest") {
-    AddGuestSheet(store: VowbaseWorkspaceStore())
+    AddGuestSheet(store: VowbaseWorkspaceStore(testingWorkspace: true))
 }
