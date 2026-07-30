@@ -171,6 +171,16 @@ struct BackendErrorTests {
         #expect(copy[1] != copy[2])
     }
 
+    @Test("preserves server messages for user-facing error presentation")
+    func exposesServerMessages() {
+        #expect(
+            BackendError.validation(message: "Choose a venue status.", requestID: nil).message
+                == "Choose a venue status."
+        )
+        #expect(BackendError.authenticationRequired(message: nil, requestID: nil).message == nil)
+        #expect(BackendError.networkUnavailable.message == nil)
+    }
+
     private func decode(_ json: String) throws -> APIErrorEnvelope {
         try JSONDecoder().decode(APIErrorEnvelope.self, from: Data(json.utf8))
     }
