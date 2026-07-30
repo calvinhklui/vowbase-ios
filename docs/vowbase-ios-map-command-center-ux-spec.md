@@ -85,7 +85,7 @@ Three named parts, used consistently for the rest of this document:
 
 ```
 ┌──────────────────────────────────────────────┐
-│  ⬤A&C   Andey & Calvin · 412 days      ⌕     │  Context bar — §5
+│  ⬤A&C   Andey & Calvin · Sep 18, 2027  ⌕     │  Context bar — §5
 ├──────────────────────────────────────────────┤
 │                                              │
 │              ·  ·  ·                         │
@@ -107,7 +107,7 @@ Three named parts, used consistently for the rest of this document:
 └──────────────────────────────────────────────┘
 ```
 
-Vertical budget on a 6.7" device, peek detent: context bar 52, canvas ≈ 430, console 210,
+Vertical budget on a 6.7" device, peek detent: context bar 52, canvas ≈ 388, console 256,
 lens rail 82. The canvas never drops below ~35% of the screen at any detent short of full.
 
 ---
@@ -117,15 +117,15 @@ lens rail 82. The canvas never drops below ~35% of the screen at any detent shor
 Replaces `IdentityBar`. One row, 52 pt, floating material capsule, 16 pt insets.
 
 ```
-⬤ A&C    Andey & Calvin · 412 days                              ⌕
+⬤ A&C    Andey & Calvin · Sep 18, 2027                          ⌕
 ```
 
 - **Monogram**, 36 pt (down from 58). Tap → account sheet (sign out, settings, workspace
   switcher). Unchanged behavior, smaller footprint.
 - **Title line**, one line, truncating tail. `coupleNames`, then a middot, then the
   countdown derived from `WeddingSummary.weddingDate`.
-  - `> 1 year`: `Sep 18, 2027`
-  - `≤ 365 days`: `412 days` → `86 days` → `12 days` → `Tomorrow` → `Today`
+  - `> 365 days`: `Sep 18, 2027` — a day count that large is noise, not motivation
+  - `≤ 365 days`: `86 days` → `12 days` → `Tomorrow` → `Today`
   - No date set: `Add your date` in rose — a tap target, not a placeholder.
 - **Search glyph**, trailing, 44 pt target. Expands in place to a full-width field over
   the canvas.
@@ -235,7 +235,7 @@ Replaces `ShortlistPanel` and absorbs the body of `VenuesView` / `GuestsView`.
 
 | Detent | Height | Contains |
 | --- | --- | --- |
-| **Peek** | 210 pt fixed | Header + impact readout + one horizontal card rail |
+| **Peek** | 256 pt fixed | Header + impact readout + one horizontal card rail |
 | **Half** | 0.5 | Header + filter/sort chips + vertical list |
 | **Full** | 0.94 | Adds in-list search and section grouping; canvas dims to 0.4 |
 
@@ -392,7 +392,7 @@ camera fit to everything, nothing selected. Console: a vertical stack of **modul
 ```
 ┌────────────────────────────────────────┐
 │                 ▬▬▬                    │
-│  Sep 18, 2027                412 days  │
+│  Sep 18, 2027                415 days  │
 ├────────────────────────────────────────┤
 │  NEEDS YOU                             │
 │  ● Pick a venue — 3 toured, none held  │
