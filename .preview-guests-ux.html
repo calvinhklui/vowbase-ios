@@ -1,0 +1,1675 @@
+<title>Vowbase Guests — UX prototype</title>
+<style>
+  :root {
+    --ground: #edeaec;
+    --panel: #ffffff;
+    --panel-2: #f7f4f6;
+    --ink: #1c1418;
+    --ink-2: #6b5c63;
+    --ink-3: #9b8d94;
+    --border: #dcd5d9;
+    --border-soft: #e7e1e4;
+    --rose: #c22659;
+    --blush: #ffedf2;
+    --guest-blue: #144fcc;
+    --ios-bg: #ffffff;
+    --ios-grouped: #f2f2f7;
+    --ios-surface: #ffffff;
+    --ios-fill: #e9e9ee;
+    --ios-sep: #d5d1d4;
+    --ios-label: #1c1418;
+    --ios-label-2: #6b5c63;
+    --ios-label-3: #a89ca2;
+    --warn: #b4530c;
+    --warn-bg: #fdf0e4;
+    --ok: #1c7a4f;
+    --shadow-phone: 0 40px 80px -20px rgba(28, 20, 24, .28), 0 8px 24px -8px rgba(28, 20, 24, .16);
+    --font-display: ui-serif, "New York", Iowan Old Style, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #141013;
+      --panel: #1e1a1d;
+      --panel-2: #262126;
+      --ink: #f2ecef;
+      --ink-2: #9c8e95;
+      --ink-3: #7a6d74;
+      --border: #332c31;
+      --border-soft: #2a2428;
+      --rose: #ff6996;
+      --blush: #3d1c29;
+      --guest-blue: #6199ff;
+      --ios-bg: #000000;
+      --ios-grouped: #0d0b0c;
+      --ios-surface: #1c191b;
+      --ios-fill: #2a2529;
+      --ios-sep: #383136;
+      --ios-label: #f2ecef;
+      --ios-label-2: #9c8e95;
+      --ios-label-3: #6e6269;
+      --warn: #f0a35e;
+      --warn-bg: #37220f;
+      --ok: #56c896;
+      --shadow-phone: 0 40px 80px -20px rgba(0, 0, 0, .7), 0 8px 24px -8px rgba(0, 0, 0, .5);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --ground: #edeaec; --panel: #ffffff; --panel-2: #f7f4f6;
+    --ink: #1c1418; --ink-2: #6b5c63; --ink-3: #9b8d94;
+    --border: #dcd5d9; --border-soft: #e7e1e4;
+    --rose: #c22659; --blush: #ffedf2; --guest-blue: #144fcc;
+    --ios-bg: #ffffff; --ios-grouped: #f2f2f7; --ios-surface: #ffffff;
+    --ios-fill: #e9e9ee; --ios-sep: #d5d1d4;
+    --ios-label: #1c1418; --ios-label-2: #6b5c63; --ios-label-3: #a89ca2;
+    --warn: #b4530c; --warn-bg: #fdf0e4; --ok: #1c7a4f;
+    --shadow-phone: 0 40px 80px -20px rgba(28, 20, 24, .28), 0 8px 24px -8px rgba(28, 20, 24, .16);
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #141013; --panel: #1e1a1d; --panel-2: #262126;
+    --ink: #f2ecef; --ink-2: #9c8e95; --ink-3: #7a6d74;
+    --border: #332c31; --border-soft: #2a2428;
+    --rose: #ff6996; --blush: #3d1c29; --guest-blue: #6199ff;
+    --ios-bg: #000000; --ios-grouped: #0d0b0c; --ios-surface: #1c191b;
+    --ios-fill: #2a2529; --ios-sep: #383136;
+    --ios-label: #f2ecef; --ios-label-2: #9c8e95; --ios-label-3: #6e6269;
+    --warn: #f0a35e; --warn-bg: #37220f; --ok: #56c896;
+    --shadow-phone: 0 40px 80px -20px rgba(0, 0, 0, .7), 0 8px 24px -8px rgba(0, 0, 0, .5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  /* ---------- page header ---------- */
+  .masthead { display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--rose); }
+  .masthead h1 { font-family: var(--font-display); font-size: clamp(30px, 4.6vw, 46px); line-height: 1.08; font-weight: 500; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+  .deck { max-width: 62ch; color: var(--ink-2); font-size: 16px; margin: 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); padding-top: 4px; }
+  .meta b { font-weight: 500; color: var(--ink-2); }
+
+  /* ---------- workbench ---------- */
+  .bench { display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 40px; padding-top: 34px; align-items: start; }
+  @media (max-width: 940px) { .bench { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+
+  .rail { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 6px; }
+  @media (max-width: 940px) { .rail { position: static; flex-direction: row; overflow-x: auto; padding-bottom: 6px; gap: 8px; scrollbar-width: thin; } }
+
+  .rail-head { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); padding: 0 0 8px 2px; }
+  @media (max-width: 940px) { .rail-head { display: none; } }
+
+  .rail-item {
+    display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%;
+    padding: 12px 14px; border-radius: 12px; border: 1px solid transparent;
+    background: transparent; cursor: pointer; font-family: inherit; color: var(--ink-2);
+    transition: background .16s ease, color .16s ease, border-color .16s ease;
+  }
+  @media (max-width: 940px) { .rail-item { min-width: 210px; flex: 0 0 auto; background: var(--panel); border-color: var(--border-soft); } }
+  .rail-item:hover { background: var(--panel); border-color: var(--border-soft); }
+  .rail-item:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+  .rail-item[aria-current="true"] { background: var(--blush); border-color: transparent; }
+  .rail-name { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--ink); }
+  .rail-item[aria-current="true"] .rail-name { color: var(--rose); }
+  .rail-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--rose); opacity: 0; flex: none; }
+  .rail-item[aria-current="true"] .rail-dot { opacity: 1; }
+  .rail-gap { font-size: 12.5px; line-height: 1.4; color: var(--ink-2); }
+  .rail-item[aria-current="true"] .rail-gap { color: var(--ink); opacity: .72; }
+
+  .stage { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 40px; align-items: start; }
+  @media (max-width: 1100px) { .stage { grid-template-columns: minmax(0, 1fr); justify-items: center; } }
+
+  /* ---------- phone ---------- */
+  .phone-col { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 24px; }
+  @media (max-width: 1100px) { .phone-col { position: static; } }
+
+  .phone {
+    width: min(390px, 100%); height: 844px; border-radius: 44px; background: var(--ios-bg);
+    border: 1px solid var(--border); box-shadow: var(--shadow-phone);
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+    font-size: 16px; color: var(--ios-label);
+  }
+  .statusbar { flex: none; height: 50px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 30px 6px; font-size: 14px; font-weight: 600; letter-spacing: .01em; }
+  .statusbar-right { display: flex; align-items: center; gap: 5px; }
+
+  .screen { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+  .scroller { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .scroller::-webkit-scrollbar { width: 0; }
+
+  .fade-in { animation: fade .22s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .fade-in { animation: none; } * { transition-duration: .01ms !important; } }
+
+  /* nav bar */
+  .navbar { flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding: 6px 12px 10px; border-bottom: .5px solid var(--ios-sep); }
+  .navbar-title { font-size: 17px; font-weight: 600; text-align: center; white-space: nowrap; }
+  .navbtn { background: none; border: 0; color: var(--rose); font-family: inherit; font-size: 17px; cursor: pointer; padding: 6px 4px; display: inline-flex; align-items: center; gap: 3px; border-radius: 8px; }
+  .navbtn:focus-visible { outline: 2px solid var(--rose); outline-offset: 1px; }
+  .navbtn.right { justify-self: end; }
+  .navbtn.strong { font-weight: 600; }
+  .navbtn[disabled] { color: var(--ios-label-3); cursor: default; }
+
+  /* identity bar */
+  .identity { display: flex; align-items: center; gap: 12px; margin: 8px 16px 0; padding: 10px 12px; background: var(--ios-surface); border: 1px solid var(--ios-sep); border-radius: 26px; }
+  .monogram { width: 42px; height: 42px; border-radius: 50%; background: var(--blush); display: grid; place-items: center; font-family: var(--font-display); font-size: 14px; color: var(--ink); flex: none; }
+  .identity-name { font-family: var(--font-display); font-size: 21px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .avatar-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--ios-sep); background: transparent; color: var(--rose); display: grid; place-items: center; flex: none; }
+
+  /* list header */
+  .pagehead { padding: 22px 16px 0; display: flex; flex-direction: column; gap: 4px; }
+  .pagehead .eyebrow { font-size: 11px; letter-spacing: .16em; }
+  .pagehead h2 { font-family: var(--font-display); font-size: 44px; font-weight: 500; margin: 0; line-height: 1.02; letter-spacing: -.02em; }
+  .pagehead .count { font-size: 17px; color: var(--ios-label-2); }
+
+  .toolrow { display: flex; gap: 10px; padding: 16px 16px 0; }
+  .searchbox { flex: 1; display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 14px; border: 1px solid var(--ios-sep); border-radius: 15px; color: var(--ios-label-3); font-size: 16px; background: var(--ios-bg); }
+  .searchbox input { border: 0; background: none; font: inherit; color: var(--ios-label); flex: 1; min-width: 0; outline: none; }
+  .searchbox input::placeholder { color: var(--ios-label-3); }
+  .toolbtn { display: inline-flex; align-items: center; gap: 7px; min-height: 46px; padding: 0 14px; border: 1px solid var(--ios-sep); border-radius: 15px; background: var(--ios-bg); color: var(--ios-label); font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; position: relative; }
+  .toolbtn.on { background: var(--rose); border-color: var(--rose); color: #fff; }
+  .toolbtn:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+  .badge-n { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: var(--rose); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--ios-bg); }
+
+  .chiprow { display: flex; gap: 9px; padding: 14px 16px 0; overflow-x: auto; scrollbar-width: none; }
+  .chiprow::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; min-height: 40px; padding: 0 17px; border-radius: 999px; border: 1px solid var(--ios-sep); background: var(--ios-bg); color: var(--ios-label-2); font: inherit; font-size: 15px; cursor: pointer; white-space: nowrap; }
+  .chip.on { background: var(--rose); border-color: var(--rose); color: #fff; font-weight: 500; }
+  .chip:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+
+  .tokenrow { display: flex; gap: 8px; padding: 12px 16px 0; overflow-x: auto; scrollbar-width: none; align-items: center; }
+  .tokenrow::-webkit-scrollbar { display: none; }
+  .token { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px 6px 12px; border-radius: 999px; background: var(--blush); color: var(--rose); font-size: 13.5px; font-weight: 500; border: 0; font-family: inherit; cursor: pointer; }
+  .token svg { opacity: .7; }
+  .token-clear { flex: 0 0 auto; background: none; border: 0; color: var(--ios-label-2); font: inherit; font-size: 13.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 4px; }
+
+  /* guest rows */
+  .glist { padding: 8px 0 0; }
+  .grow { display: flex; align-items: center; gap: 14px; width: 100%; padding: 15px 16px; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .grow:focus-visible { outline: 2px solid var(--rose); outline-offset: -2px; }
+  .grow + .grow-sep { height: .5px; background: var(--ios-sep); margin-left: 72px; }
+  .initials { width: 54px; height: 54px; border-radius: 50%; background: var(--blush); display: grid; place-items: center; font-family: var(--font-display); font-size: 20px; color: var(--ink); flex: none; }
+  .gmain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .gname { font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gsub { font-size: 14.5px; color: var(--ios-label-2); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pin { color: var(--guest-blue); flex: none; }
+  .rsvp { flex: none; padding: 7px 13px; border-radius: 999px; font-size: 14px; font-weight: 500; }
+  .rsvp.accepted, .rsvp.pending { background: var(--blush); color: var(--rose); }
+  .rsvp.declined { background: var(--warn-bg); color: var(--warn); }
+  .rsvp.notInvited { background: var(--ios-fill); color: var(--ios-label-2); }
+
+  .emptystate { padding: 54px 30px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .emptystate h3 { font-family: var(--font-display); font-size: 24px; font-weight: 500; margin: 0; }
+  .emptystate p { margin: 0; color: var(--ios-label-2); font-size: 15px; max-width: 30ch; }
+  .emptystate button { margin-top: 8px; }
+
+  /* tab bar + fab */
+  .tabbar { flex: none; display: flex; border-top: .5px solid var(--ios-sep); padding: 10px 0 22px; background: var(--ios-bg); }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; color: var(--ios-label-2); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 0; }
+  .tab.on { color: var(--rose); }
+  .tab-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--rose); opacity: 0; }
+  .tab.on .tab-dot { opacity: 1; }
+  .fab { position: absolute; right: 18px; bottom: 92px; width: 60px; height: 60px; border-radius: 50%; background: var(--rose); color: #fff; border: 0; display: grid; place-items: center; cursor: pointer; box-shadow: 0 10px 22px -6px rgba(194, 38, 89, .5); }
+  .fab:focus-visible { outline: 2px solid var(--ios-label); outline-offset: 3px; }
+
+  /* grouped form */
+  .form { background: var(--ios-grouped); flex: 1; padding: 16px 0 40px; display: flex; flex-direction: column; gap: 26px; }
+  .fsection { display: flex; flex-direction: column; gap: 7px; }
+  .fhead { font-size: 12.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ios-label-2); padding: 0 32px; }
+  .ffoot { font-size: 12.5px; color: var(--ios-label-2); padding: 0 32px; line-height: 1.4; }
+  .fcard { background: var(--ios-surface); border-radius: 14px; margin: 0 16px; overflow: hidden; }
+  .frow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 11px 16px; background: none; border: 0; font: inherit; color: var(--ios-label); text-align: left; }
+  .frow + .frow { border-top: .5px solid var(--ios-sep); }
+  button.frow, .frow.tappable { cursor: pointer; }
+  .frow:focus-visible { outline: 2px solid var(--rose); outline-offset: -2px; border-radius: 4px; }
+  .flabel { flex: none; width: 108px; color: var(--ios-label-2); font-size: 15.5px; }
+  .fvalue { flex: 1; min-width: 0; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fvalue.empty { color: var(--ios-label-3); }
+  .fvalue input { width: 100%; border: 0; background: none; font: inherit; color: var(--ios-label); outline: none; padding: 0; }
+  .frow.editing { background: var(--blush); box-shadow: inset 0 0 0 1.5px var(--rose); border-radius: 8px; }
+  .fstate { flex: none; display: inline-flex; align-items: center; }
+  .fchevron { color: var(--ios-label-3); flex: none; }
+
+  .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ios-sep); border-top-color: var(--rose); animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2s; } }
+  .tick { color: var(--ok); }
+
+  .frow.failed { background: var(--warn-bg); }
+  .failnote { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 16px 12px; background: var(--warn-bg); font-size: 13.5px; color: var(--warn); border-top: 0; }
+  .failnote button { background: none; border: 1px solid currentColor; color: inherit; font: inherit; font-size: 13px; font-weight: 600; padding: 4px 11px; border-radius: 999px; cursor: pointer; }
+
+  .toggle { flex: none; width: 51px; height: 31px; border-radius: 999px; background: var(--ios-fill); border: 0; position: relative; cursor: pointer; transition: background .18s ease; }
+  .toggle.on { background: var(--rose); }
+  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .18s ease; }
+  .toggle.on::after { transform: translateX(20px); }
+  .toggle:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+
+  .detail-hero { display: flex; align-items: center; gap: 16px; padding: 18px 16px; }
+  .detail-hero .initials { width: 74px; height: 74px; font-size: 28px; }
+  .hero-name { display: flex; gap: 8px; }
+  .hero-name input { width: 100%; font-family: var(--font-display); font-size: 23px; border: 0; background: none; color: var(--ios-label); outline: none; padding: 2px 6px; border-radius: 7px; }
+  .hero-name input:focus { background: var(--blush); box-shadow: inset 0 0 0 1.5px var(--rose); }
+  .hero-static { font-family: var(--font-display); font-size: 25px; padding: 2px 6px; cursor: pointer; background: none; border: 0; color: inherit; text-align: left; border-radius: 7px; }
+  .hero-static:hover { background: var(--ios-fill); }
+
+  .derived { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; }
+  .derived-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15.5px; }
+  .precision { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: color-mix(in srgb, var(--guest-blue) 12%, transparent); color: var(--guest-blue); }
+  .derived-note { font-size: 13px; color: var(--ios-label-2); }
+  .linkbtn { background: none; border: 0; color: var(--rose); font: inherit; font-size: 15.5px; cursor: pointer; padding: 0; text-align: left; }
+
+  .sheet-scrim { position: absolute; inset: 0; background: rgba(0,0,0,.32); animation: fade .18s ease both; z-index: 5; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 54px; background: var(--ios-grouped); border-radius: 14px 14px 0 0; display: flex; flex-direction: column; z-index: 6; animation: slideup .26s cubic-bezier(.32,.72,0,1) both; overflow: hidden; }
+  @keyframes slideup { from { transform: translateY(100%); } to { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .sheet { animation: fade .2s ease both; } }
+  .grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--ios-sep); margin: 6px auto 0; flex: none; }
+
+  .sheetfoot { flex: none; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: .5px solid var(--ios-sep); background: var(--ios-surface); display: flex; flex-direction: column; gap: 8px; }
+  .bigbtn { width: 100%; min-height: 50px; border-radius: 14px; background: var(--rose); color: #fff; border: 0; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer; }
+  .bigbtn:disabled { background: var(--ios-fill); color: var(--ios-label-3); cursor: default; }
+  .bigbtn:focus-visible { outline: 2px solid var(--ios-label); outline-offset: 2px; }
+  .ghostbtn { width: 100%; min-height: 40px; border-radius: 12px; background: none; border: 0; color: var(--rose); font: inherit; font-size: 16px; cursor: pointer; }
+  .ghostbtn:disabled { color: var(--ios-label-3); cursor: default; }
+
+  .matchline { font-size: 13.5px; color: var(--ios-label-2); padding: 10px 32px 2px; }
+  .cbrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 8px 16px; background: none; border: 0; font: inherit; color: var(--ios-label); text-align: left; cursor: pointer; }
+  .cbrow + .cbrow { border-top: .5px solid var(--ios-sep); }
+  .cbrow:focus-visible { outline: 2px solid var(--rose); outline-offset: -2px; }
+  .cbox { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--ios-sep); flex: none; display: grid; place-items: center; color: transparent; }
+  .cbrow.on .cbox { background: var(--rose); border-color: var(--rose); color: #fff; }
+  .cbtext { flex: 1; font-size: 16px; }
+  .cbcount { color: var(--ios-label-3); font-size: 14.5px; font-variant-numeric: tabular-nums; }
+
+  .seg { display: flex; gap: 2px; padding: 2px; background: var(--ios-fill); border-radius: 9px; flex: none; }
+  .seg button { border: 0; background: none; font: inherit; font-size: 13.5px; padding: 5px 11px; border-radius: 7px; color: var(--ios-label-2); cursor: pointer; }
+  .seg button.on { background: var(--ios-surface); color: var(--ios-label); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .kindicon { width: 30px; height: 30px; border-radius: 8px; background: var(--blush); color: var(--rose); display: grid; place-items: center; flex: none; }
+  .fieldmain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .fieldlabel { font-size: 16px; font-weight: 500; }
+  .fieldkey { font-family: var(--font-mono); font-size: 11.5px; color: var(--ios-label-3); }
+  .fielduse { font-size: 13.5px; color: var(--ios-label-2); font-variant-numeric: tabular-nums; flex: none; }
+  .frow.hiddenfield .fieldlabel, .frow.hiddenfield .fieldkey, .frow.hiddenfield .fielduse { opacity: .5; }
+  .hidcap { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 5px; background: var(--ios-fill); color: var(--ios-label-2); flex: none; }
+  .grip { color: var(--ios-label-3); flex: none; }
+  .destructive { color: #d1244a; }
+  :root[data-theme="dark"] .destructive, :root:not([data-theme="light"]) .destructive { color: var(--rose); }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .destructive { color: #d1244a; } }
+
+  .toast { position: absolute; left: 16px; right: 16px; bottom: 100px; z-index: 8; background: var(--ios-label); color: var(--ios-bg); border-radius: 14px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; animation: fade .2s ease both; box-shadow: 0 12px 28px -8px rgba(0,0,0,.4); }
+  .toast button { background: none; border: 0; color: var(--rose); font: inherit; font-weight: 600; cursor: pointer; }
+
+  .alert-scrim { position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 10; display: grid; place-items: center; padding: 30px; animation: fade .16s ease both; }
+  .alert { background: var(--ios-surface); border-radius: 16px; width: 100%; max-width: 280px; overflow: hidden; text-align: center; }
+  .alert-body { padding: 20px 18px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .alert-body h4 { margin: 0; font-size: 17px; font-weight: 600; }
+  .alert-body p { margin: 0; font-size: 13.5px; color: var(--ios-label-2); line-height: 1.4; }
+  .alert-acts { display: flex; flex-direction: column; border-top: .5px solid var(--ios-sep); }
+  .alert-acts button { padding: 12px; background: none; border: 0; font: inherit; font-size: 17px; color: var(--rose); cursor: pointer; }
+  .alert-acts button + button { border-top: .5px solid var(--ios-sep); }
+  .alert-acts button.warn { color: #d1244a; font-weight: 600; }
+  :root[data-theme="dark"] .alert-acts button.warn { color: #ff6b81; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .alert-acts button.warn { color: #ff6b81; } }
+
+  .menu-scrim { position: absolute; inset: 0; z-index: 9; }
+  .popmenu { position: absolute; z-index: 10; background: var(--ios-surface); border-radius: 13px; box-shadow: 0 14px 34px -8px rgba(0,0,0,.34); overflow: hidden; min-width: 190px; border: .5px solid var(--ios-sep); }
+  .popmenu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 15px; background: none; border: 0; font: inherit; font-size: 16px; color: var(--ios-label); text-align: left; cursor: pointer; }
+  .popmenu button + button { border-top: .5px solid var(--ios-sep); }
+  .popmenu button:hover { background: var(--ios-fill); }
+  .popmenu button.sel { color: var(--rose); font-weight: 500; }
+  .popmenu button.gone { font-style: italic; color: var(--ios-label-2); }
+
+  .disclose { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 48px; background: none; border: 0; color: var(--rose); font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; }
+
+  /* ---------- annotations ---------- */
+  .notes { display: flex; flex-direction: column; gap: 22px; padding-top: 4px; }
+  @media (max-width: 1100px) { .notes { max-width: 620px; } }
+  .notes-head { display: flex; flex-direction: column; gap: 8px; }
+  .notes-tag { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: .04em; }
+  .notes-head h3 { font-family: var(--font-display); font-size: 27px; font-weight: 500; margin: 0; line-height: 1.15; }
+  .notes-head p { margin: 0; color: var(--ink-2); max-width: 58ch; }
+
+  .beforeafter { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border-soft); border: 1px solid var(--border-soft); border-radius: 12px; overflow: hidden; }
+  @media (max-width: 520px) { .beforeafter { grid-template-columns: 1fr; } }
+  .ba-cell { background: var(--panel); padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; }
+  .ba-k { font-size: 10.5px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3); }
+  .ba-cell.now .ba-k { color: var(--ink-3); }
+  .ba-cell.next .ba-k { color: var(--rose); }
+  .ba-v { font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+  .ba-cell.next .ba-v { color: var(--ink); }
+
+  .notelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .notelist li { display: flex; flex-direction: column; gap: 3px; padding-left: 15px; position: relative; }
+  .notelist li::before { content: ""; position: absolute; left: 0; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--rose); }
+  .note-t { font-weight: 600; font-size: 14.5px; }
+  .note-d { font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .note-d code, .ba-v code, .tryit code { font-family: var(--font-mono); font-size: .88em; background: var(--panel-2); padding: 1.5px 5px; border-radius: 4px; color: var(--ink); }
+
+  .tryit { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--blush); border-radius: 12px; }
+  .tryit-k { font-size: 10.5px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--rose); flex: none; padding-top: 3px; }
+  .tryit-v { font-size: 14px; color: var(--ink); line-height: 1.5; }
+  :root[data-theme="dark"] .tryit-v { color: var(--ink); }
+
+  .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 16px; border: 1px dashed var(--border); border-radius: 12px; }
+  .switchrow-t { font-size: 14px; font-weight: 600; }
+  .switchrow-d { font-size: 13px; color: var(--ink-2); }
+  .miniswitch { flex: none; width: 46px; height: 27px; border-radius: 999px; background: var(--border); border: 0; position: relative; cursor: pointer; }
+  .miniswitch.on { background: var(--rose); }
+  .miniswitch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 23px; height: 23px; border-radius: 50%; background: #fff; transition: transform .18s ease; }
+  .miniswitch.on::after { transform: translateX(19px); }
+  .miniswitch:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+
+  .phone-caption { font-size: 12.5px; color: var(--ink-3); text-align: center; font-family: var(--font-mono); }
+
+  .footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 6px; }
+  .footer b { color: var(--ink); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">Vowbase iOS · Guests</div>
+    <h1>The four surfaces the Guests tab is missing</h1>
+    <p class="deck">A working prototype of inline record editing, complete guest creation, custom-field administration, and multi-field filtering. Every screen renders the real <code style="font-family:var(--font-mono);font-size:.9em">VowbaseDesign</code> tokens and follows your system theme.</p>
+    <div class="meta">
+      <span><b>Spec</b> docs/vowbase-ios-guests-ux-spec.md</span>
+      <span><b>Status</b> Proposed</span>
+      <span><b>Lifts</b> 3 MVP exclusions</span>
+    </div>
+  </header>
+
+  <div class="bench">
+    <nav class="rail" id="rail" aria-label="Prototype surfaces">
+      <div class="rail-head">Surfaces</div>
+    </nav>
+
+    <div class="stage">
+      <div class="phone-col">
+        <div class="phone" id="phone" role="application" aria-label="iPhone prototype"></div>
+        <div class="phone-caption" id="caption">iPhone 15 · 390 × 844</div>
+      </div>
+      <div class="notes" id="notes"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div><b>This is a prototype, not production code.</b> Filter counts, save states, and field usage numbers are computed live from a ten-guest fixture so the interactions behave honestly.</div>
+    <div>Screens follow the viewer's light or dark appearance using the same rose, blush, and guest-blue values defined in <code style="font-family:var(--font-mono)">VowbaseTheme.swift</code>.</div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================ icons ============================ */
+  var I = {
+    search: 'M11 4a7 7 0 105.2 11.7l3.5 3.6a1 1 0 001.5-1.4l-3.6-3.5A7 7 0 0011 4zm-5 7a5 5 0 1110 0 5 5 0 01-10 0z',
+    sliders: 'M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3',
+    chevron: 'M9 5l7 7-7 7',
+    back: 'M15 5l-7 7 7 7',
+    pin: 'M12 2a6 6 0 00-6 6c0 4.5 6 12 6 12s6-7.5 6-12a6 6 0 00-6-6zm0 8.2a2.2 2.2 0 110-4.4 2.2 2.2 0 010 4.4z',
+    plus: 'M12 5v14M5 12h14',
+    x: 'M6 6l12 12M18 6L6 18',
+    tick: 'M4 12.5l5 5L20 6',
+    ellipsis: 'M6 12h.01M12 12h.01M18 12h.01',
+    map: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6zm6-2v14m6-12v14',
+    people: 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm7 0a3 3 0 100-6 3 3 0 000 6zM2 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5M17 14.6c2.9.4 5 2.3 5 5.4',
+    person: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8c0-3.9 3.1-6 7-6s7 2.1 7 6',
+    grip: 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
+    text: 'M4 6h16M7 6v12M4 18h6M14 11h6M17 11v7M14 18h6',
+    hash: 'M5 9h14M5 15h14M9 4l-2 16M17 4l-2 16',
+    list: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01',
+    check2: 'M4 5h16v14H4zM8 12l3 3 5-5',
+    mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
+    phone: 'M6 3h4l2 5-2.5 1.5a12 12 0 005 5L16 12l5 2v4a2 2 0 01-2.2 2A17 17 0 014 6.2 2 2 0 016 4z',
+    down: 'M6 9l6 6 6-6',
+    up: 'M6 15l6-6 6 6',
+    wifi: 'M2 8a15 15 0 0120 0M5.5 11.5a10 10 0 0113 0M9 15a5 5 0 016 0M12 18.5h.01',
+    battery: 'M2 8h16v8H2zM20 11v2'
+  };
+  function ico(name, size, sw) {
+    return '<svg width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="' + (sw || 1.8) + '" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true"><path d="' + I[name] + '"/></svg>';
+  }
+  function icoFill(name, size) {
+    return '<svg width="' + (size || 14) + '" height="' + (size || 14) + '" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="' + I[name] + '"/></svg>';
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ============================ fixture ============================ */
+  var COLUMNS = [
+    { key: "group", label: "Group", kind: "select", options: ["Cedar Circle", "Juniper Guild", "Harborfield Set"], hidden: false },
+    { key: "meal_choice", label: "Meal choice", kind: "select", options: ["Chicken", "Fish", "Vegetarian", "Vegan"], hidden: false },
+    { key: "plus_one", label: "Plus one", kind: "checkbox", options: [], hidden: false },
+    { key: "table", label: "Table", kind: "number", options: [], hidden: false },
+    { key: "note", label: "Note for us", kind: "text", options: [], hidden: true }
+  ];
+
+  var GUESTS = [
+    { id: 1, first: "Avery", last: "Rowan", rsvp: "accepted", rsvpDate: "May 2, 2026", email: "avery.rowan@example.com", phone: "+1 415 555 0148", address: "88 Tidewater Lane, Lumen Bay", origin: "Lumen Bay", precision: "city", cf: { group: "Cedar Circle", meal_choice: "Vegetarian", plus_one: true, table: 4 } },
+    { id: 2, first: "Mira", last: "Vale", rsvp: "pending", rsvpDate: null, email: "mira@example.com", phone: "", address: "12 Cobble Row, Northvale", origin: "Northvale", precision: "city", cf: { group: "Juniper Guild", meal_choice: "Fish", plus_one: false, table: 2 } },
+    { id: 3, first: "Theo", last: "Lark", rsvp: "pending", rsvpDate: null, email: "", phone: "+1 206 555 0119", address: "Willow Coast", origin: "Willow Coast", precision: "approximate", cf: { group: "Cedar Circle" } },
+    { id: 4, first: "Nora", last: "Wynn", rsvp: "notInvited", rsvpDate: null, email: "nora.wynn@example.com", phone: "", address: "5 Harbour Steps, Solace Point", origin: "Solace Point", precision: "city", cf: { group: "Juniper Guild", plus_one: true } },
+    { id: 5, first: "Eli", last: "Arden", rsvp: "notInvited", rsvpDate: null, email: "", phone: "", address: "", origin: null, precision: null, cf: { group: "Cedar Circle" } },
+    { id: 6, first: "Juno", last: "Pell", rsvp: "accepted", rsvpDate: "Apr 28, 2026", email: "juno.pell@example.com", phone: "+1 312 555 0173", address: "220 Anchor Street, Lumen Bay", origin: "Lumen Bay", precision: "city", cf: { group: "Harborfield Set", meal_choice: "Chicken", table: 4 } },
+    { id: 7, first: "Cass", last: "Merrow", rsvp: "declined", rsvpDate: "May 11, 2026", email: "cass@example.com", phone: "", address: "", origin: null, precision: null, cf: { group: "Juniper Guild" } },
+    { id: 8, first: "Rina", last: "Doss", rsvp: "pending", rsvpDate: null, email: "rina.doss@example.com", phone: "+1 718 555 0102", address: "9 Kestrel Court, Northvale", origin: "Northvale", precision: "city", cf: { group: "Harborfield Set", meal_choice: "Vegan", plus_one: true, table: 6 } },
+    { id: 9, first: "Otis", last: "Vane", rsvp: "pending", rsvpDate: null, email: "", phone: "", address: "", origin: null, precision: null, cf: { group: "Cedar Circle", meal_choice: "Beef Wellington" } },
+    { id: 10, first: "Wren", last: "Sato", rsvp: "accepted", rsvpDate: "May 6, 2026", email: "wren.sato@example.com", phone: "+1 503 555 0166", address: "41 Lantern Way, Solace Point", origin: "Solace Point", precision: "city", cf: { group: "Harborfield Set", meal_choice: "Fish", plus_one: false, table: 6 } }
+  ];
+
+  var RSVP_LABEL = { notInvited: "Not invited", pending: "Pending", accepted: "Accepted", declined: "Declined" };
+  var RSVP_ORDER = ["notInvited", "pending", "accepted", "declined"];
+  var KIND_ICON = { text: "text", number: "hash", select: "list", checkbox: "check2" };
+
+  /* ============================ state ============================ */
+  var S = {
+    surface: "detail",
+    screen: "detail",
+    guestId: 1,
+    editingField: null,
+    saveState: {},
+    pendingValue: {},
+    simulateFailure: false,
+    failedOnce: {},
+    menu: null,
+    alert: null,
+    toast: null,
+    query: "",
+    sortKey: "name",
+    moreDetails: false,
+    editingColumnKey: "meal_choice",
+    filters: freshFilters(),
+    draftFilters: null,
+    sheet: null,
+    newGuest: { first: "", last: "", rsvp: "notInvited", address: "", email: "", phone: "", cf: {} }
+  };
+
+  function freshFilters() {
+    return { rsvp: [], locations: [], mappableOnly: false, hasEmail: "any", hasPhone: "any", custom: {} };
+  }
+
+  var timers = [];
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+
+  /* ============================ derived ============================ */
+  function visibleColumns() { return COLUMNS.filter(function (c) { return !c.hidden; }); }
+  function columnByKey(k) { for (var i = 0; i < COLUMNS.length; i++) if (COLUMNS[i].key === k) return COLUMNS[i]; return null; }
+  function guest(id) { for (var i = 0; i < GUESTS.length; i++) if (GUESTS[i].id === id) return GUESTS[i]; return GUESTS[0]; }
+  function fullName(g) { return (g.first + " " + g.last).trim(); }
+  function initials(g) { return ((g.first[0] || "") + (g.last[0] || "")).toUpperCase(); }
+  function usageCount(key) {
+    var n = 0;
+    for (var i = 0; i < GUESTS.length; i++) {
+      var v = GUESTS[i].cf[key];
+      if (v !== undefined && v !== null && v !== "" && v !== false) n++;
+    }
+    return n;
+  }
+  function allLocations() {
+    var seen = [], out = [];
+    GUESTS.forEach(function (g) { if (g.origin && seen.indexOf(g.origin) < 0) { seen.push(g.origin); out.push(g.origin); } });
+    out.sort();
+    return out;
+  }
+  function locationCount(loc) { return GUESTS.filter(function (g) { return g.origin === loc; }).length; }
+  function rsvpCount(k) { return GUESTS.filter(function (g) { return g.rsvp === k; }).length; }
+
+  /* the subtitle column: first select column by position, else first text column */
+  function subtitleColumn() {
+    var vc = visibleColumns();
+    for (var i = 0; i < vc.length; i++) if (vc[i].kind === "select") return vc[i];
+    for (var j = 0; j < vc.length; j++) if (vc[j].kind === "text") return vc[j];
+    return null;
+  }
+
+  function matches(g, f) {
+    if (f.rsvp.length && f.rsvp.indexOf(g.rsvp) < 0) return false;
+    if (f.locations.length) {
+      var loc = g.origin || "__none__";
+      if (f.locations.indexOf(loc) < 0) return false;
+    }
+    if (f.mappableOnly && g.precision !== "city") return false;
+    if (f.hasEmail === "yes" && !g.email) return false;
+    if (f.hasEmail === "no" && g.email) return false;
+    if (f.hasPhone === "yes" && !g.phone) return false;
+    if (f.hasPhone === "no" && g.phone) return false;
+    for (var key in f.custom) {
+      if (!Object.prototype.hasOwnProperty.call(f.custom, key)) continue;
+      var cond = f.custom[key], v = g.cf[key], col = columnByKey(key);
+      if (!col || !cond) continue;
+      if (col.kind === "select") {
+        if (!cond.values || !cond.values.length) continue;
+        var hv = (v === undefined || v === null || v === "") ? "__empty__" : v;
+        if (cond.values.indexOf(hv) < 0) return false;
+      } else if (col.kind === "checkbox") {
+        if (cond.mode === "checked" && v !== true) return false;
+        if (cond.mode === "unchecked" && v === true) return false;
+      }
+    }
+    return true;
+  }
+
+  function filtered(f) {
+    var q = S.query.trim().toLowerCase();
+    var out = GUESTS.filter(function (g) {
+      if (!matches(g, f)) return false;
+      if (!q) return true;
+      var hay = [fullName(g), g.email, g.phone, g.origin].concat(
+        Object.keys(g.cf).map(function (k) { return g.cf[k]; })
+      ).join(" ").toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+    if (S.sortKey === "name") out.sort(function (a, b) { return fullName(a).localeCompare(fullName(b)); });
+    else if (S.sortKey === "recent") out.sort(function (a, b) { return b.id - a.id; });
+    else if (S.sortKey === "rsvp") out.sort(function (a, b) { return RSVP_ORDER.indexOf(a.rsvp) - RSVP_ORDER.indexOf(b.rsvp); });
+    return out;
+  }
+
+  function activeTokens(f) {
+    var t = [];
+    f.locations.forEach(function (l) {
+      t.push({ text: l === "__none__" ? "No location" : l, clear: function () { f.locations = f.locations.filter(function (x) { return x !== l; }); } });
+    });
+    if (f.mappableOnly) t.push({ text: "Mappable only", clear: function () { f.mappableOnly = false; } });
+    if (f.hasEmail !== "any") t.push({ text: f.hasEmail === "yes" ? "Has email" : "No email", clear: function () { f.hasEmail = "any"; } });
+    if (f.hasPhone !== "any") t.push({ text: f.hasPhone === "yes" ? "Has phone" : "No phone", clear: function () { f.hasPhone = "any"; } });
+    Object.keys(f.custom).forEach(function (key) {
+      var col = columnByKey(key), cond = f.custom[key];
+      if (!col || !cond) return;
+      if (col.kind === "select" && cond.values && cond.values.length) {
+        t.push({
+          text: col.label + ": " + cond.values.map(function (v) { return v === "__empty__" ? "Empty" : v; }).join(", "),
+          clear: function () { delete f.custom[key]; }
+        });
+      } else if (col.kind === "checkbox" && cond.mode && cond.mode !== "any") {
+        t.push({ text: col.label + ": " + (cond.mode === "checked" ? "Yes" : "No"), clear: function () { delete f.custom[key]; } });
+      }
+    });
+    return t;
+  }
+  function conditionCount(f) { return activeTokens(f).length; }
+
+  /* ============================ surfaces ============================ */
+  var SURFACES = [
+    { id: "detail", name: "Guest detail", gap: "3 of 11 fields, none editable in place", screen: "detail" },
+    { id: "add", name: "Add guest", gap: "4 fields captured, custom fields unreachable", screen: "add" },
+    { id: "fields", name: "Manage fields", gap: "Full repository CRUD, zero UI", screen: "fields" },
+    { id: "filters", name: "Filter & sort", gap: "One RSVP dimension, one toggle, no sort", screen: "list" }
+  ];
+
+  /* ============================ render: chrome ============================ */
+  function statusbar() {
+    return '<div class="statusbar"><span>9:41</span><span class="statusbar-right">' +
+      ico("wifi", 15, 1.6) + ico("battery", 17, 1.6) + '</span></div>';
+  }
+
+  function tabbar() {
+    return '<div class="tabbar">' +
+      '<button class="tab" type="button" data-act="noop">' + ico("map", 22, 1.6) + '<span>Map</span><span class="tab-dot"></span></button>' +
+      '<button class="tab" type="button" data-act="noop">' + ico("pin", 22, 1.6) + '<span>Venues</span><span class="tab-dot"></span></button>' +
+      '<button class="tab on" type="button" data-act="noop">' + ico("people", 22, 1.6) + '<span>Guests</span><span class="tab-dot"></span></button>' +
+      '</div>';
+  }
+
+  function navbar(left, title, right) {
+    return '<div class="navbar"><div>' + (left || "") + '</div>' +
+      '<div class="navbar-title">' + esc(title) + '</div>' +
+      '<div style="justify-self:end">' + (right || "") + '</div></div>';
+  }
+
+  /* ============================ render: guests list ============================ */
+  function screenList() {
+    var f = S.filters;
+    var rows = filtered(f);
+    var tokens = activeTokens(f);
+    var sub = subtitleColumn();
+    var h = "";
+
+    h += '<div class="scroller"><div class="fade-in">';
+    h += '<div class="identity"><div class="monogram">E&amp;C</div>' +
+      '<div class="identity-name">Example Couple</div>' +
+      '<button class="avatar-btn" type="button" data-act="noop" aria-label="Account">' + ico("person", 19) + '</button></div>';
+
+    h += '<div class="pagehead"><div class="eyebrow">Guest list</div><h2>Guests</h2>' +
+      '<div class="count">' + GUESTS.length + ' guests</div></div>';
+
+    h += '<div class="toolrow"><div class="searchbox">' + ico("search", 17) +
+      '<input type="text" placeholder="Search guests" value="' + esc(S.query) + '" data-act="query" aria-label="Search guests"></div>' +
+      '<button class="toolbtn' + (conditionCount(f) ? " on" : "") + '" type="button" data-act="openFilters">' +
+      ico("sliders", 17) + 'Filters' +
+      (conditionCount(f) ? '<span class="badge-n">' + conditionCount(f) + '</span>' : "") + '</button>' +
+      '<button class="toolbtn" type="button" data-act="sortMenu" aria-label="Sort">' + ico("up", 17) + '</button>' +
+      '</div>';
+
+    // RSVP chips — multi-select, Declined only when non-zero or active
+    h += '<div class="chiprow">';
+    h += '<button class="chip' + (f.rsvp.length === 0 ? " on" : "") + '" type="button" data-act="rsvpAll">All ' + GUESTS.length + '</button>';
+    RSVP_ORDER.forEach(function (k) {
+      var c = rsvpCount(k), on = f.rsvp.indexOf(k) >= 0;
+      if (k === "declined" && c === 0 && !on) return;
+      h += '<button class="chip' + (on ? " on" : "") + '" type="button" data-act="rsvpChip" data-k="' + k + '">' +
+        esc(RSVP_LABEL[k]) + " " + c + '</button>';
+    });
+    h += '</div>';
+
+    if (tokens.length) {
+      h += '<div class="tokenrow">';
+      tokens.forEach(function (t, i) {
+        h += '<button class="token" type="button" data-act="clearToken" data-i="' + i + '">' + esc(t.text) + ico("x", 13, 2.4) + '</button>';
+      });
+      h += '<button class="token-clear" type="button" data-act="clearAll">Clear all</button></div>';
+    }
+
+    h += '<div class="glist">';
+    if (!rows.length) {
+      var why = tokens.length || f.rsvp.length
+        ? '<h3>No guests match these filters</h3><p>Try removing a condition — the filter sheet shows the count before you apply it.</p>' +
+          '<p style="margin-top:10px"><button class="ghostbtn" type="button" data-act="clearAll" style="width:auto;padding:0 14px">Clear filters</button></p>'
+        : '<h3>No guests match &ldquo;' + esc(S.query) + '&rdquo;</h3><p>Search covers names, email, phone, group, custom fields, and city.</p>';
+      h += '<div class="emptystate">' + why + '</div>';
+    }
+    rows.forEach(function (g, idx) {
+      var subVal = sub ? g.cf[sub.key] : null;
+      var bits = [];
+      if (subVal) bits.push(esc(subVal));
+      bits.push(esc(g.origin || "Location not added"));
+      h += '<button class="grow" type="button" data-act="openGuest" data-id="' + g.id + '">' +
+        '<span class="initials">' + esc(initials(g)) + '</span>' +
+        '<span class="gmain"><span class="gname">' + esc(fullName(g)) + '</span>' +
+        '<span class="gsub">' + bits.join(' <span aria-hidden="true">&middot;</span> ') +
+        (g.precision === "city" ? '<span class="pin">' + icoFill("pin", 14) + '</span>' : "") + '</span></span>' +
+        '<span class="rsvp ' + g.rsvp + '">' + esc(RSVP_LABEL[g.rsvp]) + '</span></button>';
+      if (idx < rows.length - 1) h += '<div class="grow-sep"></div>';
+    });
+    h += '</div><div style="height:110px"></div></div></div>';
+
+    h += '<button class="fab" type="button" data-act="goAdd" aria-label="Quick add">' + ico("plus", 26, 2.2) + '</button>';
+    h += tabbar();
+    return h;
+  }
+
+  /* ============================ render: guest detail ============================ */
+  function fieldRow(opts) {
+    // opts: id, label, value, empty, editing, state, type
+    var id = opts.id;
+    var st = S.saveState[id];
+    var trailing = "";
+    if (st === "saving") trailing = '<span class="fstate"><span class="spin"></span></span>';
+    else if (st === "saved") trailing = '<span class="fstate tick">' + ico("tick", 15, 2.6) + '</span>';
+
+    var cls = "frow tappable" + (opts.editing ? " editing" : "") + (st === "failed" ? " failed" : "");
+    var inner;
+    if (opts.editing) {
+      inner = '<span class="fvalue"><input type="' + (opts.type || "text") + '" value="' + esc(opts.raw != null ? opts.raw : "") +
+        '" data-act="fieldInput" data-id="' + id + '" aria-label="' + esc(opts.label) + '"></span>';
+    } else {
+      var disp = opts.value;
+      inner = '<span class="fvalue' + (disp ? "" : " empty") + '">' + esc(disp || "Not added") + '</span>';
+    }
+    var row = '<div class="' + cls + '" role="button" tabindex="0" data-act="editField" data-id="' + id + '">' +
+      '<span class="flabel">' + esc(opts.label) + '</span>' + inner + trailing + '</div>';
+
+    if (st === "failed") {
+      row += '<div class="failnote"><span>Couldn’t save. Your value is still here.</span>' +
+        '<button type="button" data-act="retry" data-id="' + id + '">Retry</button></div>';
+    }
+    return row;
+  }
+
+  function menuRow(opts) {
+    var st = S.saveState[opts.id];
+    var trailing = "";
+    if (st === "saving") trailing = '<span class="fstate"><span class="spin"></span></span>';
+    else if (st === "saved") trailing = '<span class="fstate tick">' + ico("tick", 15, 2.6) + '</span>';
+    return '<button class="frow" type="button" data-act="' + opts.act + '" data-id="' + opts.id + '" data-k="' + (opts.k || "") + '">' +
+      '<span class="flabel">' + esc(opts.label) + '</span>' +
+      '<span class="fvalue' + (opts.value ? "" : " empty") + '">' + esc(opts.value || "Not set") + '</span>' +
+      trailing + '<span class="fchevron">' + ico("down", 15, 2) + '</span></button>';
+  }
+
+  function screenDetail() {
+    var g = guest(S.guestId);
+    var h = "";
+    h += navbar('<button class="navbtn" type="button" data-act="goList">' + ico("back", 18, 2.2) + 'Guests</button>',
+      "Guest",
+      '<button class="navbtn right" type="button" data-act="guestMenu">' + ico("ellipsis", 20, 2.6) + '</button>');
+
+    h += '<div class="scroller"><div class="form fade-in">';
+
+    // hero
+    h += '<div class="fsection"><div class="detail-hero"><div class="initials">' + esc(initials(g)) + '</div>' +
+      '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">';
+    if (S.editingField === "name") {
+      h += '<div class="hero-name">' +
+        '<input type="text" value="' + esc(S.pendingValue.first != null ? S.pendingValue.first : g.first) + '" data-act="nameInput" data-part="first" aria-label="First name" placeholder="First">' +
+        '<input type="text" value="' + esc(S.pendingValue.last != null ? S.pendingValue.last : g.last) + '" data-act="nameInput" data-part="last" aria-label="Last name" placeholder="Last"></div>';
+    } else {
+      h += '<button class="hero-static" type="button" data-act="editName">' + esc(fullName(g)) + '</button>';
+    }
+    h += '<div><span class="rsvp ' + g.rsvp + '">' + esc(RSVP_LABEL[g.rsvp]) + '</span></div>';
+    h += '</div></div></div>';
+
+    // RSVP
+    h += '<div class="fsection"><div class="fhead">RSVP</div><div class="fcard">';
+    h += menuRow({ id: "rsvp", label: "Status", value: RSVP_LABEL[g.rsvp], act: "rsvpMenu" });
+    if (g.rsvpDate) {
+      h += '<div class="frow"><span class="flabel">Responded</span><span class="fvalue" style="color:var(--ios-label-2)">' + esc(g.rsvpDate) + '</span></div>';
+    }
+    h += '</div><div class="ffoot">The response date is set by the server when the status changes.</div></div>';
+
+    // contact
+    h += '<div class="fsection"><div class="fhead">Contact</div><div class="fcard">';
+    h += fieldRow({ id: "email", label: "Email", value: g.email, raw: S.pendingValue.email != null ? S.pendingValue.email : g.email, editing: S.editingField === "email", type: "email" });
+    h += fieldRow({ id: "phone", label: "Phone", value: g.phone, raw: S.pendingValue.phone != null ? S.pendingValue.phone : g.phone, editing: S.editingField === "phone", type: "tel" });
+    h += '</div></div>';
+
+    // location
+    h += '<div class="fsection"><div class="fhead">Location</div><div class="fcard">';
+    h += fieldRow({ id: "address", label: "Address", value: g.address, raw: S.pendingValue.address != null ? S.pendingValue.address : g.address, editing: S.editingField === "address" });
+    h += '<div class="derived">';
+    if (S.saveState.address === "geocoding") {
+      h += '<div class="derived-top"><span style="color:var(--ios-label-2)">Locating…</span><span class="spin"></span></div>';
+    } else if (g.precision === "city") {
+      h += '<div class="derived-top"><span>' + esc(g.origin) + '</span><span class="precision">City</span></div>' +
+        '<div class="derived-note">Shown on the map as part of a city cluster. The exact address never leaves this screen.</div>' +
+        '<button class="linkbtn" type="button" data-act="noop">View on map</button>';
+    } else if (g.address) {
+      h += '<div class="derived-top"><span style="color:var(--ios-label-2)">Location not mapped</span></div>' +
+        '<div class="derived-note">This address didn’t resolve to a city. It is saved, but no map cluster includes this guest.</div>' +
+        '<button class="linkbtn" type="button" data-act="noop">Try again</button>';
+    } else {
+      h += '<div class="derived-top"><span style="color:var(--ios-label-3)">No location</span></div>' +
+        '<div class="derived-note">Add an address to include this guest in the map’s city clusters.</div>';
+    }
+    h += '</div></div></div>';
+
+    // custom fields
+    var vc = visibleColumns();
+    h += '<div class="fsection"><div class="fhead">Custom fields</div><div class="fcard">';
+    if (!vc.length) {
+      h += '<button class="frow" type="button" data-act="goFields"><span class="fvalue" style="color:var(--rose)">Add a field</span></button>';
+    } else {
+      vc.forEach(function (col) {
+        var v = g.cf[col.key];
+        var id = "cf:" + col.key;
+        if (col.kind === "checkbox") {
+          h += '<div class="frow"><span class="flabel">' + esc(col.label) + '</span><span class="fvalue"></span>' +
+            (S.saveState[id] === "saving" ? '<span class="fstate"><span class="spin"></span></span>' : "") +
+            (S.saveState[id] === "saved" ? '<span class="fstate tick">' + ico("tick", 15, 2.6) + '</span>' : "") +
+            '<button class="toggle' + (v === true ? " on" : "") + '" type="button" data-act="cfToggle" data-k="' + col.key + '" role="switch" aria-checked="' + (v === true) + '" aria-label="' + esc(col.label) + '"></button></div>';
+        } else if (col.kind === "select") {
+          var orphan = v && col.options.indexOf(v) < 0;
+          h += menuRow({ id: id, label: col.label, value: orphan ? v + " (removed)" : v, act: "cfMenu", k: col.key });
+        } else {
+          h += fieldRow({
+            id: id, label: col.label, value: v == null ? "" : String(v),
+            raw: S.pendingValue[id] != null ? S.pendingValue[id] : (v == null ? "" : String(v)),
+            editing: S.editingField === id, type: col.kind === "number" ? "number" : "text"
+          });
+        }
+      });
+      h += '<button class="frow" type="button" data-act="goFields"><span class="fvalue" style="color:var(--rose)">Add a field</span>' +
+        '<span class="fchevron">' + ico("chevron", 15, 2) + '</span></button>';
+    }
+    h += '</div><div class="ffoot">Fields appear in the order set on Manage fields. Hidden fields keep their data.</div></div>';
+
+    h += '<div class="fsection"><div class="fcard"><div class="frow"><span class="flabel">Added</span>' +
+      '<span class="fvalue" style="color:var(--ios-label-2)">Mar 14, 2026</span></div></div></div>';
+
+    h += '</div></div>';
+    return h;
+  }
+
+  /* ============================ render: add guest ============================ */
+  function screenAdd() {
+    var n = S.newGuest;
+    var canSave = n.first.trim().length > 0;
+    var h = "";
+    h += '<div class="grabber"></div>';
+    h += navbar('<button class="navbtn" type="button" data-act="goList">Cancel</button>',
+      "Add guest",
+      '<button class="navbtn right strong" type="button" data-act="saveNew"' + (canSave ? "" : " disabled") + '>Save guest</button>');
+
+    h += '<div class="scroller"><div class="form fade-in">';
+
+    h += '<div class="fsection"><div class="fhead">First, the essentials</div><div class="fcard">';
+    h += '<div class="frow"><span class="flabel">First name</span><span class="fvalue"><input type="text" placeholder="Required" value="' + esc(n.first) + '" data-act="newInput" data-k="first" aria-label="First name"></span></div>';
+    h += '<div class="frow"><span class="flabel">Last name</span><span class="fvalue"><input type="text" placeholder="Optional" value="' + esc(n.last) + '" data-act="newInput" data-k="last" aria-label="Last name"></span></div>';
+    h += menuRow({ id: "newRsvp", label: "RSVP", value: RSVP_LABEL[n.rsvp], act: "newRsvpMenu" });
+    h += '<div class="frow"><span class="flabel">Address</span><span class="fvalue"><input type="text" placeholder="Optional" value="' + esc(n.address) + '" data-act="newInput" data-k="address" aria-label="Address"></span></div>';
+    h += '<button class="disclose" type="button" data-act="toggleMore" aria-expanded="' + S.moreDetails + '">' +
+      (S.moreDetails ? "Fewer details" : "More details") + ico(S.moreDetails ? "up" : "down", 15, 2) + '</button>';
+    h += '</div></div>';
+
+    if (S.moreDetails) {
+      h += '<div class="fsection fade-in"><div class="fhead">Contact</div><div class="fcard">';
+      h += '<div class="frow"><span class="flabel">Email</span><span class="fvalue"><input type="email" placeholder="Optional" value="' + esc(n.email) + '" data-act="newInput" data-k="email" aria-label="Email"></span></div>';
+      h += '<div class="frow"><span class="flabel">Phone</span><span class="fvalue"><input type="tel" placeholder="Optional" value="' + esc(n.phone) + '" data-act="newInput" data-k="phone" aria-label="Phone"></span></div>';
+      h += '</div></div>';
+
+      var vc = visibleColumns();
+      h += '<div class="fsection fade-in"><div class="fhead">Custom fields</div><div class="fcard">';
+      if (!vc.length) {
+        h += '<button class="frow" type="button" data-act="goFields"><span class="fvalue" style="color:var(--rose)">Add a field</span></button>';
+      } else {
+        vc.forEach(function (col) {
+          var v = n.cf[col.key];
+          if (col.kind === "checkbox") {
+            h += '<div class="frow"><span class="flabel">' + esc(col.label) + '</span><span class="fvalue"></span>' +
+              '<button class="toggle' + (v === true ? " on" : "") + '" type="button" data-act="newCfToggle" data-k="' + col.key + '" role="switch" aria-checked="' + (v === true) + '" aria-label="' + esc(col.label) + '"></button></div>';
+          } else if (col.kind === "select") {
+            h += menuRow({ id: "newcf:" + col.key, label: col.label, value: v, act: "newCfMenu", k: col.key });
+          } else {
+            h += '<div class="frow"><span class="flabel">' + esc(col.label) + '</span><span class="fvalue">' +
+              '<input type="' + (col.kind === "number" ? "number" : "text") + '" placeholder="Optional" value="' + esc(v == null ? "" : v) +
+              '" data-act="newCfInput" data-k="' + col.key + '" aria-label="' + esc(col.label) + '"></span></div>';
+          }
+        });
+        h += '<button class="frow" type="button" data-act="goFields"><span class="fvalue" style="color:var(--rose)">Add a field</span>' +
+          '<span class="fchevron">' + ico("chevron", 15, 2) + '</span></button>';
+      }
+      h += '</div><div class="ffoot">Custom fields follow the order set on Manage fields.</div></div>';
+    }
+
+    h += '</div></div>';
+    return h;
+  }
+
+  /* ============================ render: manage fields ============================ */
+  function screenFields() {
+    var h = "";
+    h += navbar('<button class="navbtn" type="button" data-act="goList">' + ico("back", 18, 2.2) + 'Guests</button>',
+      "Manage fields",
+      '<button class="navbtn right" type="button" data-act="noop" aria-label="Add a field">' + ico("plus", 20, 2.2) + '</button>');
+    h += '<div class="scroller"><div class="form fade-in">';
+
+    h += '<div class="fsection"><div class="fhead">' + COLUMNS.length + ' fields</div><div class="fcard">';
+    COLUMNS.forEach(function (col, i) {
+      h += '<button class="frow' + (col.hidden ? " hiddenfield" : "") + '" type="button" data-act="openField" data-k="' + col.key + '">' +
+        '<span class="grip">' + ico("grip", 16, 2.4) + '</span>' +
+        '<span class="kindicon">' + ico(KIND_ICON[col.kind], 15, 1.9) + '</span>' +
+        '<span class="fieldmain"><span class="fieldlabel">' + esc(col.label) + '</span>' +
+        '<span class="fieldkey">' + esc(col.key) + '</span></span>' +
+        (col.hidden ? '<span class="hidcap">Hidden</span>' : '<span class="fielduse">' + usageCount(col.key) + '</span>') +
+        '<span class="fchevron">' + ico("chevron", 15, 2) + '</span></button>';
+    });
+    h += '</div><div class="ffoot">Drag to reorder. This order controls guest detail, Add guest, and the filter sheet. The number is how many guests hold a value.</div></div>';
+
+    h += '<div class="fsection"><div class="fcard">' +
+      '<button class="frow" type="button" data-act="noop"><span class="fvalue" style="color:var(--rose)">Add a field</span>' +
+      '<span class="fchevron">' + ico("chevron", 15, 2) + '</span></button></div></div>';
+
+    h += '</div></div>';
+    return h;
+  }
+
+  function screenFieldEditor() {
+    var col = columnByKey(S.editingColumnKey) || COLUMNS[0];
+    var used = usageCount(col.key);
+    var h = "";
+    h += navbar('<button class="navbtn" type="button" data-act="goFields">' + ico("back", 18, 2.2) + 'Fields</button>',
+      "Edit field",
+      '<button class="navbtn right strong" type="button" data-act="goFields">Done</button>');
+    h += '<div class="scroller"><div class="form fade-in">';
+
+    h += '<div class="fsection"><div class="fcard">';
+    h += '<div class="frow"><span class="flabel">Label</span><span class="fvalue"><input type="text" value="' + esc(col.label) + '" data-act="noop" aria-label="Field label"></span></div>';
+    h += '<div class="frow"><span class="flabel">Key</span><span class="fvalue" style="font-family:var(--font-mono);font-size:14px;color:var(--ios-label-2)">' + esc(col.key) + '</span></div>';
+    h += '</div><div class="ffoot">The key is shared with the web workspace and can’t change after the field is created. Renaming the label is safe and updates every screen.</div></div>';
+
+    h += '<div class="fsection"><div class="fhead">Kind</div><div class="fcard">';
+    ["text", "number", "select", "checkbox"].forEach(function (k) {
+      h += '<button class="frow" type="button" data-act="kindWarn" data-k="' + k + '">' +
+        '<span class="kindicon">' + ico(KIND_ICON[k], 15, 1.9) + '</span>' +
+        '<span class="fvalue" style="text-transform:capitalize">' + k + '</span>' +
+        (col.kind === k ? '<span style="color:var(--rose)">' + ico("tick", 16, 2.6) + '</span>' : "") + '</button>';
+    });
+    h += '</div><div class="ffoot">Changing the kind converts stored values. You’ll see exactly how many guests are affected before it applies.</div></div>';
+
+    if (col.kind === "select") {
+      h += '<div class="fsection"><div class="fhead">Options</div><div class="fcard">';
+      col.options.forEach(function (opt) {
+        var n = GUESTS.filter(function (g) { return g.cf[col.key] === opt; }).length;
+        h += '<button class="frow" type="button" data-act="noop"><span class="grip">' + ico("grip", 16, 2.4) + '</span>' +
+          '<span class="fvalue">' + esc(opt) + '</span>' +
+          '<span class="fielduse">' + n + '</span>' +
+          '<span class="fchevron">' + ico("chevron", 15, 2) + '</span></button>';
+      });
+      h += '<button class="frow" type="button" data-act="noop"><span class="fvalue" style="color:var(--rose)">Add an option</span></button>';
+      h += '</div><div class="ffoot">Renaming an option asks whether to rewrite the guests already using it.</div></div>';
+    }
+
+    h += '<div class="fsection"><div class="fcard">' +
+      '<div class="frow"><span class="fvalue">Hidden</span>' +
+      '<button class="toggle' + (col.hidden ? " on" : "") + '" type="button" data-act="toggleHidden" data-k="' + col.key + '" role="switch" aria-checked="' + col.hidden + '" aria-label="Hidden"></button></div>' +
+      '</div><div class="ffoot">Hidden fields keep their data and stay visible in the web workspace. Use this for seasonal fields instead of deleting them.</div></div>';
+
+    h += '<div class="fsection"><div class="fcard">' +
+      '<button class="frow" type="button" data-act="deleteField" data-k="' + col.key + '">' +
+      '<span class="fvalue destructive">Delete field</span></button></div>' +
+      '<div class="ffoot">' + (used ? "This permanently removes the value stored for " + used + " guests." : "No guests hold a value for this field.") + '</div></div>';
+
+    h += '</div></div>';
+    return h;
+  }
+
+  /* ============================ render: filter sheet ============================ */
+  function sheetFilters() {
+    var f = S.draftFilters;
+    var count = filtered(f).length;
+    var h = '<div class="sheet-scrim" data-act="closeFilters"></div><div class="sheet" role="dialog" aria-label="Filters">';
+    h += '<div class="grabber"></div>';
+    h += navbar('<button class="navbtn" type="button" data-act="closeFilters">Cancel</button>', "Filters", "");
+    h += '<div class="scroller"><div class="form">';
+
+    h += '<div class="matchline">Guests match <strong>all</strong> of the conditions below.</div>';
+
+    // RSVP
+    h += '<div class="fsection"><div class="fhead">RSVP</div><div class="fcard">';
+    RSVP_ORDER.forEach(function (k) {
+      var on = f.rsvp.indexOf(k) >= 0;
+      h += '<button class="cbrow' + (on ? " on" : "") + '" type="button" data-act="fRsvp" data-k="' + k + '">' +
+        '<span class="cbox">' + ico("tick", 13, 3) + '</span>' +
+        '<span class="cbtext">' + esc(RSVP_LABEL[k]) + '</span>' +
+        '<span class="cbcount">' + rsvpCount(k) + '</span></button>';
+    });
+    h += '</div></div>';
+
+    // location
+    h += '<div class="fsection"><div class="fhead">Location</div><div class="fcard">';
+    allLocations().forEach(function (loc) {
+      var on = f.locations.indexOf(loc) >= 0;
+      h += '<button class="cbrow' + (on ? " on" : "") + '" type="button" data-act="fLoc" data-k="' + esc(loc) + '">' +
+        '<span class="cbox">' + ico("tick", 13, 3) + '</span>' +
+        '<span class="cbtext">' + esc(loc) + '</span>' +
+        '<span class="cbcount">' + locationCount(loc) + '</span></button>';
+    });
+    var noneOn = f.locations.indexOf("__none__") >= 0;
+    h += '<button class="cbrow' + (noneOn ? " on" : "") + '" type="button" data-act="fLoc" data-k="__none__">' +
+      '<span class="cbox">' + ico("tick", 13, 3) + '</span>' +
+      '<span class="cbtext" style="color:var(--ios-label-2)">No location</span>' +
+      '<span class="cbcount">' + GUESTS.filter(function (g) { return !g.origin; }).length + '</span></button>';
+    h += '<div class="frow"><span class="fvalue">Only mappable guests</span>' +
+      '<button class="toggle' + (f.mappableOnly ? " on" : "") + '" type="button" data-act="fMappable" role="switch" aria-checked="' + f.mappableOnly + '" aria-label="Only mappable guests"></button></div>';
+    h += '</div><div class="ffoot">Mappable means the address resolved to city precision, which is all the map ever receives.</div></div>';
+
+    // details
+    h += '<div class="fsection"><div class="fhead">Details</div><div class="fcard">';
+    [["hasEmail", "Email"], ["hasPhone", "Phone"]].forEach(function (pair) {
+      var key = pair[0], val = f[key];
+      h += '<div class="frow"><span class="fvalue">' + pair[1] + '</span><span class="seg">' +
+        ["any", "yes", "no"].map(function (m) {
+          return '<button type="button" data-act="fTri" data-k="' + key + '" data-m="' + m + '" class="' + (val === m ? "on" : "") + '">' +
+            (m === "any" ? "Any" : m === "yes" ? "Has" : "None") + '</button>';
+        }).join("") + '</span></div>';
+    });
+    h += '</div></div>';
+
+    // custom
+    var vc = visibleColumns();
+    if (vc.length) {
+      h += '<div class="fsection"><div class="fhead">Custom fields</div><div class="fcard">';
+      vc.forEach(function (col) {
+        var cond = f.custom[col.key];
+        if (col.kind === "select") {
+          var vals = (cond && cond.values) || [];
+          var summary = vals.length ? vals.map(function (v) { return v === "__empty__" ? "Empty" : v; }).join(", ") : "Any";
+          var open = S.openCustom === col.key;
+          h += '<button class="frow" type="button" data-act="fOpenCustom" data-k="' + col.key + '">' +
+            '<span class="fvalue">' + esc(col.label) + '</span>' +
+            '<span style="color:' + (vals.length ? "var(--rose)" : "var(--ios-label-3)") + ';font-size:15px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(summary) + '</span>' +
+            '<span class="fchevron">' + ico(open ? "up" : "down", 15, 2) + '</span></button>';
+          if (open) {
+            col.options.forEach(function (opt) {
+              var on = vals.indexOf(opt) >= 0;
+              var n = GUESTS.filter(function (g) { return g.cf[col.key] === opt; }).length;
+              h += '<button class="cbrow' + (on ? " on" : "") + '" type="button" data-act="fCustomOpt" data-k="' + col.key + '" data-v="' + esc(opt) + '" style="padding-left:34px">' +
+                '<span class="cbox">' + ico("tick", 13, 3) + '</span><span class="cbtext">' + esc(opt) + '</span>' +
+                '<span class="cbcount">' + n + '</span></button>';
+            });
+            var emptyOn = vals.indexOf("__empty__") >= 0;
+            var en = GUESTS.filter(function (g) { var v = g.cf[col.key]; return v === undefined || v === null || v === ""; }).length;
+            h += '<button class="cbrow' + (emptyOn ? " on" : "") + '" type="button" data-act="fCustomOpt" data-k="' + col.key + '" data-v="__empty__" style="padding-left:34px">' +
+              '<span class="cbox">' + ico("tick", 13, 3) + '</span><span class="cbtext" style="color:var(--ios-label-2)">Empty</span>' +
+              '<span class="cbcount">' + en + '</span></button>';
+          }
+        } else if (col.kind === "checkbox") {
+          var mode = (cond && cond.mode) || "any";
+          h += '<div class="frow"><span class="fvalue">' + esc(col.label) + '</span><span class="seg">' +
+            [["any", "Any"], ["checked", "Yes"], ["unchecked", "No"]].map(function (m) {
+              return '<button type="button" data-act="fCustomCb" data-k="' + col.key + '" data-m="' + m[0] + '" class="' + (mode === m[0] ? "on" : "") + '">' + m[1] + '</button>';
+            }).join("") + '</span></div>';
+        } else {
+          h += '<button class="frow" type="button" data-act="noop"><span class="fvalue">' + esc(col.label) + '</span>' +
+            '<span style="color:var(--ios-label-3);font-size:15px">Any</span>' +
+            '<span class="fchevron">' + ico("down", 15, 2) + '</span></button>';
+        }
+      });
+      h += '</div></div>';
+    }
+
+    h += '<div style="height:20px"></div></div></div>';
+
+    // footer
+    h += '<div class="sheetfoot">';
+    if (count === 0) {
+      h += '<button class="bigbtn" type="button" disabled>No guests match</button>';
+      h += '<div style="font-size:13px;color:var(--ios-label-2);text-align:center">Loosen the most recent condition to get results back.</div>';
+    } else {
+      h += '<button class="bigbtn" type="button" data-act="applyFilters">Show ' + count + ' guest' + (count === 1 ? "" : "s") + '</button>';
+    }
+    h += '<button class="ghostbtn" type="button" data-act="clearDraft"' + (conditionCount(f) || f.rsvp.length ? "" : " disabled") + '>Clear all</button>';
+    h += '</div></div>';
+    return h;
+  }
+
+  /* ============================ overlays ============================ */
+  function overlays() {
+    var h = "";
+    if (S.toast) {
+      h += '<div class="toast" role="status">' + esc(S.toast.text) +
+        (S.toast.undo ? '<button type="button" data-act="undo">Undo</button>' : "") + '</div>';
+    }
+    if (S.menu) {
+      h += '<div class="menu-scrim" data-act="closeMenu"></div>';
+      h += '<div class="popmenu" style="' + S.menu.pos + '">' + S.menu.html + '</div>';
+    }
+    if (S.alert) {
+      h += '<div class="alert-scrim"><div class="alert" role="alertdialog"><div class="alert-body">' +
+        '<h4>' + esc(S.alert.title) + '</h4><p>' + esc(S.alert.body) + '</p></div>' +
+        '<div class="alert-acts">' +
+        '<button type="button" class="warn" data-act="alertConfirm">' + esc(S.alert.confirm) + '</button>' +
+        '<button type="button" data-act="alertCancel">Cancel</button>' +
+        '</div></div></div>';
+    }
+    return h;
+  }
+
+  /* ============================ render root ============================ */
+  function render() {
+    var body;
+    if (S.screen === "list") body = screenList();
+    else if (S.screen === "detail") body = screenDetail();
+    else if (S.screen === "add") body = screenAdd();
+    else if (S.screen === "fields") body = screenFields();
+    else if (S.screen === "fieldEditor") body = screenFieldEditor();
+
+    var sheet = S.sheet === "filters" ? sheetFilters() : "";
+    document.getElementById("phone").innerHTML =
+      statusbar() + '<div class="screen">' + body + '</div>' + sheet + overlays();
+
+    // restore focus into an active inline editor
+    var live = document.querySelector('#phone [data-act="fieldInput"], #phone [data-act="nameInput"]');
+    if (live && S.editingField) { live.focus(); live.setSelectionRange(live.value.length, live.value.length); }
+
+    renderNotes();
+    renderRail();
+  }
+
+  function renderRail() {
+    var rail = document.getElementById("rail");
+    var html = '<div class="rail-head">Surfaces</div>';
+    SURFACES.forEach(function (s) {
+      html += '<button class="rail-item" type="button" data-surface="' + s.id + '" aria-current="' + (S.surface === s.id) + '">' +
+        '<span class="rail-name"><span class="rail-dot"></span>' + esc(s.name) + '</span>' +
+        '<span class="rail-gap">' + esc(s.gap) + '</span></button>';
+    });
+    rail.innerHTML = html;
+  }
+
+  /* ============================ annotations ============================ */
+  var NOTES = {
+    detail: {
+      tag: "Spec § Guest Detail: inline editing with autosave",
+      title: "The record is the editor",
+      lead: "No view mode, no edit mode, no Save button. Tap a value, change it, look away — it writes. EditGuestSheet is retired.",
+      before: "Three read-only fields. Every correction costs: overflow menu → Edit guest → sheet → change → Save → dismiss.",
+      after: "Eleven-plus fields, each editable in place. One tap, one commit, one <code>GuestPatch</code> carrying exactly one field.",
+      items: [
+        ["Commit on blur, not per keystroke", "Menus and toggles commit on selection; text commits on blur or return. Re-committing an unchanged value is a no-op with no network call."],
+        ["Save state is per row", "A failed email write must not imply the RSVP change failed. Spinner → checkmark → fade, independently on every row."],
+        ["Failure keeps your typing", "The row tints, an inline Retry appears, and the value you typed stays in the field. Nothing is reverted and nothing is discarded."],
+        ["Address commits in two stages", "The string saves immediately; geocoding resolves underneath into a coarse city or an honest “not mapped”. Geocode failure never blocks the write."],
+        ["Derived location is never a blank to fill", "Origin and precision are outputs of the address, so they render as read-only context with the privacy contract stated in place."]
+      ],
+      try: "Tap any value to edit it. Change <strong>RSVP</strong> to see the undo toast. Flip the switch below, then edit a field to watch the failure state — your text survives.",
+      toggle: true
+    },
+    add: {
+      tag: "Spec § Add Guest: progressive disclosure to full coverage",
+      title: "Fast path intact, ceiling removed",
+      lead: "Someone entering forty names from a paper list needs three fields. Someone entering one guest with a meal choice needs all of them. Both are the same sheet.",
+      before: "Four fields, hard stop. Email, phone, and every custom field are unreachable until after the guest exists.",
+      after: "Essentials at the medium detent; <em>More details</em> grows the sheet in place to reveal contact and every custom field.",
+      items: [
+        ["Expanding grows, never navigates", "A user who opens More details to set one field must still see the name they just typed."],
+        ["The disclosure state persists", "Someone who adds one guest with a meal choice is adding forty. The sheet remembers."],
+        ["Save never waits on geocoding", "The button enables on a non-empty first name and stays enabled while the address resolves."],
+        ["Failure keeps the whole sheet", "Every entered value survives a failed save with Retry in place — the likeliest failure, on hotel Wi-Fi, currently handled worst."],
+        ["Creation stays atomic", "Inline autosave is right for a record that exists and wrong for one that doesn’t, so Save guest remains an explicit commit."]
+      ],
+      try: "Type a first name, then open <strong>More details</strong> to reach contact fields and all four custom fields without leaving the sheet."
+    },
+    fields: {
+      tag: "Spec § Manage custom fields",
+      title: "Schema the couple actually owns",
+      lead: "GuestCustomColumn has full CRUD in the repository and no UI anywhere. Meanwhile the list view hard-codes a lookup for a <code>group</code> key that no screen can create.",
+      before: "<code>customFields.stringValue(for: \"group\")</code> with a <code>group_name</code> fallback, rendering “No group” on every row of a wedding that never defined groups.",
+      after: "A managed field list with kinds, options, order, and visibility — plus a resolver that reads column definitions instead of literal keys.",
+      items: [
+        ["Order here is order everywhere", "Dragging a field rewrites <code>position</code>, and guest detail, Add guest, and the filter sheet all read it."],
+        ["The key is immutable, the label is not", "Keys are slugified once and shared with the web workspace; renaming one orphans every stored value. Labels rename freely."],
+        ["Destruction states its blast radius", "Deleting names the field and the number of guests losing data. Changing a kind explains the coercion before applying it."],
+        ["Hidden is the alternative to deleting", "Seasonal fields hide, keep their data, and stay live on web — with the soft nudge appearing past twelve visible fields."],
+        ["Orphaned values stay visible", "A select value no longer in its option list renders as a marked extra item, so you can see what’s there before replacing it."]
+      ],
+      try: "Open <strong>Meal choice</strong> to see per-option usage counts, then tap <strong>Delete field</strong> for the blast-radius confirmation."
+    },
+    filters: {
+      tag: "Spec § Filtering, sorting, and the display resolver",
+      title: "Ask a real question",
+      lead: "“Pending guests in Northvale who have an email” is three conditions across three field types. Today the tab can express none of it.",
+      before: "Single-select RSVP, one boolean toggle, no sort. Leaving the toggle on silently truncates the list with nothing on screen explaining why.",
+      after: "Structured conditions that AND across fields and OR within one, a live count before you commit, and removable tokens after.",
+      items: [
+        ["The live count is the whole design", "The footer button reads <em>Show 4 guests</em> and recomputes on every toggle. Filtering is local, so the count is free."],
+        ["No AND/OR control, by choice", "One sentence — “Guests match all of the conditions below” — replaces a boolean expression editor nobody wants on a phone."],
+        ["Zero results is diagnosable", "The button becomes a disabled <em>No guests match</em> with a hint, rather than dumping you into a blank list."],
+        ["Active filters are visible and removable", "Tokens under the chips name every condition; the Filters button carries a count. A filtered list should never look like the whole list."],
+        ["Chips go multi-select, Declined appears", "Tapping Pending then Accepted shows both, and the Declined chip finally renders when its count is non-zero — the original spec asked for this and it never shipped."]
+      ],
+      try: "Open <strong>Filters</strong>. Check <em>Pending</em>, expand <em>Meal choice</em>, pick two options, and watch the footer count move. Apply, then clear a single token."
+    }
+  };
+
+  function renderNotes() {
+    var n = NOTES[S.surface];
+    var h = "";
+    h += '<div class="notes-head"><div class="notes-tag">' + esc(n.tag) + '</div>' +
+      '<h3>' + n.title + '</h3><p>' + n.lead + '</p></div>';
+    h += '<div class="beforeafter">' +
+      '<div class="ba-cell now"><div class="ba-k">Today</div><div class="ba-v">' + n.before + '</div></div>' +
+      '<div class="ba-cell next"><div class="ba-k">Proposed</div><div class="ba-v">' + n.after + '</div></div></div>';
+    h += '<div class="tryit"><div class="tryit-k">Try</div><div class="tryit-v">' + n.try + '</div></div>';
+    if (n.toggle) {
+      h += '<div class="switchrow"><div><div class="switchrow-t">Simulate a failed save</div>' +
+        '<div class="switchrow-d">The next field you commit will fail once, then succeed on retry.</div></div>' +
+        '<button class="miniswitch' + (S.simulateFailure ? " on" : "") + '" type="button" data-act="toggleFail" role="switch" aria-checked="' + S.simulateFailure + '" aria-label="Simulate a failed save"></button></div>';
+    }
+    h += '<ul class="notelist">';
+    n.items.forEach(function (it) {
+      h += '<li><span class="note-t">' + it[0] + '</span><span class="note-d">' + it[1] + '</span></li>';
+    });
+    h += '</ul>';
+    document.getElementById("notes").innerHTML = h;
+  }
+
+  /* ============================ commit machinery ============================ */
+  function commit(id, apply) {
+    var g = guest(S.guestId);
+    if (S.simulateFailure && !S.failedOnce[id]) {
+      S.failedOnce[id] = true;
+      S.saveState[id] = "failed";
+      render();
+      return;
+    }
+    S.saveState[id] = "saving";
+    render();
+    later(function () {
+      apply(g);
+      delete S.pendingValue[id];
+      S.saveState[id] = "saved";
+      render();
+      later(function () {
+        if (S.saveState[id] === "saved") { delete S.saveState[id]; render(); }
+      }, 1200);
+    }, 620);
+  }
+
+  function commitEditing() {
+    var id = S.editingField;
+    if (!id) return;
+    var input = document.querySelector('#phone [data-act="fieldInput"][data-id="' + id + '"]');
+
+    if (id === "name") {
+      var fi = document.querySelector('#phone [data-part="first"]');
+      var li = document.querySelector('#phone [data-part="last"]');
+      var first = fi ? fi.value.trim() : "";
+      var last = li ? li.value.trim() : "";
+      S.editingField = null;
+      if (!first) {
+        S.pendingValue = {};
+        toast("First name can’t be empty. Your previous name was restored.", false);
+        render();
+        return;
+      }
+      var g0 = guest(S.guestId);
+      if (first === g0.first && last === g0.last) { S.pendingValue = {}; render(); return; }
+      commit("name", function (g) { g.first = first; g.last = last; });
+      return;
+    }
+
+    if (!input) { S.editingField = null; render(); return; }
+    var val = input.value.trim();
+    S.editingField = null;
+
+    var g = guest(S.guestId);
+    var current;
+    if (id.indexOf("cf:") === 0) {
+      var key = id.slice(3);
+      var col = columnByKey(key);
+      current = g.cf[key] == null ? "" : String(g.cf[key]);
+      if (val === current) { delete S.pendingValue[id]; render(); return; }
+      S.pendingValue[id] = val;
+      commit(id, function (gg) {
+        if (val === "") delete gg.cf[key];
+        else gg.cf[key] = col.kind === "number" ? Number(val) : val;
+      });
+      return;
+    }
+
+    current = g[id] || "";
+    if (val === current) { delete S.pendingValue[id]; render(); return; }
+    S.pendingValue[id] = val;
+    if (id === "address") {
+      commit(id, function (gg) {
+        gg.address = val;
+        if (!val) { gg.origin = null; gg.precision = null; return; }
+        S.saveState.address = "geocoding";
+        later(function () {
+          var known = ["Lumen Bay", "Northvale", "Solace Point", "Willow Coast", "Harborfield"];
+          var hit = null;
+          known.forEach(function (c) { if (val.toLowerCase().indexOf(c.toLowerCase()) >= 0) hit = c; });
+          gg.origin = hit || val;
+          gg.precision = hit ? "city" : "approximate";
+          delete S.saveState.address;
+          render();
+        }, 1100);
+      });
+      return;
+    }
+    commit(id, function (gg) { gg[id] = val; });
+  }
+
+  function toast(text, undo, undoFn) {
+    S.toast = { text: text, undo: !!undo, fn: undoFn };
+    var mine = S.toast;
+    later(function () { if (S.toast === mine) { S.toast = null; render(); } }, 5000);
+  }
+
+  /* ============================ events ============================ */
+  function go(screen, surface) {
+    S.editingField = null;
+    S.pendingValue = {};
+    S.menu = null;
+    S.screen = screen;
+    if (surface) S.surface = surface;
+    render();
+  }
+
+  document.getElementById("rail").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-surface]");
+    if (!b) return;
+    var id = b.getAttribute("data-surface");
+    for (var i = 0; i < SURFACES.length; i++) {
+      if (SURFACES[i].id === id) {
+        S.surface = id;
+        S.sheet = null;
+        S.openCustom = null;
+        go(SURFACES[i].screen);
+        if (id === "filters") {
+          S.draftFilters = JSON.parse(JSON.stringify(S.filters));
+          S.sheet = "filters";
+          render();
+        }
+        return;
+      }
+    }
+  });
+
+  document.getElementById("notes").addEventListener("click", function (e) {
+    var b = e.target.closest('[data-act="toggleFail"]');
+    if (!b) return;
+    S.simulateFailure = !S.simulateFailure;
+    S.failedOnce = {};
+    render();
+  });
+
+  var phone = document.getElementById("phone");
+
+  phone.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      var t = e.target;
+      if (t.matches('[data-act="fieldInput"], [data-act="nameInput"]')) { e.preventDefault(); commitEditing(); return; }
+    }
+    if (e.key === "Escape") {
+      if (S.menu) { S.menu = null; render(); return; }
+      if (S.sheet) { S.sheet = null; render(); return; }
+      if (S.editingField) { S.editingField = null; S.pendingValue = {}; render(); }
+    }
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches('.frow[role="button"]')) {
+      e.preventDefault();
+      e.target.click();
+    }
+  });
+
+  phone.addEventListener("focusout", function (e) {
+    if (!e.target.matches('[data-act="fieldInput"], [data-act="nameInput"]')) return;
+    var next = e.relatedTarget;
+    if (next && next.matches('[data-act="nameInput"]')) return;
+    setTimeout(function () { if (S.editingField) commitEditing(); }, 0);
+  });
+
+  phone.addEventListener("input", function (e) {
+    var t = e.target, act = t.getAttribute("data-act");
+    if (act === "query") { S.query = t.value; var pos = t.selectionStart; render();
+      var q = document.querySelector('#phone [data-act="query"]'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } return; }
+    if (act === "newInput") { S.newGuest[t.getAttribute("data-k")] = t.value; var b = document.querySelector('#phone [data-act="saveNew"]');
+      if (b) { if (S.newGuest.first.trim()) b.removeAttribute("disabled"); else b.setAttribute("disabled", ""); } return; }
+    if (act === "newCfInput") { S.newGuest.cf[t.getAttribute("data-k")] = t.value; return; }
+  });
+
+  phone.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act");
+    var k = el.getAttribute("data-k");
+    var id = el.getAttribute("data-id");
+
+    if (act === "noop") return;
+
+    // navigation
+    if (act === "goList") { S.sheet = null; go("list", "filters"); return; }
+    if (act === "goAdd") { go("add", "add"); return; }
+    if (act === "goFields") { go("fields", "fields"); return; }
+    if (act === "openGuest") { S.guestId = Number(el.getAttribute("data-id")); go("detail", "detail"); return; }
+    if (act === "openField") { S.editingColumnKey = k; go("fieldEditor", "fields"); return; }
+
+    // inline editing
+    if (act === "editField") {
+      if (S.editingField === id) return;
+      if (S.editingField) commitEditing();
+      S.editingField = id;
+      delete S.saveState[id];
+      render();
+      return;
+    }
+    if (act === "editName") {
+      if (S.editingField) commitEditing();
+      S.editingField = "name";
+      render();
+      setTimeout(function () { var f = document.querySelector('#phone [data-part="first"]'); if (f) f.focus(); }, 0);
+      return;
+    }
+    if (act === "fieldInput" || act === "nameInput") return;
+    if (act === "retry") {
+      S.saveState[id] = "saving";
+      var pv = S.pendingValue[id];
+      render();
+      later(function () {
+        var g = guest(S.guestId);
+        if (id.indexOf("cf:") === 0) {
+          var key = id.slice(3), col = columnByKey(key);
+          if (pv === "") delete g.cf[key]; else g.cf[key] = col.kind === "number" ? Number(pv) : pv;
+        } else if (id === "name") { /* handled elsewhere */ }
+        else g[id] = pv;
+        delete S.pendingValue[id];
+        S.saveState[id] = "saved";
+        render();
+        later(function () { if (S.saveState[id] === "saved") { delete S.saveState[id]; render(); } }, 1200);
+      }, 620);
+      return;
+    }
+
+    // menus
+    if (act === "rsvpMenu") {
+      var g = guest(S.guestId);
+      var html = RSVP_ORDER.map(function (r) {
+        return '<button type="button" class="' + (g.rsvp === r ? "sel" : "") + '" data-act="setRsvp" data-k="' + r + '">' +
+          esc(RSVP_LABEL[r]) + (g.rsvp === r ? ico("tick", 15, 2.6) : "") + '</button>';
+      }).join("");
+      S.menu = { html: html, pos: "top:250px;right:16px" };
+      render();
+      return;
+    }
+    if (act === "setRsvp") {
+      var gg = guest(S.guestId), prev = gg.rsvp, prevDate = gg.rsvpDate;
+      S.menu = null;
+      if (prev === k) { render(); return; }
+      commit("rsvp", function (x) {
+        x.rsvp = k;
+        x.rsvpDate = (k === "accepted" || k === "declined") ? "Jul 30, 2026" : null;
+      });
+      toast("RSVP set to " + RSVP_LABEL[k], true, function () {
+        var y = guest(S.guestId); y.rsvp = prev; y.rsvpDate = prevDate;
+      });
+      return;
+    }
+    if (act === "cfMenu") {
+      var gc = guest(S.guestId), col = columnByKey(k), cur = gc.cf[k];
+      var opts = col.options.map(function (o) {
+        return '<button type="button" class="' + (cur === o ? "sel" : "") + '" data-act="setCf" data-k="' + k + '" data-v="' + esc(o) + '">' +
+          esc(o) + (cur === o ? ico("tick", 15, 2.6) : "") + '</button>';
+      }).join("");
+      if (cur && col.options.indexOf(cur) < 0) {
+        opts = '<button type="button" class="sel gone" data-act="setCf" data-k="' + k + '" data-v="' + esc(cur) + '">' +
+          esc(cur) + ' · no longer an option' + ico("tick", 15, 2.6) + '</button>' + opts;
+      }
+      if (cur) opts += '<button type="button" data-act="setCf" data-k="' + k + '" data-v="">Clear</button>';
+      S.menu = { html: opts, pos: "top:300px;right:16px" };
+      render();
+      return;
+    }
+    if (act === "setCf") {
+      var v = el.getAttribute("data-v");
+      S.menu = null;
+      var prevV = guest(S.guestId).cf[k];
+      if (prevV === v || (!prevV && !v)) { render(); return; }
+      commit("cf:" + k, function (x) { if (v === "") delete x.cf[k]; else x.cf[k] = v; });
+      if (v === "") toast(columnByKey(k).label + " cleared", true, function () { guest(S.guestId).cf[k] = prevV; });
+      return;
+    }
+    if (act === "cfToggle") {
+      var cur2 = guest(S.guestId).cf[k] === true;
+      commit("cf:" + k, function (x) { x.cf[k] = !cur2; });
+      return;
+    }
+    if (act === "guestMenu") {
+      S.menu = {
+        html: '<button type="button" data-act="goFields">Manage fields' + ico("chevron", 14, 2) + '</button>' +
+          '<button type="button" data-act="noop">Copy contact details</button>' +
+          '<button type="button" class="sel" style="color:#d1244a" data-act="confirmDeleteGuest">Delete guest</button>',
+        pos: "top:56px;right:12px"
+      };
+      render();
+      return;
+    }
+    if (act === "closeMenu") { S.menu = null; render(); return; }
+    if (act === "confirmDeleteGuest") {
+      var gd = guest(S.guestId);
+      S.menu = null;
+      S.alert = { title: "Delete " + fullName(gd) + "?", body: "This removes the guest from your wedding workspace.", confirm: "Delete", fn: function () { } };
+      render();
+      return;
+    }
+    if (act === "alertCancel") { S.alert = null; render(); return; }
+    if (act === "alertConfirm") { var fn = S.alert && S.alert.fn; S.alert = null; if (fn) fn(); render(); return; }
+    if (act === "undo") { if (S.toast && S.toast.fn) S.toast.fn(); S.toast = null; render(); return; }
+
+    // sort
+    if (act === "sortMenu") {
+      var opts2 = [["name", "Name A–Z"], ["recent", "Recently added"], ["rsvp", "RSVP status"]].map(function (p) {
+        return '<button type="button" class="' + (S.sortKey === p[0] ? "sel" : "") + '" data-act="setSort" data-k="' + p[0] + '">' +
+          p[1] + (S.sortKey === p[0] ? ico("tick", 15, 2.6) : "") + '</button>';
+      }).join("");
+      S.menu = { html: opts2, pos: "top:290px;right:16px" };
+      render();
+      return;
+    }
+    if (act === "setSort") { S.sortKey = k; S.menu = null; render(); return; }
+
+    // chips
+    if (act === "rsvpAll") { S.filters.rsvp = []; render(); return; }
+    if (act === "rsvpChip") {
+      var i = S.filters.rsvp.indexOf(k);
+      if (i >= 0) S.filters.rsvp.splice(i, 1); else S.filters.rsvp.push(k);
+      render();
+      return;
+    }
+    if (act === "clearToken") {
+      var toks = activeTokens(S.filters);
+      var tok = toks[Number(el.getAttribute("data-i"))];
+      if (tok) tok.clear();
+      render();
+      return;
+    }
+    if (act === "clearAll") { S.filters = freshFilters(); S.query = ""; render(); return; }
+
+    // filter sheet
+    if (act === "openFilters") { S.draftFilters = JSON.parse(JSON.stringify(S.filters)); S.sheet = "filters"; S.surface = "filters"; render(); return; }
+    if (act === "closeFilters") { S.sheet = null; S.openCustom = null; render(); return; }
+    if (act === "applyFilters") { S.filters = S.draftFilters; S.sheet = null; S.openCustom = null; render(); return; }
+    if (act === "clearDraft") { S.draftFilters = freshFilters(); render(); return; }
+    if (act === "fRsvp") {
+      var j = S.draftFilters.rsvp.indexOf(k);
+      if (j >= 0) S.draftFilters.rsvp.splice(j, 1); else S.draftFilters.rsvp.push(k);
+      render(); return;
+    }
+    if (act === "fLoc") {
+      var m = S.draftFilters.locations.indexOf(k);
+      if (m >= 0) S.draftFilters.locations.splice(m, 1); else S.draftFilters.locations.push(k);
+      render(); return;
+    }
+    if (act === "fMappable") { S.draftFilters.mappableOnly = !S.draftFilters.mappableOnly; render(); return; }
+    if (act === "fTri") { S.draftFilters[k] = el.getAttribute("data-m"); render(); return; }
+    if (act === "fOpenCustom") { S.openCustom = S.openCustom === k ? null : k; render(); return; }
+    if (act === "fCustomOpt") {
+      var vv = el.getAttribute("data-v");
+      var c = S.draftFilters.custom[k] || { values: [] };
+      var p = c.values.indexOf(vv);
+      if (p >= 0) c.values.splice(p, 1); else c.values.push(vv);
+      if (!c.values.length) delete S.draftFilters.custom[k]; else S.draftFilters.custom[k] = c;
+      render(); return;
+    }
+    if (act === "fCustomCb") {
+      var mode = el.getAttribute("data-m");
+      if (mode === "any") delete S.draftFilters.custom[k];
+      else S.draftFilters.custom[k] = { mode: mode };
+      render(); return;
+    }
+
+    // add guest
+    if (act === "toggleMore") { S.moreDetails = !S.moreDetails; render(); return; }
+    if (act === "newRsvpMenu") {
+      var h2 = RSVP_ORDER.map(function (r) {
+        return '<button type="button" class="' + (S.newGuest.rsvp === r ? "sel" : "") + '" data-act="setNewRsvp" data-k="' + r + '">' +
+          esc(RSVP_LABEL[r]) + (S.newGuest.rsvp === r ? ico("tick", 15, 2.6) : "") + '</button>';
+      }).join("");
+      S.menu = { html: h2, pos: "top:230px;right:16px" };
+      render(); return;
+    }
+    if (act === "setNewRsvp") { S.newGuest.rsvp = k; S.menu = null; render(); return; }
+    if (act === "newCfToggle") { S.newGuest.cf[k] = !S.newGuest.cf[k]; render(); return; }
+    if (act === "newCfMenu") {
+      var col3 = columnByKey(k), cur3 = S.newGuest.cf[k];
+      var h3 = col3.options.map(function (o) {
+        return '<button type="button" class="' + (cur3 === o ? "sel" : "") + '" data-act="setNewCf" data-k="' + k + '" data-v="' + esc(o) + '">' +
+          esc(o) + (cur3 === o ? ico("tick", 15, 2.6) : "") + '</button>';
+      }).join("");
+      if (cur3) h3 += '<button type="button" data-act="setNewCf" data-k="' + k + '" data-v="">Clear</button>';
+      S.menu = { html: h3, pos: "top:330px;right:16px" };
+      render(); return;
+    }
+    if (act === "setNewCf") {
+      var nv = el.getAttribute("data-v");
+      if (nv === "") delete S.newGuest.cf[k]; else S.newGuest.cf[k] = nv;
+      S.menu = null; render(); return;
+    }
+    if (act === "saveNew") {
+      var ng = S.newGuest;
+      var nid = Math.max.apply(null, GUESTS.map(function (x) { return x.id; })) + 1;
+      var cf = {};
+      Object.keys(ng.cf).forEach(function (key) {
+        var c2 = columnByKey(key), val2 = ng.cf[key];
+        if (val2 === "" || val2 === undefined || val2 === false) return;
+        cf[key] = c2 && c2.kind === "number" ? Number(val2) : val2;
+      });
+      var known2 = ["Lumen Bay", "Northvale", "Solace Point", "Willow Coast", "Harborfield"];
+      var hit2 = null;
+      known2.forEach(function (c3) { if (ng.address.toLowerCase().indexOf(c3.toLowerCase()) >= 0) hit2 = c3; });
+      GUESTS.push({
+        id: nid, first: ng.first.trim(), last: ng.last.trim(), rsvp: ng.rsvp, rsvpDate: null,
+        email: ng.email.trim(), phone: ng.phone.trim(), address: ng.address.trim(),
+        origin: ng.address.trim() ? (hit2 || ng.address.trim()) : null,
+        precision: ng.address.trim() ? (hit2 ? "city" : "approximate") : null, cf: cf
+      });
+      S.newGuest = { first: "", last: "", rsvp: "notInvited", address: "", email: "", phone: "", cf: {} };
+      S.guestId = nid;
+      go("detail", "detail");
+      toast("Guest added", false);
+      return;
+    }
+
+    // field editor
+    if (act === "toggleHidden") { var c4 = columnByKey(k); c4.hidden = !c4.hidden; render(); return; }
+    if (act === "kindWarn") {
+      var c5 = columnByKey(S.editingColumnKey);
+      if (c5.kind === k) return;
+      var affected = usageCount(c5.key);
+      var msg = k === "number"
+        ? "Values that aren’t numbers will be cleared."
+        : k === "select"
+          ? "Existing distinct values become the starting option list."
+          : k === "checkbox"
+            ? "Any non-empty value becomes checked."
+            : "Values are preserved as text.";
+      S.alert = {
+        title: "Change “" + c5.label + "” to " + k + "?",
+        body: msg + " " + affected + " guests hold a value for this field.",
+        confirm: "Change kind",
+        fn: function () { c5.kind = k; if (k === "select" && !c5.options.length) c5.options = ["Option one"]; }
+      };
+      render(); return;
+    }
+    if (act === "deleteField") {
+      var c6 = columnByKey(k), used2 = usageCount(k);
+      S.alert = {
+        title: "Delete “" + c6.label + "”?",
+        body: used2
+          ? "This permanently removes the value stored for " + used2 + " guests. It cannot be undone."
+          : "No guests hold a value for this field.",
+        confirm: "Delete field",
+        fn: function () {
+          var idx = COLUMNS.indexOf(c6);
+          COLUMNS.splice(idx, 1);
+          GUESTS.forEach(function (g2) { delete g2.cf[k]; });
+          go("fields", "fields");
+        }
+      };
+      render(); return;
+    }
+  });
+
+  render();
+})();
+</script>
