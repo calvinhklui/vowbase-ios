@@ -18,6 +18,7 @@
 		6DAB94EA72FE5E2A600F3611 /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730B95063539CAED2656EDE9 /* WorkspaceStore.swift */; };
 		782C2CE444A0084D1EA792F2 /* VowbaseVenueImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00C6542E2737CDCD45AAED91 /* VowbaseVenueImage.swift */; };
 		8884FC7BABA2033C29CF6C84 /* GuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6B825321A83F896EC030FF7 /* GuestsView.swift */; };
+		9F5B0231F3DF27AE3CFDE6E7 /* ContextBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */; };
 		A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */; };
 		A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* ContentView.swift */; };
 		A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60000000000B1 /* Supabase */; };
@@ -137,6 +138,7 @@
 		36697F493ADC8C7948BE3C3F /* VenuesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VenuesView.swift; path = Features/Venues/Views/VenuesView.swift; sourceTree = "<group>"; };
 		3E232CC73018715C003E5C26 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3E232CCB30187209003E5C26 /* VowbaseIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = VowbaseIcon.icon; sourceTree = "<group>"; };
+		3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContextBar.swift; sourceTree = "<group>"; };
 		4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GuestFieldAdmin.swift; path = Features/Guests/Views/GuestFieldAdmin.swift; sourceTree = "<group>"; };
 		4EDA0836CF273871C711B1C9 /* VenueDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VenueDetailView.swift; path = Features/Venues/Views/VenueDetailView.swift; sourceTree = "<group>"; };
 		57DA820279E3B32E4187F265 /* StatusCapsules.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatusCapsules.swift; path = Components/StatusCapsules.swift; sourceTree = "<group>"; };
@@ -436,6 +438,7 @@
 				730B95063539CAED2656EDE9 /* WorkspaceStore.swift */,
 				5B4D7ACA064013D3983E8B3E /* PlanLens.swift */,
 				BC1DE56310FF20746FAB1859 /* Console.swift */,
+				3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -729,6 +732,7 @@
 				6D218D18BD8DBDF535E03113 /* StatusCapsules.swift in Sources */,
 				AE0CF3EF8770A8484E394B73 /* PlanLens.swift in Sources */,
 				60461EB0D6EA1C3EE95A8470 /* Console.swift in Sources */,
+				9F5B0231F3DF27AE3CFDE6E7 /* ContextBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -72,7 +72,7 @@ struct WeddingAppShell: View {
 
                 MapWorkspaceView(store: store, consoleInset: consoleHeight)
 
-                IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
+                ContextBar(store: store, onSignOut: onSignOut)
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
 
@@ -401,62 +401,6 @@ private struct LensRailItem: View {
         }
         .contentShape(Capsule())
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-struct IdentityBar: View {
-    let weddingTitle: String
-    let onSignOut: () -> Void
-    @State private var isAccountMenuPresented = false
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Button { isAccountMenuPresented = true } label: {
-                Text(weddingInitials)
-                    .font(.system(size: 20, weight: .regular, design: .serif))
-                    .frame(width: 58, height: 58)
-                    .background(VowbaseTheme.blush)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Account")
-            .accessibilityHint("Opens account actions")
-
-            Text(weddingTitle)
-                .font(VowbaseType.detailTitle)
-                .foregroundStyle(VowbaseTheme.ink)
-                .lineLimit(1)
-                .layoutPriority(1)
-                .accessibilityLabel("Current wedding: \(weddingTitle)")
-
-            Spacer(minLength: 0)
-        }
-        .confirmationDialog(
-            "Your Vowbase account",
-            isPresented: $isAccountMenuPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Sign out", role: .destructive, action: onSignOut)
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You can sign back in with Apple or Google at any time.")
-        }
-        .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 29, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 29, style: .continuous)
-                .stroke(VowbaseTheme.border.opacity(0.8), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.08), radius: 14, y: 5)
-    }
-
-    private var weddingInitials: String {
-        weddingTitle
-            .split { !$0.isLetter }
-            .compactMap(\.first)
-            .prefix(2)
-            .map { String($0).uppercased() }
-            .joined(separator: "&")
     }
 }
 

@@ -9,6 +9,53 @@ struct SaveFailure: Identifiable {
     let discard: @MainActor () -> Void
 }
 
+/// The context bar's countdown line — spec §5.
+///
+/// `> 365 days` and past dates both render as the absolute date: a day count
+/// that large isn't motivating, and a negative one isn't meaningful.
+enum WeddingCountdownFormatter {
+    private static let dateOnlyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    private static let displayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+
+    static func date(from weddingDateString: String) -> Date? {
+        dateOnlyFormatter.date(from: weddingDateString)
+    }
+
+    static func string(from date: Date) -> String {
+        dateOnlyFormatter.string(from: date)
+    }
+
+    /// `nil` means no date is set — the caller shows "Add your date" instead.
+    static func countdownText(for weddingDateString: String?) -> String? {
+        guard let weddingDateString, let date = date(from: weddingDateString) else { return nil }
+
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInTomorrow(date) { return "Tomorrow" }
+
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfWedding = calendar.startOfDay(for: date)
+        let days = calendar.dateComponents([.day], from: startOfToday, to: startOfWedding).day ?? 0
+        if days > 0 && days <= 365 {
+            return "\(days) days"
+        }
+        return displayFormatter.string(from: date)
+    }
+}
+
 struct VenuePhotoDisplay: Identifiable, Hashable {
     let photo: VenuePhoto
     let url: URL?
@@ -410,6 +457,23 @@ final class VowbaseWorkspaceStore {
         let message = errorMessage ?? "Something went wrong while saving your changes."
         errorMessage = nil
         saveFailure = SaveFailure(message: message, retry: retry, discard: discard)
+    }
+
+    /// Sets the wedding's date — the context bar's "Add your date" tap
+    /// target (spec §5) routes here rather than being a dead end.
+    func updateWeddingDate(_ date: Date) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        do {
+            let updated = try await repositories.workspace.updateWedding(
+                id: weddingID,
+                patch: WeddingPatch(weddingDate: WeddingCountdownFormatter.string(from: date))
+            )
+            wedding = updated
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
     }
 
     func createVenue(name: String, location: String, status: VenueStatus) async -> Bool {
