@@ -53,6 +53,7 @@ final class AppNavigationModel {
     var mapPath = NavigationPath()
     var venuesPath = NavigationPath()
     var guestsPath = NavigationPath()
+    var tasksPath = NavigationPath()
 
     /// The one modal task currently presented by the app shell, if any.
     var sheetDestination: SheetDestination?
@@ -109,6 +110,8 @@ final class AppNavigationModel {
             venuesPath = NavigationPath()
         case .guests:
             guestsPath = NavigationPath()
+        case .tasks:
+            tasksPath = NavigationPath()
         }
     }
 }

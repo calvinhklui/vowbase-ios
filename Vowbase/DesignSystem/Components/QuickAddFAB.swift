@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// A reusable, floating entry point for the two core Vowbase creation flows.
+/// A reusable, floating entry point for Vowbase's core creation flows.
 ///
 /// Pair this with `QuickAddPanel` inside `QuickAddOverlay` so the expanded
 /// action has a dismissible scrim and never feels like an unanchored popover.
@@ -25,11 +25,11 @@ struct QuickAddFAB: View {
         }
         .buttonStyle(QuickAddPressStyle())
         .accessibilityLabel(isExpanded ? "Close quick add" : "Quick add")
-        .accessibilityHint(isExpanded ? "Dismisses venue and guest creation actions" : "Shows actions to add a venue or guest")
+        .accessibilityHint(isExpanded ? "Dismisses quick add actions" : "Shows actions to add a venue, guest, or task")
     }
 }
 
-/// Two large, high-confidence actions shown above `QuickAddFAB`.
+/// High-confidence actions shown above `QuickAddFAB`.
 ///
 /// The actions dismiss the panel before invoking their closures, allowing the
 /// caller to present its destination sheet without competing presentations.
@@ -37,6 +37,7 @@ struct QuickAddPanel: View {
     @Binding var isPresented: Bool
     let onAddVenue: () -> Void
     let onAddGuest: () -> Void
+    let onAddTask: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -57,6 +58,16 @@ struct QuickAddPanel: View {
                 icon: "person.badge.plus",
                 tint: VowbaseTheme.guestBlue,
                 action: onAddGuest
+            )
+
+            Divider()
+                .padding(.leading, 64)
+
+            quickAddRow(
+                title: "Add Task",
+                icon: "checkmark.circle.badge.plus",
+                tint: VowbaseTheme.rose,
+                action: onAddTask
             )
         }
         .padding(8)
@@ -122,6 +133,7 @@ struct QuickAddOverlay: View {
     @Binding var isPresented: Bool
     let onAddVenue: () -> Void
     let onAddGuest: () -> Void
+    let onAddTask: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -131,7 +143,8 @@ struct QuickAddOverlay: View {
                 QuickAddPanel(
                     isPresented: $isPresented,
                     onAddVenue: onAddVenue,
-                    onAddGuest: onAddGuest
+                    onAddGuest: onAddGuest,
+                    onAddTask: onAddTask
                 )
             }
 

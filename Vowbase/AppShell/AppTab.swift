@@ -8,6 +8,7 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
     case map
     case venues
     case guests
+    case tasks
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
         case .map: "Map"
         case .venues: "Venues"
         case .guests: "Guests"
+        case .tasks: "Tasks"
         }
     }
 
@@ -24,6 +26,7 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
         case .map: "map"
         case .venues: "mappin"
         case .guests: "person.2"
+        case .tasks: "checklist"
         }
     }
 }

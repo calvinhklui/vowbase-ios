@@ -12,6 +12,7 @@ struct ContentView: View {
 
 struct VowbaseAuthenticatedContent: View {
     @State private var store: VowbaseWorkspaceStore
+    @State private var taskStore: TaskStore
     let onSignOut: () -> Void
 
     init(
@@ -20,6 +21,7 @@ struct VowbaseAuthenticatedContent: View {
     ) {
         self.onSignOut = onSignOut
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
+        _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
     }
 
 #if DEBUG
@@ -30,11 +32,13 @@ struct VowbaseAuthenticatedContent: View {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
+        let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
+        _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
     }
 #endif
 
     var body: some View {
-        WeddingAppShell(store: store, onSignOut: onSignOut)
+        WeddingAppShell(store: store, taskStore: taskStore, onSignOut: onSignOut)
             .task { await store.load() }
     }
 }
@@ -51,17 +55,21 @@ private enum QuickAddDestination: String, Identifiable {
 @MainActor
 private struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
+    let taskStore: TaskStore
     let onSignOut: () -> Void
     @State private var navigation: AppNavigationModel
     @State private var quickAdd: QuickAddDestination?
+    @State private var taskEditor: TaskEditorDestination?
     @State private var isQuickAddPresented = false
 
     init(
         store: VowbaseWorkspaceStore,
+        taskStore: TaskStore,
         initialTab: AppTab = .map,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
+        self.taskStore = taskStore
         self.onSignOut = onSignOut
         _navigation = State(initialValue: AppNavigationModel(selectedTab: initialTab))
     }
@@ -83,6 +91,8 @@ private struct WeddingAppShell: View {
                     VenuesView(store: store, onSignOut: onSignOut)
                 case .guests:
                     GuestsView(store: store, onSignOut: onSignOut)
+                case .tasks:
+                    TasksView(store: store, taskStore: taskStore, onSignOut: onSignOut, editor: $taskEditor)
                 }
             }
 
@@ -130,7 +140,8 @@ private struct WeddingAppShell: View {
             QuickAddOverlay(
                 isPresented: $isQuickAddPresented,
                 onAddVenue: { quickAdd = .venue },
-                onAddGuest: { quickAdd = .guest }
+                onAddGuest: { quickAdd = .guest },
+                onAddTask: { taskEditor = .add }
             )
             .padding(.trailing, VowbaseControlMetric.screenInset)
             .padding(.bottom, VowbaseTabBar.fabBottomClearance)
@@ -144,6 +155,10 @@ private struct WeddingAppShell: View {
                 AddGuestSheet(store: store)
                     .presentationDetents([.medium, .large])
             }
+        }
+        .sheet(item: $taskEditor) { destination in
+            TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
+                .presentationDetents([.large])
         }
         .animation(.snappy(duration: 0.28), value: navigation.selectedTab)
     }
@@ -237,7 +252,7 @@ private struct VowbaseTabBarItem: View {
     }
 }
 
-private struct IdentityBar: View {
+struct IdentityBar: View {
     let weddingTitle: String
     let onSignOut: () -> Void
     @State private var isAccountMenuPresented = false
@@ -1517,7 +1532,7 @@ private extension RSVPStatus {
     }
 }
 
-private struct MVPVenue: Identifiable, Hashable {
+struct MVPVenue: Identifiable, Hashable {
     let id: UUID
     let name: String
     let status: VenueStatus
@@ -1545,7 +1560,7 @@ private struct MVPVenue: Identifiable, Hashable {
     }
 }
 
-private struct GuestCluster: Identifiable {
+struct GuestCluster: Identifiable {
     let id: String
     let city: String
     let count: Int
@@ -1554,7 +1569,7 @@ private struct GuestCluster: Identifiable {
     var coordinate: CLLocationCoordinate2D { .init(latitude: latitude, longitude: longitude) }
 }
 
-private struct MVPGuest: Identifiable, Hashable {
+struct MVPGuest: Identifiable, Hashable {
     let id: UUID
     let firstName: String
     let lastName: String
@@ -1575,7 +1590,7 @@ private struct MVPGuest: Identifiable, Hashable {
 
 @MainActor
 @Observable
-private final class VowbaseWorkspaceStore {
+final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
     private var signedVenuePhotoURLs = [UUID: [URL]]()
@@ -1584,8 +1599,14 @@ private final class VowbaseWorkspaceStore {
     var selectedVenueID: UUID?
     var isGlobalMenuOpen = false
     var wedding: WeddingSummary?
+    var activeMembership: WeddingMembership?
     var isLoading = false
     var errorMessage: String?
+
+    var canManageTasks: Bool {
+        guard let role = activeMembership?.role else { return false }
+        return role == .owner || role == .partner || role == .planner
+    }
 
     init(repositories: RepositoryContainer? = nil) {
         self.repositories = repositories
@@ -1604,6 +1625,14 @@ private final class VowbaseWorkspaceStore {
             coupleNames: "Example Couple",
             weddingDate: "2027-09-18",
             location: "Example City"
+        )
+        activeMembership = WeddingMembership(
+            id: UUID(uuidString: "C1175B62-0CD8-43EC-9AC4-A3C2F65A2598")!,
+            weddingId: weddingID,
+            userId: UUID(uuidString: "3B4C76E4-E7A5-48A3-B351-439E9488273B")!,
+            role: .owner,
+            status: "active",
+            wedding: wedding!
         )
         venueRecords = [
             Venue(
@@ -1762,11 +1791,13 @@ private final class VowbaseWorkspaceStore {
                 venueRecords = []
                 guestRecords = []
                 wedding = nil
+                activeMembership = nil
                 errorMessage = "This account is not a member of a wedding workspace yet."
                 return
             }
 
             wedding = membership.wedding
+            activeMembership = membership
             async let venues = repositories.venues.venues(weddingID: membership.weddingId)
             async let guests = repositories.guests.guests(weddingID: membership.weddingId)
             venueRecords = try await venues
@@ -2092,11 +2123,11 @@ private enum VenuePriceFormatter {
 }
 
 #Preview("Venues") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(), initialTab: .venues)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialTab: .venues)
 }
 
 #Preview("Guests") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(), initialTab: .guests)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialTab: .guests)
 }
 
 #Preview("Add venue") {
