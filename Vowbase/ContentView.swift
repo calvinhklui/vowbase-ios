@@ -96,7 +96,12 @@ private struct WeddingAppShell: View {
                         onSignOut: onSignOut
                     )
                 case .venues:
-                    VenuesView(store: store, onSignOut: onSignOut)
+                    VenuesView(
+                        store: store,
+                        onSignOut: onSignOut,
+                        onAddVenue: { quickAdd = .venue },
+                        onReturnToMap: { navigation.selectedTab = .map }
+                    )
                 case .guests:
                     GuestsView(store: store, onSignOut: onSignOut)
                 case .tasks:
@@ -530,6 +535,8 @@ private struct MapVenueCard: View {
 private struct VenuesView: View {
     let store: VowbaseWorkspaceStore
     let onSignOut: () -> Void
+    let onAddVenue: () -> Void
+    let onReturnToMap: () -> Void
     @State private var mode: VenueMode = .shortlist
     @State private var statusFilter: VenueStatusFilter = .all
     @State private var showsFilter = false
@@ -554,59 +561,69 @@ private struct VenuesView: View {
                             .font(.system(size: 18))
                             .foregroundStyle(VowbaseTheme.mutedInk)
                     }
-                    HStack(spacing: 12) {
-                        Picker("Venue mode", selection: $mode) {
-                            ForEach(VenueMode.allCases) { item in
-                                Text(item.title).tag(item)
+                    if store.venues.isEmpty {
+                        VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
+                    } else {
+                        HStack(spacing: 12) {
+                            Picker("Venue mode", selection: $mode) {
+                                ForEach(VenueMode.allCases) { item in
+                                    Text(item.title).tag(item)
+                                }
                             }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(maxWidth: .infinity)
+                            .pickerStyle(.segmented)
+                            .frame(maxWidth: .infinity)
 
-                        Button { showsFilter = true } label: {
-                            Label(statusFilter.title, systemImage: "line.3.horizontal.decrease.circle")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(VowbaseTheme.rose)
-                                .padding(.horizontal, 14)
-                                .frame(minHeight: 42)
-                                .background(VowbaseTheme.background, in: Capsule())
-                                .overlay(Capsule().stroke(VowbaseTheme.border, lineWidth: 1))
+                            Button { showsFilter = true } label: {
+                                Label(statusFilter.title, systemImage: "line.3.horizontal.decrease.circle")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(VowbaseTheme.rose)
+                                    .padding(.horizontal, 14)
+                                    .frame(minHeight: 42)
+                                    .background(VowbaseTheme.background, in: Capsule())
+                                    .overlay(Capsule().stroke(VowbaseTheme.border, lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                    }
 
-                    if mode == .compare && comparison.count >= 2 {
-                        Button {
-                            showsComparison = true
-                        } label: {
-                            Label("Compare \(comparison.count) venues", systemImage: "rectangle.split.3x1")
+                        if mode == .compare && comparison.count >= 2 {
+                            Button {
+                                showsComparison = true
+                            } label: {
+                                Label("Compare \(comparison.count) venues", systemImage: "rectangle.split.3x1")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(VowbasePrimaryButtonStyle())
+                        }
+
+                        if visibleVenues.isEmpty {
+                            ContentUnavailableView("No venues match", systemImage: "line.3.horizontal.decrease.circle", description: Text("Try a different status filter."))
                                 .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(VowbasePrimaryButtonStyle())
-                    }
-
-                    LazyVStack(spacing: 22) {
-                        ForEach(visibleVenues) { venue in
-                            if mode == .compare {
-                                Button {
-                                    toggleComparison(venue.id)
-                                } label: {
-                                    VenueCard(venue: venue, selectedForComparison: comparison.contains(venue.id))
+                                .padding(.vertical, 36)
+                        } else {
+                            LazyVStack(spacing: 22) {
+                                ForEach(visibleVenues) { venue in
+                                    if mode == .compare {
+                                        Button {
+                                            toggleComparison(venue.id)
+                                        } label: {
+                                            VenueCard(venue: venue, selectedForComparison: comparison.contains(venue.id))
+                                        }
+                                        .buttonStyle(.plain)
+                                    } else {
+                                        NavigationLink(value: venue) {
+                                            VenueCard(venue: venue, selectedForComparison: false)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
-                                .buttonStyle(.plain)
-                            } else {
-                                NavigationLink(value: venue) {
-                                    VenueCard(venue: venue, selectedForComparison: false)
-                                }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
-                .padding(.bottom, 96)
             }
+            .vowbaseScrollClearance()
             .refreshable {
                 await store.load()
             }
@@ -752,6 +769,44 @@ private struct VenueFact: View {
     }
 }
 
+private struct VenuesEmptyState: View {
+    let onAddVenue: () -> Void
+    let onReturnToMap: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "mappin.and.ellipse")
+                .font(.system(size: 34))
+                .foregroundStyle(VowbaseTheme.rose)
+                .padding(22)
+                .background(VowbaseTheme.blush, in: Circle())
+
+            VStack(spacing: 8) {
+                Text("Start your venue shortlist.")
+                    .font(.system(size: 22, weight: .regular, design: .serif))
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .multilineTextAlignment(.center)
+                Text("Add a name, location, capacity, price, and your impressions after each visit — everything you need to build a shortlist worth comparing.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                    .multilineTextAlignment(.center)
+            }
+
+            VStack(spacing: 10) {
+                Button("Add venue", action: onAddVenue)
+                    .buttonStyle(VowbasePrimaryButtonStyle())
+                Button("Return to Map", action: onReturnToMap)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(VowbaseTheme.rose)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 44)
+        .frame(maxWidth: .infinity)
+    }
+}
+
 private struct VenueFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: VenueStatusFilter
@@ -840,7 +895,8 @@ private struct VenueDetailView: View {
             }
             .padding(16)
         }
-        .navigationTitle("Venue")
+        .vowbaseScrollClearance()
+        .navigationTitle(venue.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -929,8 +985,8 @@ private struct GuestsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
-                .padding(.bottom, 96)
             }
+            .vowbaseScrollClearance()
             .refreshable {
                 await store.load()
             }
