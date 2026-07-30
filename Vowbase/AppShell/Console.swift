@@ -19,7 +19,11 @@ enum ConsoleDetent: CaseIterable {
         switch self {
         case .peek: .height(256)
         case .half: .fraction(0.5)
-        case .full: .fraction(0.94)
+        // Deliberately not .large: that system detent reserves a visible
+        // gap at the top as an affordance. There's nothing under the
+        // console worth keeping visible once you've dragged this far, so
+        // .full covers the context bar too rather than peeking it out.
+        case .full: .fraction(1.0)
         }
     }
 
@@ -29,7 +33,7 @@ enum ConsoleDetent: CaseIterable {
         switch self {
         case .peek: 256
         case .half: screenHeight * 0.5
-        case .full: screenHeight * 0.94
+        case .full: screenHeight
         }
     }
 }

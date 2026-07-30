@@ -8,11 +8,12 @@ import SwiftUI
 @MainActor
 struct GuestsView: View {
     let store: VowbaseWorkspaceStore
+    /// Owned by `WeddingAppShell` — see `VenuesView.path`'s doc comment.
+    @Binding var path: NavigationPath
     @State private var query = ""
     @State private var filters = GuestFilterSet()
     @State private var sort: GuestSortOrder = .nameAscending
     @State private var showsFilter = false
-    @State private var path = NavigationPath()
 
     private var visibleGuests: [MVPGuest] {
         store.filteredGuests(searchText: query, filters: filters, sort: sort)

@@ -21,13 +21,14 @@ private enum QuickAddDestination: String, Identifiable {
 /// - A `.sheet` always renders above everything in the view it's presented
 ///   from, so the lens rail lives *inside* the console's own content (pinned
 ///   to its bottom) rather than as an overlay on the canvas — otherwise the
-///   sheet would cover it at every detent. The Quick Add FAB stays on the
-///   canvas: its expanding panel needs room to grow upward that a sheet's own
-///   clipped bounds can't reliably guarantee. Both the FAB's position and the
-///   map's camera inset are driven off `currentDetent` rather than the live
-///   drag position — SwiftUI exposes no API for the latter on a system sheet,
-///   so both snap to wherever the console has settled rather than tracking it
-///   continuously.
+///   sheet would cover it at every detent. The Quick Add FAB follows suit:
+///   at `.peek` it floats on the canvas just above the console, but past
+///   peek the console covers most or all of the screen, so the FAB moves
+///   inside the console itself (bottom-trailing, above the rail) or it would
+///   be unreachable. Both the FAB's position and the map's camera inset are
+///   driven off `currentDetent` rather than the live drag position — SwiftUI
+///   exposes no API for the latter on a system sheet, so both snap to
+///   wherever the console has settled rather than tracking it continuously.
 @MainActor
 struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
@@ -83,14 +84,20 @@ struct WeddingAppShell: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                QuickAddOverlay(
-                    isPresented: $isQuickAddPresented,
-                    onAddVenue: { quickAdd = .venue },
-                    onAddGuest: { quickAdd = .guest },
-                    onAddTask: { taskEditor = .add }
-                )
-                .padding(.trailing, VowbaseControlMetric.screenInset)
-                .padding(.bottom, consoleHeight + 12)
+                // At peek, the console is short enough that the FAB reads as
+                // part of the canvas floating just above it. Past peek it
+                // moves inside `consoleSheet` itself, or the console would
+                // cover it.
+                if currentDetent == .peek {
+                    QuickAddOverlay(
+                        isPresented: $isQuickAddPresented,
+                        onAddVenue: { quickAdd = .venue },
+                        onAddGuest: { quickAdd = .guest },
+                        onAddTask: { taskEditor = .add }
+                    )
+                    .padding(.trailing, VowbaseControlMetric.screenInset)
+                    .padding(.bottom, consoleHeight + 12)
+                }
             }
             .overlay {
                 if isQuickAddPresented {
@@ -175,21 +182,41 @@ struct WeddingAppShell: View {
     /// above the entire view it's attached to, so the rail has to live
     /// inside the sheet's own content to stay visible at every detent —
     /// as an overlay on the presenting canvas, the sheet would cover it.
+    ///
+    /// The grabber and header are the console's own chrome for *its* root
+    /// content (the rail, or a lens's list). Venues and Guests each own an
+    /// inner `NavigationStack`; once one has pushed to a detail screen, that
+    /// screen's own toolbar is the header, and stacking the console's chrome
+    /// above it just wastes vertical space on a second, redundant header.
     @ViewBuilder
     private var consoleSheet: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Capsule()
-                .fill(VowbaseTheme.border)
-                .frame(width: 44, height: 5)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 9)
+            if isConsoleAtRoot {
+                Capsule()
+                    .fill(VowbaseTheme.border)
+                    .frame(width: 44, height: 5)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 9)
 
-            consoleHeader
-                .padding(.horizontal, 16)
+                consoleHeader
+                    .padding(.horizontal, 16)
+            }
 
             consoleContent
         }
         .frame(maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .bottomTrailing) {
+            if currentDetent != .peek {
+                QuickAddOverlay(
+                    isPresented: $isQuickAddPresented,
+                    onAddVenue: { quickAdd = .venue },
+                    onAddGuest: { quickAdd = .guest },
+                    onAddTask: { taskEditor = .add }
+                )
+                .padding(.trailing, VowbaseControlMetric.screenInset)
+                .padding(.bottom, 12)
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             LensRail(selection: selectedLensBinding)
         }
@@ -199,11 +226,35 @@ struct WeddingAppShell: View {
         .interactiveDismissDisabled(true)
     }
 
+    /// Whether the active lens's console is showing its own root content
+    /// (rail or list) rather than something it pushed to internally.
+    /// Overview and Tasks never push from the console, so they're always
+    /// "at root" — Overview's rail has no detail destination, and Tasks
+    /// edits via a sheet (`taskEditor`), not a push.
+    private var isConsoleAtRoot: Bool {
+        switch navigation.selectedLens {
+        case .overview, .tasks:
+            true
+        case .venues:
+            navigation.venuesPath.isEmpty
+        case .guests:
+            navigation.guestsPath.isEmpty
+        }
+    }
+
     private var selectedLensBinding: Binding<PlanLens> {
         Binding(
             get: { navigation.selectedLens },
             set: { navigation.selectedLens = $0 }
         )
+    }
+
+    private var venuesPathBinding: Binding<NavigationPath> {
+        Binding(get: { navigation.venuesPath }, set: { navigation.venuesPath = $0 })
+    }
+
+    private var guestsPathBinding: Binding<NavigationPath> {
+        Binding(get: { navigation.guestsPath }, set: { navigation.guestsPath = $0 })
     }
 
     @ViewBuilder
@@ -234,14 +285,15 @@ struct WeddingAppShell: View {
                 VenuesView(
                     store: store,
                     onAddVenue: { quickAdd = .venue },
-                    onReturnToMap: { navigation.selectedLens = .overview }
+                    onReturnToMap: { navigation.selectedLens = .overview },
+                    path: venuesPathBinding
                 )
             }
         case .guests:
             if currentDetent == .peek {
                 GuestRailContent(store: store)
             } else {
-                GuestsView(store: store)
+                GuestsView(store: store, path: guestsPathBinding)
             }
         case .tasks:
             TasksView(store: store, taskStore: taskStore, editor: $taskEditor)

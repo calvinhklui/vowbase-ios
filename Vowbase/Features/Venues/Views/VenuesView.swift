@@ -13,6 +13,10 @@ struct VenuesView: View {
     let store: VowbaseWorkspaceStore
     let onAddVenue: () -> Void
     let onReturnToMap: () -> Void
+    /// Owned by `WeddingAppShell`, not this view — the shell needs to know
+    /// when this stack has drilled past its root so it can hide the
+    /// console's own header and grabber for the pushed detail screen.
+    @Binding var path: NavigationPath
     @State private var mode: VenueMode = .shortlist
     @State private var statusFilter: VenueStatusFilter = .all
     @State private var showsFilter = false
@@ -24,7 +28,7 @@ struct VenuesView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if store.venues.isEmpty {
