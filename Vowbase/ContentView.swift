@@ -815,7 +815,7 @@ private struct VenueDetailView: View {
                 }
                 Text("Notes")
                     .font(.title2.weight(.semibold))
-                Text(venue.notes?.nilIfBlank ?? "No notes added yet.")
+                Text(venue.ourNotes?.nilIfBlank ?? "No notes added yet.")
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
             .padding(16)
@@ -1541,7 +1541,7 @@ private struct MVPVenue: Identifiable, Hashable {
     let latitude: Double?
     let longitude: Double?
     let photoURLs: [URL]
-    let notes: String?
+    let ourNotes: String?
 
     var photoURL: URL? { photoURLs.first }
 
@@ -1635,7 +1635,6 @@ private final class VowbaseWorkspaceStore {
                 venueEstimateText: "$53.7k",
                 allInEstimateText: "$90k–$125k",
                 availableDatesText: "Weekends in September",
-                notes: nil,
                 ourNotes: nil,
                 summary: "An airy riverside venue for a joyful, relaxed celebration.",
                 latitude: 39.5,
@@ -1668,7 +1667,6 @@ private final class VowbaseWorkspaceStore {
                 venueEstimateText: "$48k",
                 allInEstimateText: nil,
                 availableDatesText: "October weekends",
-                notes: nil,
                 ourNotes: nil,
                 summary: nil,
                 latitude: 39.6,
@@ -1701,7 +1699,6 @@ private final class VowbaseWorkspaceStore {
                 venueEstimateText: "$39k",
                 allInEstimateText: nil,
                 availableDatesText: nil,
-                notes: nil,
                 ourNotes: nil,
                 summary: nil,
                 latitude: 39.4,
@@ -1811,7 +1808,7 @@ private final class VowbaseWorkspaceStore {
                     capacityMax: nil,
                     priceEstimate: nil,
                     priceNotes: nil,
-                    notes: nil,
+                    ourNotes: nil,
                     latitude: location.latitude,
                     longitude: location.longitude,
                     photoURL: nil
@@ -1849,7 +1846,7 @@ private final class VowbaseWorkspaceStore {
                     capacityMax: nil,
                     priceEstimate: nil,
                     priceNotes: nil,
-                    notes: nil,
+                    ourNotes: nil,
                     latitude: resolved.latitude,
                     longitude: resolved.longitude,
                     photoURL: nil,
@@ -2046,7 +2043,7 @@ private extension MVPVenue {
             uniquePhotoURLs.append(url)
         }
         self.photoURLs = uniquePhotoURLs
-        notes = venue.ourNotes?.nilIfBlank ?? venue.notes?.nilIfBlank
+        ourNotes = venue.ourNotes?.nilIfBlank
     }
 }
 
