@@ -21,6 +21,7 @@
 		A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */; };
 		A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60000000000B1 /* Supabase */; };
 		A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */; };
+		A1B2C3D4E5F6000000000022 /* GuestFieldEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */; };
 		A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */; };
 		A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */; };
 		A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */; };
@@ -65,6 +66,7 @@
 		F4A3B4C5D6E7000000000001 /* GuestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000011 /* GuestModels.swift */; };
 		F4A3B4C5D6E7000000000002 /* GuestRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000012 /* GuestRepository.swift */; };
 		F4A3B4C5D6E7000000000003 /* SupabaseGuestRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */; };
+		F4A3B4C5D6E7000000000005 /* GuestFieldEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */; };
 		F4A3B4C5D6E7000000000004 /* GuestRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */; };
 		F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */; };
 		F5A3B4C5D6E7000000000003 /* Features/Schedule/ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000013 /* Features/Schedule/ScheduleModels.swift */; };
@@ -128,6 +130,7 @@
 		A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vowbase.entitlements; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VowbaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFieldEditingTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000017 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -176,6 +179,7 @@
 		F4A3B4C5D6E7000000000011 /* GuestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestModels.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000012 /* GuestRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepository.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseGuestRepository.swift; sourceTree = "<group>"; };
+		F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFieldEditing.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepositoryTests.swift; sourceTree = "<group>"; };
 		F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainRepositorySupport.swift; sourceTree = "<group>"; };
 		F5A3B4C5D6E7000000000013 /* Features/Schedule/ScheduleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/ScheduleModels.swift; sourceTree = "<group>"; };
@@ -339,6 +343,7 @@
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
 				A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */,
+				A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */,
 			);
 			path = VowbaseTests;
 			sourceTree = "<group>";
@@ -436,6 +441,7 @@
 			children = (
 				F4A3B4C5D6E7000000000011 /* GuestModels.swift */,
 				F4A3B4C5D6E7000000000012 /* GuestRepository.swift */,
+				F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */,
 				F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */,
 			);
 			path = Features/Guests;
@@ -607,6 +613,7 @@
 				F4A3B4C5D6E7000000000001 /* GuestModels.swift in Sources */,
 				F4A3B4C5D6E7000000000002 /* GuestRepository.swift in Sources */,
 				F4A3B4C5D6E7000000000003 /* SupabaseGuestRepository.swift in Sources */,
+				F4A3B4C5D6E7000000000005 /* GuestFieldEditing.swift in Sources */,
 				E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */,
 				B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */,
 				A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */,
@@ -669,6 +676,7 @@
 				C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */,
 				C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */,
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
+				A1B2C3D4E5F6000000000022 /* GuestFieldEditingTests.swift in Sources */,
 				F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */,
 				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
 				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,

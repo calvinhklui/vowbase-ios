@@ -1038,10 +1038,14 @@ private struct GuestRow: View {
                     .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(VowbaseTheme.ink)
                 HStack(spacing: 6) {
-                    Text(guest.group)
-                    Text("•")
-                    Text(guest.location ?? "Location not added")
-                    if guest.location != nil {
+                    if let subtitle = guest.subtitle {
+                        Text(subtitle)
+                        Text("•")
+                    }
+                    Text(guest.location ?? "No location")
+                    // The pin means a map-safe city origin exists, not merely
+                    // that some address was typed.
+                    if guest.isMappable {
                         Image(systemName: "mappin")
                             .foregroundStyle(VowbaseTheme.guestBlue)
                     }
@@ -1058,32 +1062,31 @@ private struct GuestRow: View {
     }
 }
 
+/// The guest record, edited in place.
+///
+/// There is no view mode and no edit mode: every row is a live control styled
+/// to read as static text until focused, and each commits on its own.
+@MainActor
 private struct GuestDetailView: View {
     let guest: MVPGuest
     let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
-    @State private var isEditing = false
     @State private var isConfirmingDeletion = false
+    @State private var undo: GuestUndo?
+
+    /// The server-confirmed record. Rows read through this so a successful save
+    /// adopts whatever the server actually stored.
+    private var record: Guest? { store.guestRecord(id: guest.id) }
 
     var body: some View {
         List {
-            Section {
-                HStack(spacing: 16) {
-                    Text(guest.initials)
-                        .font(.system(size: 30, design: .serif))
-                        .frame(width: 76, height: 76)
-                        .background(VowbaseTheme.blush, in: Circle())
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(guest.name).font(.title2.weight(.semibold))
-                        RSVPStatusCapsule(status: guest.rsvp)
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            Section("Guest details") {
-                LabeledContent("Group", value: guest.group)
-                LabeledContent("Location", value: guest.location ?? "Not added")
-                LabeledContent("Email", value: guest.email ?? "Not added")
+            if let record {
+                header(record)
+                rsvpSection(record)
+                contactSection(record)
+                locationSection(record)
+                customFieldsSection(record)
+                metadataSection(record)
             }
         }
         .navigationTitle("Guest")
@@ -1091,16 +1094,22 @@ private struct GuestDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Edit guest") { isEditing = true }
+                    Button("Manage fields") {}
                     Button("Delete guest", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
             }
         }
-        .sheet(isPresented: $isEditing) {
-            EditGuestSheet(store: store, guest: guest)
+        .overlay(alignment: .bottom) {
+            if let undo {
+                GuestUndoToast(undo: undo) { self.undo = nil }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.snappy(duration: 0.22), value: undo?.id)
         .alert("Delete \(guest.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
                 Task {
@@ -1112,6 +1121,487 @@ private struct GuestDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the guest from your wedding workspace.")
+        }
+    }
+
+    // MARK: Sections
+
+    private func header(_ record: Guest) -> some View {
+        Section {
+            HStack(spacing: 16) {
+                Text(guest.initials)
+                    .font(.system(size: 30, design: .serif))
+                    .frame(width: 76, height: 76)
+                    .background(VowbaseTheme.blush, in: Circle())
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        GuestInlineField(
+                            stored: record.firstName,
+                            placeholder: "First",
+                            isRequired: true,
+                            font: .system(size: 21, design: .serif),
+                            saveState: store.saveState(.init(guestID: guest.id, field: .firstName)),
+                            capitalization: .words,
+                            commit: { await store.commitField(.firstName, for: guest.id, value: $0) }
+                        )
+                        GuestInlineField(
+                            stored: record.lastName ?? "",
+                            placeholder: "Last",
+                            font: .system(size: 21, design: .serif),
+                            saveState: store.saveState(.init(guestID: guest.id, field: .lastName)),
+                            capitalization: .words,
+                            commit: { await store.commitField(.lastName, for: guest.id, value: $0) }
+                        )
+                    }
+                    RSVPStatusCapsule(status: record.rsvpStatus ?? .notInvited)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func rsvpSection(_ record: Guest) -> some View {
+        Section {
+            let key = GuestFieldKey(guestID: guest.id, field: "rsvpStatus")
+            let current = record.rsvpStatus ?? .notInvited
+            LabeledContent("Status") {
+                HStack(spacing: 8) {
+                    GuestSaveIndicator(state: store.saveState(key))
+                    Menu {
+                        ForEach(RSVPStatus.allCases, id: \.self) { status in
+                            Button {
+                                changeRSVP(to: status, from: current)
+                            } label: {
+                                if status == current {
+                                    Label(status.title, systemImage: "checkmark")
+                                } else {
+                                    Text(status.title)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(current.title)
+                            Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                        }
+                        .foregroundStyle(VowbaseTheme.ink)
+                    }
+                }
+            }
+            if let responded = record.rsvpDate {
+                LabeledContent("Responded", value: responded.formatted(date: .abbreviated, time: .omitted))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        } header: {
+            Text("RSVP")
+        } footer: {
+            Text("The response date is set by the server when the status changes.")
+        }
+    }
+
+    private func contactSection(_ record: Guest) -> some View {
+        Section("Contact") {
+            inlineRow(.email, stored: record.email ?? "", keyboard: .emailAddress)
+            inlineRow(.phone, stored: record.phone ?? "", keyboard: .phonePad)
+        }
+    }
+
+    private func locationSection(_ record: Guest) -> some View {
+        Section("Location") {
+            let key = GuestFieldKey(guestID: guest.id, field: "address")
+            LabeledContent("Address") {
+                GuestInlineField(
+                    stored: record.address ?? "",
+                    placeholder: "Not added",
+                    saveState: store.saveState(key),
+                    capitalization: .words,
+                    commit: { await store.commitAddress(for: guest.id, value: $0) }
+                )
+            }
+            GuestDerivedLocationRow(record: record, isResolving: store.saveState(key) == .saving)
+        }
+    }
+
+    @ViewBuilder
+    private func customFieldsSection(_ record: Guest) -> some View {
+        let columns = store.visibleCustomColumns
+        Section {
+            if store.customFieldsUnavailable {
+                Text("Custom fields couldn’t be loaded. The rest of this guest is up to date.")
+                    .font(.footnote)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else if columns.isEmpty {
+                Button("Add a field") {}
+                    .tint(VowbaseTheme.rose)
+            } else {
+                ForEach(columns) { column in
+                    GuestCustomFieldRow(
+                        column: column,
+                        record: record,
+                        state: store.saveState(.customField(guestID: guest.id, key: column.key)),
+                        commit: { value in store.commitCustomField(column, for: guest.id, value: value) },
+                        onCleared: { previous in
+                            offerUndo("\(column.label) cleared") {
+                                store.commitCustomField(column, for: guest.id, value: previous)
+                            }
+                        }
+                    )
+                }
+                Button("Add a field") {}
+                    .tint(VowbaseTheme.rose)
+            }
+        } header: {
+            Text("Custom fields")
+        } footer: {
+            if !columns.isEmpty {
+                Text("Fields appear in the order set on Manage fields. Hidden fields keep their data.")
+            }
+        }
+    }
+
+    private func metadataSection(_ record: Guest) -> some View {
+        Section {
+            LabeledContent("Added", value: record.createdAt.formatted(date: .abbreviated, time: .omitted))
+                .foregroundStyle(VowbaseTheme.mutedInk)
+        }
+    }
+
+    // MARK: Helpers
+
+    private func inlineRow(
+        _ field: GuestEditableField,
+        stored: String,
+        keyboard: UIKeyboardType
+    ) -> some View {
+        LabeledContent(field.label) {
+            GuestInlineField(
+                stored: stored,
+                placeholder: "Not added",
+                isRequired: field.isRequired,
+                saveState: store.saveState(.init(guestID: guest.id, field: field)),
+                keyboard: keyboard,
+                commit: { await store.commitField(field, for: guest.id, value: $0) }
+            )
+        }
+    }
+
+    private func changeRSVP(to status: RSVPStatus, from previous: RSVPStatus) {
+        Task {
+            guard await store.commitRSVP(status, for: guest.id) else { return }
+            offerUndo("RSVP set to \(status.title)") {
+                Task { await store.commitRSVP(previous, for: guest.id) }
+            }
+        }
+    }
+
+    private func offerUndo(_ message: String, action: @escaping () -> Void) {
+        let entry = GuestUndo(message: message, action: action)
+        undo = entry
+        Task {
+            try? await Task.sleep(for: .seconds(5))
+            if undo?.id == entry.id { undo = nil }
+        }
+    }
+}
+
+private struct GuestUndo: Identifiable, Equatable {
+    let id = UUID()
+    let message: String
+    let action: () -> Void
+
+    static func == (lhs: GuestUndo, rhs: GuestUndo) -> Bool { lhs.id == rhs.id }
+}
+
+private struct GuestUndoToast: View {
+    let undo: GuestUndo
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(undo.message)
+                .font(.system(size: 15))
+                .foregroundStyle(VowbaseTheme.background)
+            Spacer(minLength: 8)
+            Button("Undo") {
+                undo.action()
+                dismiss()
+            }
+            .font(.system(size: 15, weight: .semibold))
+            .tint(VowbaseTheme.rose)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .background(VowbaseTheme.ink, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// A value that reads as text and edits as text, with no mode switch.
+///
+/// Commits on blur or return. A failed save leaves the typed value in place
+/// rather than reverting to what the server holds.
+private struct GuestInlineField: View {
+    let stored: String
+    var placeholder: String = "Not added"
+    var isRequired: Bool = false
+    var font: Font = .body
+    let saveState: GuestFieldSaveState?
+    var keyboard: UIKeyboardType = .default
+    var capitalization: TextInputAutocapitalization = .sentences
+    let commit: (String) async -> Void
+
+    @State private var draft = ""
+    @State private var showsRequiredWarning = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                TextField(placeholder, text: $draft)
+                    .font(font)
+                    .focused($isFocused)
+                    .keyboardType(keyboard)
+                    .textInputAutocapitalization(capitalization)
+                    .autocorrectionDisabled(keyboard == .emailAddress)
+                    .submitLabel(.done)
+                    .onSubmit { isFocused = false }
+                GuestSaveIndicator(state: saveState)
+            }
+            .padding(.horizontal, isFocused ? 8 : 0)
+            .padding(.vertical, isFocused ? 6 : 0)
+            .background {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(VowbaseTheme.blush)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(VowbaseTheme.rose, lineWidth: 1.5)
+                        )
+                }
+            }
+
+            if showsRequiredWarning {
+                Text("First name can’t be empty.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.rose)
+            }
+            if case let .failed(pending) = saveState {
+                GuestSaveFailureNote {
+                    Task { await commit(pending ?? draft) }
+                }
+            }
+        }
+        .onAppear { draft = stored }
+        .onChange(of: stored) { _, newValue in
+            // Adopt the server-confirmed value, but never yank text out from
+            // under someone who is still typing.
+            if !isFocused { draft = newValue }
+        }
+        .onChange(of: isFocused) { wasFocused, focused in
+            guard wasFocused, !focused else { return }
+            let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRequired, trimmed.isEmpty {
+                draft = stored
+                showsRequiredWarning = true
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    showsRequiredWarning = false
+                }
+                return
+            }
+            Task { await commit(draft) }
+        }
+    }
+}
+
+private struct GuestSaveIndicator: View {
+    let state: GuestFieldSaveState?
+
+    var body: some View {
+        switch state {
+        case .saving:
+            ProgressView().controlSize(.mini)
+        case .saved:
+            Image(systemName: "checkmark")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.green)
+                .transition(.opacity)
+        case .failed, .none:
+            EmptyView()
+        }
+    }
+}
+
+private struct GuestSaveFailureNote: View {
+    let retry: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("Couldn’t save. Your value is still here.")
+                .font(.caption)
+                .foregroundStyle(VowbaseTheme.rose)
+            Spacer(minLength: 4)
+            Button("Retry", action: retry)
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.bordered)
+                .tint(VowbaseTheme.rose)
+        }
+        .padding(.top, 2)
+    }
+}
+
+/// Read-only context derived from the address.
+///
+/// These are outputs of geocoding, not blanks the user failed to fill, so the
+/// row explains their state instead of presenting empty inputs.
+private struct GuestDerivedLocationRow: View {
+    let record: Guest
+    let isResolving: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if isResolving {
+                HStack(spacing: 8) {
+                    Text("Locating…").foregroundStyle(VowbaseTheme.mutedInk)
+                    ProgressView().controlSize(.mini)
+                }
+            } else if record.originPrecision == "city", let label = record.originLabel {
+                HStack(spacing: 8) {
+                    Text(label)
+                    Text("City")
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(VowbaseTheme.guestBlue.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(VowbaseTheme.guestBlue)
+                }
+                Text("Shown on the map as part of a city cluster. The exact address never leaves this screen.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else if record.address?.nilIfBlank != nil {
+                Text("Location not mapped").foregroundStyle(VowbaseTheme.mutedInk)
+                Text("This address didn’t resolve to a city, so no map cluster includes this guest.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            } else {
+                Text("No location").foregroundStyle(VowbaseTheme.mutedInk)
+                Text("Add an address to include this guest in the map’s city clusters.")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// One custom field, rendered with the single control its kind allows.
+private struct GuestCustomFieldRow: View {
+    let column: GuestCustomColumn
+    let record: Guest
+    let state: GuestFieldSaveState?
+    let commit: (JSONValue?) -> Void
+    let onCleared: (JSONValue?) -> Void
+
+    private var stored: JSONValue? {
+        GuestCustomFields.value(in: record.customFields, for: column.key)
+    }
+
+    var body: some View {
+        if GuestCustomFields.isUnsupported(stored, kind: column.kind) {
+            unsupportedRow
+        } else {
+            switch column.kind {
+            case .checkbox: checkboxRow
+            case .select: selectRow
+            case .text, .number: textRow
+            }
+        }
+    }
+
+    private var unsupportedRow: some View {
+        LabeledContent(column.label) {
+            HStack(spacing: 8) {
+                Text("Unsupported value")
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                Button("Clear") { commit(nil) }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .tint(VowbaseTheme.rose)
+            }
+        }
+    }
+
+    private var checkboxRow: some View {
+        Toggle(isOn: Binding(
+            get: { stored == .bool(true) },
+            set: { commit($0 ? .bool(true) : nil) }
+        )) {
+            HStack(spacing: 8) {
+                Text(column.label)
+                GuestSaveIndicator(state: state)
+            }
+        }
+        .tint(VowbaseTheme.rose)
+    }
+
+    private var selectRow: some View {
+        let options = GuestCustomFields.options(in: column)
+        let current = GuestCustomFields.displayText(stored, kind: column.kind)
+        // A value the column no longer offers is still shown, so the user can
+        // see what is there before replacing it.
+        let isOrphaned = current.map { !options.contains($0) } ?? false
+
+        return LabeledContent(column.label) {
+            HStack(spacing: 8) {
+                GuestSaveIndicator(state: state)
+                Menu {
+                    if let current, isOrphaned {
+                        Button {
+                        } label: {
+                            Label("\(current) — no longer an option", systemImage: "checkmark")
+                        }
+                        .disabled(true)
+                    }
+                    ForEach(options, id: \.self) { option in
+                        Button {
+                            commit(.string(option))
+                        } label: {
+                            if option == current {
+                                Label(option, systemImage: "checkmark")
+                            } else {
+                                Text(option)
+                            }
+                        }
+                    }
+                    if current != nil {
+                        Divider()
+                        Button("Clear", role: .destructive) {
+                            let previous = stored
+                            commit(nil)
+                            onCleared(previous)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(current ?? "Not set")
+                            .foregroundStyle(current == nil ? VowbaseTheme.mutedInk : VowbaseTheme.ink)
+                        Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                    }
+                }
+            }
+        }
+    }
+
+    private var textRow: some View {
+        LabeledContent(column.label) {
+            GuestInlineField(
+                stored: GuestCustomFields.displayText(stored, kind: column.kind) ?? "",
+                saveState: state,
+                keyboard: column.kind == .number ? .decimalPad : .default,
+                capitalization: column.kind == .number ? .never : .sentences,
+                commit: { text in
+                    commit(GuestCustomFields.encode(text, kind: column.kind))
+                }
+            )
         }
     }
 }
@@ -1340,72 +1830,6 @@ private struct EditVenueSheet: View {
     }
 }
 
-@MainActor
-private struct EditGuestSheet: View {
-    let store: VowbaseWorkspaceStore
-    let guest: MVPGuest
-    @Environment(\.dismiss) private var dismiss
-    @State private var firstName: String
-    @State private var lastName: String
-    @State private var location: String
-    @State private var rsvp: RSVPStatus
-    @State private var isSaving = false
-
-    init(store: VowbaseWorkspaceStore, guest: MVPGuest) {
-        self.store = store
-        self.guest = guest
-        _firstName = State(initialValue: guest.firstName)
-        _lastName = State(initialValue: guest.lastName)
-        _location = State(initialValue: guest.location ?? "")
-        _rsvp = State(initialValue: guest.rsvp)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Guest details") {
-                    TextField("First name", text: $firstName)
-                        .textInputAutocapitalization(.words)
-                    TextField("Last name (optional)", text: $lastName)
-                        .textInputAutocapitalization(.words)
-                    Picker("RSVP", selection: $rsvp) {
-                        ForEach(RSVPStatus.allCases, id: \.self) { status in
-                            Text(status.title).tag(status)
-                        }
-                    }
-                    TextField("Address or location (optional)", text: $location)
-                        .textInputAutocapitalization(.words)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(VowbaseTheme.background)
-            .tint(VowbaseTheme.rose)
-            .navigationTitle("Edit guest")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.updateGuest(
-                                guest,
-                                firstName: firstName,
-                                lastName: lastName,
-                                location: location,
-                                rsvp: rsvp
-                            )
-                            isSaving = false
-                            if didSave { dismiss() }
-                        }
-                    }
-                    .disabled(firstName.trimmed.isEmpty || isSaving)
-                }
-            }
-        }
-    }
-}
-
 // MARK: - Reusable views and MVP fixtures
 
 private struct VowbaseVenueImage: View {
@@ -1564,10 +1988,16 @@ private struct MVPGuest: Identifiable, Hashable {
     let id: UUID
     let firstName: String
     let lastName: String
-    let group: String
+    /// Row subtitle resolved from this wedding's own column definitions.
+    /// Nil when no suitable column exists or the guest has no value for it.
+    let subtitle: String?
     let location: String?
     let email: String?
+    let phone: String?
     let rsvp: RSVPStatus
+    let isMappable: Bool
+    /// Flattened custom values so search reaches custom fields too.
+    let customSearchText: String
 
     var name: String { [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ") }
     var initials: String {
@@ -1576,7 +2006,11 @@ private struct MVPGuest: Identifiable, Hashable {
             .map { String($0).uppercased() }
             .joined()
     }
-    var searchText: String { [name, group, location, email].compactMap { $0 }.joined(separator: " ") }
+    var searchText: String {
+        [name, subtitle, location, email, phone, customSearchText]
+            .compactMap { $0 }
+            .joined(separator: " ")
+    }
 }
 
 @MainActor
@@ -1586,12 +2020,25 @@ private final class VowbaseWorkspaceStore {
     private var venueRecords = [Venue]()
     private var signedVenuePhotoURLs = [UUID: [URL]]()
     private var guestRecords = [Guest]()
+    private var customColumnRecords = [GuestCustomColumn]()
+
+    /// Serializes each guest's custom-field writes. `GuestPatch.customFields`
+    /// replaces the whole JSON object, so two concurrent row commits would
+    /// clobber one another without this chain.
+    private var customFieldWrites = [UUID: Task<Void, Never>]()
 
     var selectedVenueID: UUID?
     var isGlobalMenuOpen = false
     var wedding: WeddingSummary?
     var isLoading = false
     var errorMessage: String?
+
+    /// Set when column definitions fail to load. Custom-field rows are hidden
+    /// rather than shown broken, and the guest list stays usable.
+    var customFieldsUnavailable = false
+
+    /// Per-row save state for inline editing, keyed by guest and field.
+    private(set) var fieldSaveStates = [GuestFieldKey: GuestFieldSaveState]()
 
     init(repositories: RepositoryContainer? = nil) {
         self.repositories = repositories
@@ -1718,6 +2165,12 @@ private final class VowbaseWorkspaceStore {
             Guest(id: UUID(uuidString: "3F8DB09C-44F3-4888-8D2B-31EB26F5C487")!, weddingID: weddingID, firstName: "Theo", lastName: "Lark", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .pending, rsvpDate: nil, originLabel: "Willow Coast", originLatitude: 39.4, originLongitude: -98.45, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
             Guest(id: UUID(uuidString: "DE25BD36-69A1-4DC3-A5E0-5E0AF076E34E")!, weddingID: weddingID, firstName: "Nora", lastName: "Wynn", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .notInvited, rsvpDate: nil, originLabel: "Solace Point", originLatitude: 39.45, originLongitude: -98.3, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
         ]
+        customColumnRecords = [
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C01")!, weddingID: weddingID, key: "group", label: "Group", kind: .select, options: .array([.string("Cedar Circle"), .string("Juniper Guild")]), position: 0, hidden: false, createdAt: createdAt, updatedAt: createdAt),
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C02")!, weddingID: weddingID, key: "meal_choice", label: "Meal choice", kind: .select, options: .array([.string("Chicken"), .string("Fish"), .string("Vegetarian")]), position: 1, hidden: false, createdAt: createdAt, updatedAt: createdAt),
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C03")!, weddingID: weddingID, key: "plus_one", label: "Plus one", kind: .checkbox, options: .array([]), position: 2, hidden: false, createdAt: createdAt, updatedAt: createdAt),
+            GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C04")!, weddingID: weddingID, key: "table", label: "Table", kind: .number, options: .array([]), position: 3, hidden: false, createdAt: createdAt, updatedAt: createdAt)
+        ]
         selectedVenueID = venueRecords.first?.id
     }
 #endif
@@ -1727,8 +2180,25 @@ private final class VowbaseWorkspaceStore {
             MVPVenue(venue, photoURLs: signedVenuePhotoURLs[venue.id] ?? [])
         }
     }
-    var guests: [MVPGuest] { guestRecords.map(MVPGuest.init) }
+    var guests: [MVPGuest] {
+        let columns = customColumnRecords
+        return guestRecords.map { MVPGuest($0, columns: columns) }
+    }
     var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
+
+    /// Columns offered for editing and filtering, in their configured order.
+    /// Empty while definitions are unavailable so rows never render broken.
+    var visibleCustomColumns: [GuestCustomColumn] {
+        customFieldsUnavailable ? [] : GuestDisplayResolver.visibleColumns(customColumnRecords)
+    }
+
+    func guestRecord(id: UUID) -> Guest? {
+        guestRecords.first { $0.id == id }
+    }
+
+    func saveState(_ key: GuestFieldKey) -> GuestFieldSaveState? {
+        fieldSaveStates[key]
+    }
 
     /// Map guest locations only when the server marks them as city-precision.
     /// This keeps individual household addresses out of the planning map.
@@ -1767,6 +2237,7 @@ private final class VowbaseWorkspaceStore {
             guard let membership = try await repositories.workspace.memberships().first else {
                 venueRecords = []
                 guestRecords = []
+                customColumnRecords = []
                 wedding = nil
                 errorMessage = "This account is not a member of a wedding workspace yet."
                 return
@@ -1775,8 +2246,18 @@ private final class VowbaseWorkspaceStore {
             wedding = membership.wedding
             async let venues = repositories.venues.venues(weddingID: membership.weddingId)
             async let guests = repositories.guests.guests(weddingID: membership.weddingId)
+            // Column definitions degrade on their own: losing them should hide
+            // custom fields, never take the guest list down with them.
+            async let columns = try? repositories.guests.customColumns(weddingID: membership.weddingId)
             venueRecords = try await venues
             guestRecords = try await guests
+            if let loadedColumns = await columns {
+                customColumnRecords = GuestDisplayResolver.orderedColumns(loadedColumns)
+                customFieldsUnavailable = false
+            } else {
+                customColumnRecords = []
+                customFieldsUnavailable = true
+            }
             let currentVenueIDs = Set(venueRecords.map(\.id))
             signedVenuePhotoURLs = signedVenuePhotoURLs.filter { currentVenueIDs.contains($0.key) }
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
@@ -1906,30 +2387,163 @@ private final class VowbaseWorkspaceStore {
         }
     }
 
-    func updateGuest(_ guest: MVPGuest, firstName: String, lastName: String, location: String, rsvp: RSVPStatus) async -> Bool {
-        guard let repositories else { return unavailable() }
-        do {
-            let resolved = await resolvedLocation(for: location, repositories: repositories)
-            let updated = try await repositories.guests.updateGuest(
-                id: guest.id,
-                patch: GuestPatch(
-                    firstName: firstName.trimmed,
-                    lastName: lastName.nilIfBlank.map(NullablePatch.value) ?? .null,
-                    address: resolved.displayName.map(NullablePatch.value) ?? .null,
-                    rsvpStatus: .value(rsvp),
-                    originLabel: (resolved.city ?? resolved.displayName).map(NullablePatch.value) ?? .null,
-                    originLatitude: resolved.latitude.map(NullablePatch.value) ?? .null,
-                    originLongitude: resolved.longitude.map(NullablePatch.value) ?? .null,
-                    originPrecision: resolved.city == nil ? .null : .value("city"),
-                    geocodeStatus: resolved.latitude == nil ? .null : .value("resolved")
-                )
-            )
-            replace(updated, in: &guestRecords)
-            return true
-        } catch {
-            errorMessage = userMessage(for: error)
+    // MARK: - Inline guest editing
+
+    /// Commits one plain-text field.
+    ///
+    /// Returns false without touching the network when the value is unchanged
+    /// or fails validation, so an unmodified row costs nothing.
+    @discardableResult
+    func commitField(
+        _ field: GuestEditableField,
+        for guestID: UUID,
+        value: String
+    ) async -> Bool {
+        guard let record = guestRecord(id: guestID) else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: field)
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmed != (field.currentValue(in: record) ?? "") else {
+            fieldSaveStates[key] = nil
             return false
         }
+        guard let patch = field.patch(newValue: trimmed) else {
+            // Required and empty. The row restores itself and says why.
+            fieldSaveStates[key] = nil
+            return false
+        }
+        return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+    }
+
+    /// Commits the address, then re-derives the coarse map origin from it.
+    ///
+    /// Geocoding runs after the write lands and never blocks or reverts it: an
+    /// address that cannot be resolved is still the user's address.
+    @discardableResult
+    func commitAddress(for guestID: UUID, value: String) async -> Bool {
+        guard let repositories, let record = guestRecord(id: guestID) else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: "address")
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != (record.address ?? "") else {
+            fieldSaveStates[key] = nil
+            return false
+        }
+
+        guard !trimmed.isEmpty else {
+            // Clearing the address clears everything derived from it.
+            let patch = GuestPatch(
+                address: .null,
+                originLabel: .null,
+                originLatitude: .null,
+                originLongitude: .null,
+                originPrecision: .null,
+                geocodeStatus: .null
+            )
+            return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+        }
+
+        // Show progress across the geocode too, not just the write that follows.
+        fieldSaveStates[key] = .saving
+        let resolved = await resolvedLocation(for: trimmed, repositories: repositories)
+        let patch = GuestPatch(
+            address: .value(trimmed),
+            originLabel: (resolved.city ?? resolved.displayName).map(NullablePatch.value) ?? .null,
+            originLatitude: resolved.latitude.map(NullablePatch.value) ?? .null,
+            originLongitude: resolved.longitude.map(NullablePatch.value) ?? .null,
+            originPrecision: resolved.city == nil ? .null : .value("city"),
+            geocodeStatus: resolved.latitude == nil ? .null : .value("resolved")
+        )
+        return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+    }
+
+    @discardableResult
+    func commitRSVP(_ status: RSVPStatus, for guestID: UUID) async -> Bool {
+        guard let record = guestRecord(id: guestID), record.rsvpStatus != status else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: "rsvpStatus")
+        return await applyPatch(
+            GuestPatch(rsvpStatus: .value(status)),
+            guestID: guestID,
+            key: key,
+            pendingValue: nil
+        )
+    }
+
+    /// Queues a custom-field write behind this guest's other custom-field
+    /// writes. The merge base is read when the write runs, not when the row was
+    /// focused, so edits to different keys cannot erase each other.
+    func commitCustomField(_ column: GuestCustomColumn, for guestID: UUID, value: JSONValue?) {
+        let previous = customFieldWrites[guestID]
+        customFieldWrites[guestID] = Task { [weak self] in
+            await previous?.value
+            guard let self, !Task.isCancelled else { return }
+            await self.writeCustomField(column, guestID: guestID, value: value)
+        }
+    }
+
+    private func writeCustomField(
+        _ column: GuestCustomColumn,
+        guestID: UUID,
+        value: JSONValue?
+    ) async {
+        guard let repositories, let record = guestRecord(id: guestID) else { return }
+        let key = GuestFieldKey.customField(guestID: guestID, key: column.key)
+        fieldSaveStates[key] = .saving
+
+        let merged = GuestCustomFields.merging(record.customFields, key: column.key, value: value)
+        do {
+            let updated = try await repositories.guests.updateGuest(
+                id: guestID,
+                patch: GuestPatch(customFields: merged)
+            )
+            replace(updated, in: &guestRecords)
+            markSaved(key)
+        } catch is CancellationError {
+            fieldSaveStates[key] = nil
+        } catch {
+            let pending = GuestCustomFields.displayText(value, kind: column.kind)
+            fieldSaveStates[key] = .failed(pendingValue: pending)
+        }
+    }
+
+    /// Sends a single-field patch and reconciles the row's save state.
+    ///
+    /// A failure keeps `pendingValue` on the row so the user's input survives;
+    /// nothing is reverted and nothing is discarded.
+    private func applyPatch(
+        _ patch: GuestPatch,
+        guestID: UUID,
+        key: GuestFieldKey,
+        pendingValue: String?
+    ) async -> Bool {
+        guard let repositories else { return unavailable() }
+        guard !patch.isEmpty else { return false }
+        fieldSaveStates[key] = .saving
+        do {
+            let updated = try await repositories.guests.updateGuest(id: guestID, patch: patch)
+            replace(updated, in: &guestRecords)
+            markSaved(key)
+            return true
+        } catch is CancellationError {
+            fieldSaveStates[key] = nil
+            return false
+        } catch {
+            fieldSaveStates[key] = .failed(pendingValue: pendingValue)
+            return false
+        }
+    }
+
+    /// Shows the confirmation tick briefly, then clears it.
+    private func markSaved(_ key: GuestFieldKey) {
+        fieldSaveStates[key] = .saved
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard let self, self.fieldSaveStates[key] == .saved else { return }
+            self.fieldSaveStates[key] = nil
+        }
+    }
+
+    func clearSaveState(_ key: GuestFieldKey) {
+        fieldSaveStates[key] = nil
     }
 
     func deleteGuest(_ guest: MVPGuest) async -> Bool {
@@ -2051,16 +2665,26 @@ private extension MVPVenue {
 }
 
 private extension MVPGuest {
-    init(_ guest: Guest) {
+    init(_ guest: Guest, columns: [GuestCustomColumn]) {
         id = guest.id
         firstName = guest.firstName
         lastName = guest.lastName ?? ""
-        group = guest.customFields.stringValue(for: "group")
-            ?? guest.customFields.stringValue(for: "group_name")
-            ?? "No group"
+        subtitle = GuestDisplayResolver.subtitle(for: guest, columns: columns)
         location = guest.originLabel ?? guest.address
         email = guest.email
+        phone = guest.phone
         rsvp = guest.rsvpStatus ?? .notInvited
+        isMappable = guest.originPrecision == "city"
+        customSearchText = GuestCustomFields.object(in: guest.customFields)
+            .values
+            .compactMap { value in
+                switch value {
+                case let .string(text): text
+                case let .number(number): String(number)
+                default: nil
+                }
+            }
+            .joined(separator: " ")
     }
 }
 
