@@ -20,4 +20,8 @@ enum VowbaseControlMetric {
     static let minimumTapTarget: CGFloat = 44
     static let fabDiameter: CGFloat = 64
     static let screenInset: CGFloat = 16
+
+    /// Clearance for the floating tab bar. The bar is already a safe-area inset;
+    /// this covers the Quick Add FAB, which floats outside it.
+    static let quickAddClearance: CGFloat = fabDiameter + VowbaseSpace.large
 }

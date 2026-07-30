@@ -14,6 +14,19 @@ extension View {
     func vowbaseCard(padding: CGFloat = VowbaseSpace.standard) -> some View {
         modifier(VowbaseCardModifier(padding: padding))
     }
+
+    /// Bottom breathing room for scrollable screens under the floating tab bar and,
+    /// where present, the Quick Add FAB. The FAB is an app-shell overlay, so it stays
+    /// visible on screens pushed within a tab's own NavigationStack (e.g. Venue Detail) —
+    /// pass `includesQuickAdd: false` only for scroll views with no app chrome at all,
+    /// such as a full-screen `.sheet`.
+    func vowbaseScrollClearance(includesQuickAdd: Bool = true) -> some View {
+        contentMargins(
+            .bottom,
+            includesQuickAdd ? VowbaseControlMetric.quickAddClearance : VowbaseSpace.large,
+            for: .scrollContent
+        )
+    }
 }
 
 struct VowbaseStatusBadge: View {
