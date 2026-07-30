@@ -2,10 +2,12 @@ import SwiftUI
 
 // MARK: - Guests
 
+/// The Guests lens's half/full console content — see `VenuesView`'s doc
+/// comment for how this fits into the console. Its own header is gone; the
+/// shared `ConsoleHeader` covers it now.
 @MainActor
 struct GuestsView: View {
     let store: VowbaseWorkspaceStore
-    let onSignOut: () -> Void
     @State private var query = ""
     @State private var filters = GuestFilterSet()
     @State private var sort: GuestSortOrder = .nameAscending
@@ -22,14 +24,6 @@ struct GuestsView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("GUEST LIST").eyebrow()
-                        Text("Guests").displayTitle()
-                        Text("\(records.count) guests")
-                            .font(.system(size: 18))
-                            .foregroundStyle(VowbaseTheme.mutedInk)
-                    }
                     toolRow
                     if filters.conditionCount > 0 {
                         activeFilterTokens

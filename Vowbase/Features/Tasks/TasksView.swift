@@ -21,11 +21,14 @@ private enum TasksPresentation: String, CaseIterable, Identifiable {
     var systemImage: String { self == .list ? "list.bullet" : "rectangle.split.3x1" }
 }
 
+/// The Tasks lens's console content. Canvas-optional (spec §2.1): the
+/// console opens at `.half` rather than `.peek` since there's no map
+/// selection for a peek rail to caption, and its own header is gone — the
+/// shared, selection-aware `ConsoleHeader` covers it now.
 @MainActor
 struct TasksView: View {
     let store: VowbaseWorkspaceStore
     let taskStore: TaskStore
-    let onSignOut: () -> Void
     @Binding var editor: TaskEditorDestination?
 
     @State private var presentation: TasksPresentation = .list
@@ -37,8 +40,6 @@ struct TasksView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 24) {
-                    TaskHeader(weddingTitle: store.weddingTitle, taskCount: taskStore.tasks.count, onSignOut: onSignOut)
-
                     TaskSearchField(query: $query)
 
                     TaskViewControls(presentation: $presentation, showsCompleted: $showsCompleted)
@@ -118,30 +119,6 @@ struct TasksView: View {
     private var emptyTitle: String { query.isEmpty ? "No tasks yet" : "No matching tasks" }
     private var emptyMessage: String {
         query.isEmpty ? "Keep the next good decision within reach. Add a task to get started." : "Try a different word or clear your search."
-    }
-}
-
-private struct TaskHeader: View {
-    let weddingTitle: String
-    let taskCount: Int
-    let onSignOut: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            IdentityBar(weddingTitle: weddingTitle, onSignOut: onSignOut)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("TASK LIST")
-                    .font(VowbaseType.eyebrow)
-                    .tracking(1.6)
-                    .foregroundStyle(VowbaseTheme.rose)
-                Text("Tasks")
-                    .font(VowbaseType.screenDisplay)
-                    .foregroundStyle(VowbaseTheme.ink)
-                Text("\(taskCount) \(taskCount == 1 ? "task" : "tasks")")
-                    .font(.system(size: 18))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-        }
     }
 }
 

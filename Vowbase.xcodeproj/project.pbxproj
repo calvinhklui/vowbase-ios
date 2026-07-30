@@ -12,6 +12,7 @@
 		3E232CC83018715C003E5C26 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CC73018715C003E5C26 /* Assets.xcassets */; };
 		3E232CCC30187209003E5C26 /* VowbaseIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CCB30187209003E5C26 /* VowbaseIcon.icon */; };
 		4F580EC44260F8700430B2B8 /* GuestFieldAdmin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */; };
+		60461EB0D6EA1C3EE95A8470 /* Console.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1DE56310FF20746FAB1859 /* Console.swift */; };
 		6214D764C1DC0E580B0BED8F /* GuestDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35AD6546386D0ACE9DBA4BA /* GuestDetailView.swift */; };
 		6D218D18BD8DBDF535E03113 /* StatusCapsules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA820279E3B32E4187F265 /* StatusCapsules.swift */; };
 		6DAB94EA72FE5E2A600F3611 /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730B95063539CAED2656EDE9 /* WorkspaceStore.swift */; };
@@ -174,6 +175,7 @@
 		BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueResearchRepositoryTests.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenuePhotoServiceTests.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000017 /* venue-research-run.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "venue-research-run.json"; sourceTree = "<group>"; };
+		BC1DE56310FF20746FAB1859 /* Console.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Console.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000011 /* APIRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIRequest.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClient.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLProtocolStub.swift; sourceTree = "<group>"; };
@@ -433,6 +435,7 @@
 				6FA400629A2175E9C6330F2E /* WeddingAppShell.swift */,
 				730B95063539CAED2656EDE9 /* WorkspaceStore.swift */,
 				5B4D7ACA064013D3983E8B3E /* PlanLens.swift */,
+				BC1DE56310FF20746FAB1859 /* Console.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -725,6 +728,7 @@
 				782C2CE444A0084D1EA792F2 /* VowbaseVenueImage.swift in Sources */,
 				6D218D18BD8DBDF535E03113 /* StatusCapsules.swift in Sources */,
 				AE0CF3EF8770A8484E394B73 /* PlanLens.swift in Sources */,
+				60461EB0D6EA1C3EE95A8470 /* Console.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

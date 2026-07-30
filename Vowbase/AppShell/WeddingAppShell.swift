@@ -10,6 +10,24 @@ private enum QuickAddDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
+/// The authenticated app: one persistent map canvas, one persistent console
+/// sheet whose content depends on the active lens. See
+/// `docs/vowbase-ios-map-command-center-ux-spec.md` §2, §7.
+///
+/// Two things worth knowing about how this maps onto SwiftUI's real API
+/// surface, both flagged in the spec rather than silently skipped:
+/// - Overview's console only ever offers `.peek` — its module stack (§11) is
+///   Phase 5. Until then it shows the same venue rail Venues shows at peek.
+/// - A `.sheet` always renders above everything in the view it's presented
+///   from, so the lens rail lives *inside* the console's own content (pinned
+///   to its bottom) rather than as an overlay on the canvas — otherwise the
+///   sheet would cover it at every detent. The Quick Add FAB stays on the
+///   canvas: its expanding panel needs room to grow upward that a sheet's own
+///   clipped bounds can't reliably guarantee. Both the FAB's position and the
+///   map's camera inset are driven off `currentDetent` rather than the live
+///   drag position — SwiftUI exposes no API for the latter on a system sheet,
+///   so both snap to wherever the console has settled rather than tracking it
+///   continuously.
 @MainActor
 struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
@@ -19,6 +37,14 @@ struct WeddingAppShell: View {
     @State private var quickAdd: QuickAddDestination?
     @State private var taskEditor: TaskEditorDestination?
     @State private var isQuickAddPresented = false
+
+    /// Each lens remembers its own detent for the session — spec §7.1.
+    @State private var lensDetents: [PlanLens: ConsoleDetent] = [
+        .overview: .peek,
+        .venues: .peek,
+        .guests: .peek,
+        .tasks: .half,
+    ]
 
     init(
         store: VowbaseWorkspaceStore,
@@ -36,64 +62,53 @@ struct WeddingAppShell: View {
         @Bindable var navigation = navigation
         @Bindable var store = store
 
-        ZStack {
-            VowbaseTheme.background.ignoresSafeArea()
+        GeometryReader { proxy in
+            let screenHeight = proxy.size.height
+            let consoleHeight = currentDetent.pointHeight(in: screenHeight)
 
-            Group {
-                switch navigation.selectedLens {
-                case .overview:
-                    MapWorkspaceView(
-                        store: store,
-                        onSignOut: onSignOut
-                    )
-                case .venues:
-                    VenuesView(
-                        store: store,
-                        onSignOut: onSignOut,
-                        onAddVenue: { quickAdd = .venue },
-                        onReturnToMap: { navigation.selectedLens = .overview }
-                    )
-                case .guests:
-                    GuestsView(store: store, onSignOut: onSignOut)
-                case .tasks:
-                    TasksView(store: store, taskStore: taskStore, onSignOut: onSignOut, editor: $taskEditor)
+            ZStack(alignment: .top) {
+                VowbaseTheme.background.ignoresSafeArea()
+
+                MapWorkspaceView(store: store, consoleInset: consoleHeight)
+
+                IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+
+                if store.isLoading {
+                    ProgressView("Loading your wedding")
+                        .tint(VowbaseTheme.rose)
+                        .padding(24)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
             }
-
-            if store.isLoading {
-                ProgressView("Loading your wedding")
-                    .tint(VowbaseTheme.rose)
-                    .padding(24)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(alignment: .bottomTrailing) {
+                QuickAddOverlay(
+                    isPresented: $isQuickAddPresented,
+                    onAddVenue: { quickAdd = .venue },
+                    onAddGuest: { quickAdd = .guest },
+                    onAddTask: { taskEditor = .add }
+                )
+                .padding(.trailing, VowbaseControlMetric.screenInset)
+                .padding(.bottom, consoleHeight + 12)
             }
-
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            LensRail(selection: $navigation.selectedLens)
-        }
-        .overlay {
-            if isQuickAddPresented {
-                Color.black.opacity(0.22)
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
-                            isQuickAddPresented = false
+            .overlay {
+                if isQuickAddPresented {
+                    Color.black.opacity(0.22)
+                        .ignoresSafeArea()
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
+                                isQuickAddPresented = false
+                            }
                         }
-                    }
-                    .accessibilityHidden(true)
-                    .transition(.opacity)
+                        .accessibilityHidden(true)
+                        .transition(.opacity)
+                }
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            QuickAddOverlay(
-                isPresented: $isQuickAddPresented,
-                onAddVenue: { quickAdd = .venue },
-                onAddGuest: { quickAdd = .guest },
-                onAddTask: { taskEditor = .add }
-            )
-            .padding(.trailing, VowbaseControlMetric.screenInset)
-            .padding(.bottom, LensRail.fabBottomClearance)
+            .sheet(isPresented: .constant(true)) {
+                consoleSheet
+            }
         }
         .sheet(item: $quickAdd) { destination in
             switch destination {
@@ -124,14 +139,135 @@ struct WeddingAppShell: View {
         .animation(.snappy(duration: 0.28), value: navigation.selectedLens)
     }
 
+    // MARK: Console
+
+    private var currentDetent: ConsoleDetent {
+        lensDetents[navigation.selectedLens] ?? defaultDetent(for: navigation.selectedLens)
+    }
+
+    private func defaultDetent(for lens: PlanLens) -> ConsoleDetent {
+        lens == .tasks ? .half : .peek
+    }
+
+    private func availableDetents(for lens: PlanLens) -> Set<PresentationDetent> {
+        switch lens {
+        case .overview:
+            [ConsoleDetent.peek.presentationDetent]
+        case .venues, .guests:
+            Set(ConsoleDetent.allCases.map(\.presentationDetent))
+        case .tasks:
+            [ConsoleDetent.half.presentationDetent, ConsoleDetent.full.presentationDetent]
+        }
+    }
+
+    private var detentBinding: Binding<PresentationDetent> {
+        Binding(
+            get: { currentDetent.presentationDetent },
+            set: { newValue in
+                guard let matched = ConsoleDetent.allCases.first(where: { $0.presentationDetent == newValue }) else { return }
+                lensDetents[navigation.selectedLens] = matched
+            }
+        )
+    }
+
+    /// The console: grabber, selection-aware header, per-lens content — and,
+    /// pinned to its own bottom, the lens rail. A `.sheet` always presents
+    /// above the entire view it's attached to, so the rail has to live
+    /// inside the sheet's own content to stay visible at every detent —
+    /// as an overlay on the presenting canvas, the sheet would cover it.
+    @ViewBuilder
+    private var consoleSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Capsule()
+                .fill(VowbaseTheme.border)
+                .frame(width: 44, height: 5)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 9)
+
+            consoleHeader
+                .padding(.horizontal, 16)
+
+            consoleContent
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            LensRail(selection: selectedLensBinding)
+        }
+        .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
+        .presentationDragIndicator(.hidden)
+        .presentationBackgroundInteraction(.enabled)
+        .interactiveDismissDisabled(true)
+    }
+
+    private var selectedLensBinding: Binding<PlanLens> {
+        Binding(
+            get: { navigation.selectedLens },
+            set: { navigation.selectedLens = $0 }
+        )
+    }
+
+    @ViewBuilder
+    private var consoleHeader: some View {
+        switch navigation.selectedLens {
+        case .overview, .venues:
+            if let venue = store.venues.first(where: { $0.id == store.selectedVenueID }) {
+                ConsoleHeader(selectedVenue: venue)
+            } else {
+                ConsoleHeader(venues: store.venues)
+            }
+        case .guests:
+            ConsoleHeader(guests: store.allGuestRecords)
+        case .tasks:
+            ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
+        }
+    }
+
+    @ViewBuilder
+    private var consoleContent: some View {
+        switch navigation.selectedLens {
+        case .overview:
+            VenueRailContent(store: store)
+        case .venues:
+            if currentDetent == .peek {
+                VenueRailContent(store: store)
+            } else {
+                VenuesView(
+                    store: store,
+                    onAddVenue: { quickAdd = .venue },
+                    onReturnToMap: { navigation.selectedLens = .overview }
+                )
+            }
+        case .guests:
+            if currentDetent == .peek {
+                GuestRailContent(store: store)
+            } else {
+                GuestsView(store: store)
+            }
+        case .tasks:
+            TasksView(store: store, taskStore: taskStore, editor: $taskEditor)
+        }
+    }
+
+    private var openTaskCount: Int {
+        taskStore.tasks.filter { $0.effectiveStatus != .done }.count
+    }
+
+    private var dueSoonTaskCount: Int {
+        let calendar = Calendar.current
+        let boundary = calendar.date(byAdding: .day, value: 7, to: Date())
+        return taskStore.tasks.filter { task in
+            guard task.effectiveStatus != .done, let raw = task.dueDate,
+                  let due = TaskDueDateFormatter.date(from: raw), let boundary
+            else { return false }
+            return due <= boundary
+        }.count
+    }
 }
 
 /// The lens rail. Replaces the plain tab bar: each slot is a `PlanLens`, so a
 /// new lens (Vendors, Lodging, …) is a new `PlanLens` case, not a new control.
 /// See spec §9.
 private struct LensRail: View {
-    static let fabBottomClearance: CGFloat = 90
-
     @Binding var selection: PlanLens
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

@@ -3,10 +3,14 @@ import UIKit
 
 // MARK: - Venues
 
+/// The Venues lens's half/full console content. Reached by dragging the
+/// console up from its peek rail (`VenueRailContent`), not by a tab — see
+/// `docs/vowbase-ios-map-command-center-ux-spec.md` §7.4. Its own header is
+/// gone; the console's shared, selection-aware header (`ConsoleHeader`)
+/// covers it now.
 @MainActor
 struct VenuesView: View {
     let store: VowbaseWorkspaceStore
-    let onSignOut: () -> Void
     let onAddVenue: () -> Void
     let onReturnToMap: () -> Void
     @State private var mode: VenueMode = .shortlist
@@ -23,16 +27,6 @@ struct VenuesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("VENUE SEARCH")
-                            .eyebrow()
-                        Text("Venues")
-                            .displayTitle()
-                        Text("\(store.venues.count) venues")
-                            .font(.system(size: 18))
-                            .foregroundStyle(VowbaseTheme.mutedInk)
-                    }
                     if store.venues.isEmpty {
                         VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
                     } else {
