@@ -217,3 +217,39 @@ init(from decoder:Decoder)throws{let c=try decoder.container(keyedBy:CodingKeys.
 func encode(to encoder:Encoder)throws{var c=encoder.container(keyedBy:CodingKeys.self);try c.encode(id,forKey:.id);try c.encode(venueID,forKey:.venueID);try c.encode(weddingID,forKey:.weddingID);try c.encode(url,forKey:.url);try c.encodeIfPresent(source,forKey:.source);try c.encodeIfPresent(caption,forKey:.caption);try c.encodeIfPresent(sortOrder,forKey:.sortOrder);try c.encode(createdAt,forKey:.createdAt)}}
 struct VenuePhotoDraft:Codable,Equatable,Sendable{let url:String;let source:String?;let caption:String?;let sortOrder:Int?;enum CodingKeys:String,CodingKey{case url;case source;case caption;case sortOrder="sort_order"}}
 struct VenuePhotoPatch:Codable,Equatable,Sendable{let url:String?;let source:String?;let caption:String?;let sortOrder:Int?;var isEmpty:Bool{url==nil&&source==nil&&caption==nil&&sortOrder==nil};enum CodingKeys:String,CodingKey{case url;case source;case caption;case sortOrder="sort_order"}}
+
+
+// MARK: - Display helpers moved from ContentView.swift's split (Phase 0)
+extension VenueStatus: Hashable {}
+
+extension VenueStatus {
+    var title: String {
+        switch self {
+        case .suggested: "Suggested"
+        case .considering: "Considering"
+        case .contacted: "Contacted"
+        case .toured: "Toured"
+        case .shortlisted: "Shortlisted"
+        case .negotiating: "Negotiating"
+        case .booked: "Booked"
+        case .passed: "Passed"
+        }
+    }
+}
+
+enum VenueCapacityFormatter {
+    static func string(minimum: Int?, maximum: Int?) -> String {
+        switch (minimum, maximum) {
+        case let (minimum?, maximum?): "\(minimum)–\(maximum)"
+        case let (minimum?, nil): "\(minimum)+"
+        case let (nil, maximum?): "Up to \(maximum)"
+        case (nil, nil): "Not added"
+        }
+    }
+}
+
+enum VenuePriceFormatter {
+    static func string(_ value: Double) -> String {
+        value.formatted(.currency(code: "USD").precision(.fractionLength(0)))
+    }
+}

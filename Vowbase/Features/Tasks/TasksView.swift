@@ -67,8 +67,8 @@ struct TasksView: View {
             }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
-                .padding(.bottom, 96)
             }
+            .vowbaseScrollClearance()
             .background(VowbaseTheme.background)
             .navigationBarHidden(true)
             .refreshable {

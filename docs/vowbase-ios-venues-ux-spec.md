@@ -396,8 +396,11 @@ extension VowbaseControlMetric {
 }
 
 extension View {
-    /// Bottom breathing room for scrollable screens under the floating chrome.
-    /// `includesQuickAdd` is false on pushed detail screens, which have no FAB.
+    /// Bottom breathing room for scrollable screens under the floating tab bar and,
+    /// where present, the Quick Add FAB. The FAB is an app-shell overlay, so it stays
+    /// visible on screens pushed within a tab's own NavigationStack (e.g. Venue Detail) —
+    /// pass `includesQuickAdd: false` only for scroll views with no app chrome at all,
+    /// such as a full-screen `.sheet`.
     func vowbaseScrollClearance(includesQuickAdd: Bool = true) -> some View {
         contentMargins(
             .bottom,
@@ -408,10 +411,19 @@ extension View {
 }
 ```
 
+> **Correction, post-ship.** The paragraph below originally told `VenueDetailView` to pass
+> `includesQuickAdd: false`, on the premise that a pushed detail screen has no FAB. It does:
+> the FAB is an app-shell overlay (`WeddingAppShell`), so it stays visible over screens
+> pushed inside a tab's own `NavigationStack`. What actually shipped — and what the doc
+> comment above now says — is the opposite: `includesQuickAdd` defaults to `true`, and
+> `false` is reserved for chrome-free surfaces like a full-screen sheet. `VenueDetailView`
+> correctly uses the default. See `vowbase-ios-map-command-center-ux-spec.md` §7.5 for the
+> full account.
+
 Then:
 
 - `VenuesView`: delete `.padding(.bottom, 96)`, add `.vowbaseScrollClearance()`.
-- `VenueDetailView`: add `.vowbaseScrollClearance(includesQuickAdd: false)`.
+- `VenueDetailView`: add `.vowbaseScrollClearance()` — the default, not `includesQuickAdd: false`.
 - `GuestsView` and the map shortlist: same treatment, since they have the identical
   double-inset/FAB-overlap pair.
 

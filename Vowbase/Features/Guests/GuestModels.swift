@@ -351,3 +351,20 @@ struct RSVPDraft: Codable, Equatable, Sendable {
         case notes
     }
 }
+
+
+// MARK: - Display helpers moved from ContentView.swift's split (Phase 0)
+extension RSVPStatus: Hashable {}
+
+extension RSVPStatus {
+    static var allCases: [RSVPStatus] { [.notInvited, .pending, .accepted, .declined] }
+
+    var title: String {
+        switch self {
+        case .notInvited: "Not invited"
+        case .pending: "Pending"
+        case .accepted: "Accepted"
+        case .declined: "Declined"
+        }
+    }
+}

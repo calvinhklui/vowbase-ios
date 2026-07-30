@@ -7,22 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D3111EF4928E8BDDB72D9AD /* AddVenueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF5D34ADBBD2CB63EEA023B /* AddVenueSheet.swift */; };
+		15E1A7A14A9B72A0EBC4C436 /* WeddingAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FA400629A2175E9C6330F2E /* WeddingAppShell.swift */; };
 		3E232CC83018715C003E5C26 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CC73018715C003E5C26 /* Assets.xcassets */; };
 		3E232CCC30187209003E5C26 /* VowbaseIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CCB30187209003E5C26 /* VowbaseIcon.icon */; };
+		4F580EC44260F8700430B2B8 /* GuestFieldAdmin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */; };
+		6214D764C1DC0E580B0BED8F /* GuestDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35AD6546386D0ACE9DBA4BA /* GuestDetailView.swift */; };
+		6D218D18BD8DBDF535E03113 /* StatusCapsules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA820279E3B32E4187F265 /* StatusCapsules.swift */; };
+		6DAB94EA72FE5E2A600F3611 /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730B95063539CAED2656EDE9 /* WorkspaceStore.swift */; };
+		782C2CE444A0084D1EA792F2 /* VowbaseVenueImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00C6542E2737CDCD45AAED91 /* VowbaseVenueImage.swift */; };
+		8884FC7BABA2033C29CF6C84 /* GuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6B825321A83F896EC030FF7 /* GuestsView.swift */; };
 		A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */; };
 		A1B2C3D4E5F6000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000012 /* ContentView.swift */; };
-		DAA3B4C5D6E7000000000001 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000011 /* AppTab.swift */; };
-		DAA3B4C5D6E7000000000002 /* AppNavigationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */; };
-		DAA3B4C5D6E7000000000003 /* VowbaseTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */; };
-		DAA3B4C5D6E7000000000004 /* VowbaseTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */; };
-		DAA3B4C5D6E7000000000005 /* VowbaseMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */; };
-		DAA3B4C5D6E7000000000006 /* VowbaseComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */; };
-		DAA3B4C5D6E7000000000007 /* QuickAddFAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */; };
-		A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */; };
 		A1B2C3D4E5F6000000000003 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60000000000B1 /* Supabase */; };
 		A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */; };
-		A1B2C3D4E5F6000000000022 /* GuestFieldEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */; };
-		A1B2C3D4E5F6000000000024 /* GuestFilteringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */; };
 		A1B2C3D4E5F6000000000005 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */; };
 		A1B2C3D4E5F6000000000006 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */; };
 		A1B2C3D4E5F6000000000007 /* BackendErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001B /* BackendErrorTests.swift */; };
@@ -30,13 +28,19 @@
 		A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */; };
 		A1B2C3D4E5F600000000000A /* BackendError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001E /* BackendError.swift */; };
 		A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */; };
+		A1B2C3D4E5F6000000000022 /* GuestFieldEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */; };
+		A1B2C3D4E5F6000000000024 /* GuestFilteringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */; };
+		A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */; };
+		AE9AF995C56EA551D49B981C /* VenueDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EDA0836CF273871C711B1C9 /* VenueDetailView.swift */; };
 		B1C2D3E4F5A6000000000001 /* SupabaseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */; };
 		B1C2D3E4F5A6000000000002 /* AuthServicing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000012 /* AuthServicing.swift */; };
 		B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000013 /* AuthService.swift */; };
-		BAA3B4C5D6E7000000000001 /* Features/Venues/VenueResearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000011 /* Features/Venues/VenueResearchModels.swift */; };
-		BAA3B4C5D6E7000000000002 /* Features/Venues/VenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000012 /* Features/Venues/VenueResearchRepository.swift */; };
-		BAA3B4C5D6E7000000000003 /* Features/Venues/APIVenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000013 /* Features/Venues/APIVenueResearchRepository.swift */; };
-		BAA3B4C5D6E7000000000004 /* Features/Venues/VenuePhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000014 /* Features/Venues/VenuePhotoService.swift */; };
+		B2614CFCBF8AAC13B84F6F07 /* AddGuestSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7996C3888797713DA2463A22 /* AddGuestSheet.swift */; };
+		B7C1BC4DF5CCE139CAED263F /* VenuesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36697F493ADC8C7948BE3C3F /* VenuesView.swift */; };
+		BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */; };
+		BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */; };
+		BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */; };
+		BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */; };
 		BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */; };
 		BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */; };
 		BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000017 /* venue-research-run.json */; };
@@ -44,9 +48,17 @@
 		C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */; };
 		C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */; };
 		C1D2E3F4A5B6000000000004 /* VowbaseAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */; };
+		CA3683C7F5F53F3AF2771D3C /* MapWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C74FAC75B1FCB79EB74185 /* MapWorkspaceView.swift */; };
 		D1E2F3A4B5C6000000000001 /* AppDependenciesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */; };
 		D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000012 /* AppDependencies.swift */; };
 		D1E2F3A4B5C6000000000003 /* AuthCallbackHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */; };
+		DAA3B4C5D6E7000000000001 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000011 /* AppTab.swift */; };
+		DAA3B4C5D6E7000000000002 /* AppNavigationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */; };
+		DAA3B4C5D6E7000000000003 /* VowbaseTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */; };
+		DAA3B4C5D6E7000000000004 /* VowbaseTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */; };
+		DAA3B4C5D6E7000000000005 /* VowbaseMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */; };
+		DAA3B4C5D6E7000000000006 /* VowbaseComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */; };
+		DAA3B4C5D6E7000000000007 /* QuickAddFAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */; };
 		E1F2A3B4C5D6000000000001 /* DatabaseDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */; };
 		E1F2A3B4C5D6000000000002 /* workspace-membership.json in Resources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000012 /* workspace-membership.json */; };
 		E1F2A3B4C5D6000000000003 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6000000000013 /* JSONValue.swift */; };
@@ -67,28 +79,28 @@
 		F4A3B4C5D6E7000000000001 /* GuestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000011 /* GuestModels.swift */; };
 		F4A3B4C5D6E7000000000002 /* GuestRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000012 /* GuestRepository.swift */; };
 		F4A3B4C5D6E7000000000003 /* SupabaseGuestRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */; };
+		F4A3B4C5D6E7000000000004 /* GuestRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */; };
 		F4A3B4C5D6E7000000000005 /* GuestFieldEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */; };
 		F4A3B4C5D6E7000000000006 /* GuestFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000016 /* GuestFiltering.swift */; };
-		F4A3B4C5D6E7000000000004 /* GuestRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */; };
 		F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */; };
-		F5A3B4C5D6E7000000000003 /* Features/Schedule/ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000013 /* Features/Schedule/ScheduleModels.swift */; };
-		F5A3B4C5D6E7000000000004 /* Features/Schedule/ScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000014 /* Features/Schedule/ScheduleRepository.swift */; };
-		F5A3B4C5D6E7000000000005 /* Features/Schedule/SupabaseScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000015 /* Features/Schedule/SupabaseScheduleRepository.swift */; };
-		F5A3B4C5D6E7000000000006 /* Features/Tasks/TaskModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000016 /* Features/Tasks/TaskModels.swift */; };
-		F5A3B4C5D6E7000000000007 /* Features/Tasks/TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000017 /* Features/Tasks/TaskRepository.swift */; };
-		F5A3B4C5D6E7000000000008 /* Features/Tasks/SupabaseTaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000018 /* Features/Tasks/SupabaseTaskRepository.swift */; };
-		F5A3B4C5D6E7000000000009 /* Features/Tasks/TaskStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000019 /* Features/Tasks/TaskStore.swift */; };
-		F5A3B4C5D6E700000000000A /* Features/Tasks/TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E700000000001A /* Features/Tasks/TasksView.swift */; };
-		F5A3B4C5D6E700000000000B /* Features/Tasks/TaskEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E700000000001B /* Features/Tasks/TaskEditorSheet.swift */; };
-		F6A3B4C5D6E7000000000001 /* Features/Vendors/VendorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000011 /* Features/Vendors/VendorModels.swift */; };
-		F6A3B4C5D6E7000000000002 /* Features/Vendors/VendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000012 /* Features/Vendors/VendorRepository.swift */; };
-		F6A3B4C5D6E7000000000003 /* Features/Vendors/SupabaseVendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000013 /* Features/Vendors/SupabaseVendorRepository.swift */; };
-		F6A3B4C5D6E7000000000004 /* Features/Budget/BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000014 /* Features/Budget/BudgetModels.swift */; };
-		F6A3B4C5D6E7000000000005 /* Features/Budget/BudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000015 /* Features/Budget/BudgetRepository.swift */; };
-		F6A3B4C5D6E7000000000006 /* Features/Budget/SupabaseBudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000016 /* Features/Budget/SupabaseBudgetRepository.swift */; };
-		F6A3B4C5D6E7000000000007 /* Features/Venues/VenueModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000017 /* Features/Venues/VenueModels.swift */; };
-		F6A3B4C5D6E7000000000008 /* Features/Venues/VenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000018 /* Features/Venues/VenueRepository.swift */; };
-		F6A3B4C5D6E7000000000009 /* Features/Venues/SupabaseVenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000019 /* Features/Venues/SupabaseVenueRepository.swift */; };
+		F5A3B4C5D6E7000000000003 /* ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */; };
+		F5A3B4C5D6E7000000000004 /* ScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */; };
+		F5A3B4C5D6E7000000000005 /* SupabaseScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */; };
+		F5A3B4C5D6E7000000000006 /* TaskModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000016 /* TaskModels.swift */; };
+		F5A3B4C5D6E7000000000007 /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000017 /* TaskRepository.swift */; };
+		F5A3B4C5D6E7000000000008 /* SupabaseTaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */; };
+		F5A3B4C5D6E7000000000009 /* TaskStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000019 /* TaskStore.swift */; };
+		F5A3B4C5D6E700000000000A /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E700000000001A /* TasksView.swift */; };
+		F5A3B4C5D6E700000000000B /* TaskEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E700000000001B /* TaskEditorSheet.swift */; };
+		F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000011 /* VendorModels.swift */; };
+		F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000012 /* VendorRepository.swift */; };
+		F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */; };
+		F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000014 /* BudgetModels.swift */; };
+		F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */; };
+		F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */; };
+		F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000017 /* VenueModels.swift */; };
+		F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000018 /* VenueRepository.swift */; };
+		F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */; };
 		F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000011 /* InspirationModels.swift */; };
 		F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */; };
 		F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */; };
@@ -120,24 +132,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00C6542E2737CDCD45AAED91 /* VowbaseVenueImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VowbaseVenueImage.swift; path = Components/VowbaseVenueImage.swift; sourceTree = "<group>"; };
+		36697F493ADC8C7948BE3C3F /* VenuesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VenuesView.swift; path = Features/Venues/Views/VenuesView.swift; sourceTree = "<group>"; };
 		3E232CC73018715C003E5C26 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3E232CCB30187209003E5C26 /* VowbaseIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = VowbaseIcon.icon; sourceTree = "<group>"; };
+		4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GuestFieldAdmin.swift; path = Features/Guests/Views/GuestFieldAdmin.swift; sourceTree = "<group>"; };
+		4EDA0836CF273871C711B1C9 /* VenueDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VenueDetailView.swift; path = Features/Venues/Views/VenueDetailView.swift; sourceTree = "<group>"; };
+		57DA820279E3B32E4187F265 /* StatusCapsules.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatusCapsules.swift; path = Components/StatusCapsules.swift; sourceTree = "<group>"; };
+		6FA400629A2175E9C6330F2E /* WeddingAppShell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeddingAppShell.swift; sourceTree = "<group>"; };
+		730B95063539CAED2656EDE9 /* WorkspaceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
+		7996C3888797713DA2463A22 /* AddGuestSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddGuestSheet.swift; path = Features/Guests/Views/AddGuestSheet.swift; sourceTree = "<group>"; };
+		7FF5D34ADBBD2CB63EEA023B /* AddVenueSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddVenueSheet.swift; path = Features/Venues/Views/AddVenueSheet.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000010 /* Vowbase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vowbase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000011 /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationModel.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTheme.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTypography.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseMetrics.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseComponents.swift; sourceTree = "<group>"; };
-		DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/QuickAddFAB.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vowbase.entitlements; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VowbaseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTests.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFieldEditingTests.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFilteringTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000015 /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000016 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000017 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -149,13 +159,17 @@
 		A1B2C3D4E5F600000000001D /* APIErrorEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorEnvelope.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F600000000001E /* BackendError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendError.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFieldEditingTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFilteringTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vowbase.entitlements; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProvider.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000012 /* AuthServicing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServicing.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000013 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000011 /* Features/Venues/VenueResearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueResearchModels.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000012 /* Features/Venues/VenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueResearchRepository.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000013 /* Features/Venues/APIVenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/APIVenueResearchRepository.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000014 /* Features/Venues/VenuePhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenuePhotoService.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueResearchModels.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueResearchRepository.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/APIVenueResearchRepository.swift; sourceTree = "<group>"; };
+		BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenuePhotoService.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueResearchRepositoryTests.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenuePhotoServiceTests.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000017 /* venue-research-run.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "venue-research-run.json"; sourceTree = "<group>"; };
@@ -166,10 +180,19 @@
 		D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependenciesTests.swift; sourceTree = "<group>"; };
 		D1E2F3A4B5C6000000000012 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
 		D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCallbackHandler.swift; sourceTree = "<group>"; };
+		D35AD6546386D0ACE9DBA4BA /* GuestDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GuestDetailView.swift; path = Features/Guests/Views/GuestDetailView.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000011 /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationModel.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTheme.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseTypography.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseMetrics.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseComponents.swift; sourceTree = "<group>"; };
+		DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/QuickAddFAB.swift; sourceTree = "<group>"; };
 		E1F2A3B4C5D6000000000011 /* DatabaseDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDecodingTests.swift; sourceTree = "<group>"; };
 		E1F2A3B4C5D6000000000012 /* workspace-membership.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "workspace-membership.json"; sourceTree = "<group>"; };
 		E1F2A3B4C5D6000000000013 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		E1F2A3B4C5D6000000000014 /* DatabaseDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDecoding.swift; sourceTree = "<group>"; };
+		E6B825321A83F896EC030FF7 /* GuestsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GuestsView.swift; path = Features/Guests/Views/GuestsView.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceModels.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000012 /* WorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceRepository.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7000000000013 /* SupabaseWorkspaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseWorkspaceRepository.swift; sourceTree = "<group>"; };
@@ -183,31 +206,32 @@
 		F3A3B4C5D6E7000000000015 /* InvitationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvitationRepository.swift; sourceTree = "<group>"; };
 		F3A3B4C5D6E7000000000016 /* SupabaseInvitationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseInvitationRepository.swift; sourceTree = "<group>"; };
 		F3A3B4C5D6E7000000000017 /* ProfileInvitationRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileInvitationRepositoryTests.swift; sourceTree = "<group>"; };
+		F3C74FAC75B1FCB79EB74185 /* MapWorkspaceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MapWorkspaceView.swift; path = Features/Map/MapWorkspaceView.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000011 /* GuestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestModels.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000012 /* GuestRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepository.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000013 /* SupabaseGuestRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseGuestRepository.swift; sourceTree = "<group>"; };
+		F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepositoryTests.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFieldEditing.swift; sourceTree = "<group>"; };
 		F4A3B4C5D6E7000000000016 /* GuestFiltering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFiltering.swift; sourceTree = "<group>"; };
-		F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestRepositoryTests.swift; sourceTree = "<group>"; };
 		F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainRepositorySupport.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000013 /* Features/Schedule/ScheduleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/ScheduleModels.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000014 /* Features/Schedule/ScheduleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/ScheduleRepository.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000015 /* Features/Schedule/SupabaseScheduleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/SupabaseScheduleRepository.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000016 /* Features/Tasks/TaskModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskModels.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000017 /* Features/Tasks/TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskRepository.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000018 /* Features/Tasks/SupabaseTaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/SupabaseTaskRepository.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E7000000000019 /* Features/Tasks/TaskStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskStore.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E700000000001A /* Features/Tasks/TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TasksView.swift; sourceTree = "<group>"; };
-		F5A3B4C5D6E700000000001B /* Features/Tasks/TaskEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskEditorSheet.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000011 /* Features/Vendors/VendorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Vendors/VendorModels.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000012 /* Features/Vendors/VendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Vendors/VendorRepository.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000013 /* Features/Vendors/SupabaseVendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Vendors/SupabaseVendorRepository.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000014 /* Features/Budget/BudgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Budget/BudgetModels.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000015 /* Features/Budget/BudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Budget/BudgetRepository.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000016 /* Features/Budget/SupabaseBudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Budget/SupabaseBudgetRepository.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000017 /* Features/Venues/VenueModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueModels.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000018 /* Features/Venues/VenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueRepository.swift; sourceTree = "<group>"; };
-		F6A3B4C5D6E7000000000019 /* Features/Venues/SupabaseVenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/SupabaseVenueRepository.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/ScheduleModels.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/ScheduleRepository.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/SupabaseScheduleRepository.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000016 /* TaskModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskModels.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000017 /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskRepository.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/SupabaseTaskRepository.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E7000000000019 /* TaskStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskStore.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E700000000001A /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TasksView.swift; sourceTree = "<group>"; };
+		F5A3B4C5D6E700000000001B /* TaskEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskEditorSheet.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000011 /* VendorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Vendors/VendorModels.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000012 /* VendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Vendors/VendorRepository.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Vendors/SupabaseVendorRepository.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000014 /* BudgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Budget/BudgetModels.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Budget/BudgetRepository.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Budget/SupabaseBudgetRepository.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000017 /* VenueModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueModels.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000018 /* VenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueRepository.swift; sourceTree = "<group>"; };
+		F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/SupabaseVenueRepository.swift; sourceTree = "<group>"; };
 		F7A3B4C5D6E7000000000011 /* InspirationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationModels.swift; sourceTree = "<group>"; };
 		F7A3B4C5D6E7000000000012 /* InspirationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationRepository.swift; sourceTree = "<group>"; };
 		F7A3B4C5D6E7000000000013 /* SupabaseInspirationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseInspirationRepository.swift; sourceTree = "<group>"; };
@@ -262,68 +286,55 @@
 		A1B2C3D4E5F6000000000031 /* Vowbase */ = {
 			isa = PBXGroup;
 			children = (
-				DAA3B4C5D6E7000000000031 /* App shell */,
-				DAA3B4C5D6E7000000000032 /* Design system */,
+				DAA3B4C5D6E7000000000031 /* AppShell */,
+				DAA3B4C5D6E7000000000032 /* DesignSystem */,
 				A1B2C3D4E5F6000000000037 /* Backend */,
 				A1B2C3D4E5F6000000000035 /* Configuration */,
 				E1F2A3B4C5D6000000000038 /* Models */,
-				F2A3B4C5D6E7000000000039 /* Features/Workspace */,
-				F3A3B4C5D6E7000000000039 /* Features/People */,
-				F3A3B4C5D6E700000000003A /* Features/Invitations */,
-				F4A3B4C5D6E7000000000039 /* Features/Guests */,
-				F7A3B4C5D6E7000000000039 /* Features/Inspiration */,
-				F7A3B4C5D6E700000000003A /* Features/Attachments */,
-				FAA3B4C5D6E7000000000039 /* Features/Maps */,
-				F6A3B4C5D6E7000000000011 /* Features/Vendors/VendorModels.swift */,
-				F6A3B4C5D6E7000000000012 /* Features/Vendors/VendorRepository.swift */,
-				F6A3B4C5D6E7000000000013 /* Features/Vendors/SupabaseVendorRepository.swift */,
-				F6A3B4C5D6E7000000000014 /* Features/Budget/BudgetModels.swift */,
-				F6A3B4C5D6E7000000000015 /* Features/Budget/BudgetRepository.swift */,
-				F6A3B4C5D6E7000000000016 /* Features/Budget/SupabaseBudgetRepository.swift */,
-				F6A3B4C5D6E7000000000017 /* Features/Venues/VenueModels.swift */,
-				F6A3B4C5D6E7000000000018 /* Features/Venues/VenueRepository.swift */,
-				F6A3B4C5D6E7000000000019 /* Features/Venues/SupabaseVenueRepository.swift */,
-				BAA3B4C5D6E7000000000011 /* Features/Venues/VenueResearchModels.swift */,
-				BAA3B4C5D6E7000000000012 /* Features/Venues/VenueResearchRepository.swift */,
-				BAA3B4C5D6E7000000000013 /* Features/Venues/APIVenueResearchRepository.swift */,
-				BAA3B4C5D6E7000000000014 /* Features/Venues/VenuePhotoService.swift */,
-				F5A3B4C5D6E7000000000013 /* Features/Schedule/ScheduleModels.swift */,
-				F5A3B4C5D6E7000000000014 /* Features/Schedule/ScheduleRepository.swift */,
-				F5A3B4C5D6E7000000000015 /* Features/Schedule/SupabaseScheduleRepository.swift */,
-				F5A3B4C5D6E7000000000016 /* Features/Tasks/TaskModels.swift */,
-				F5A3B4C5D6E7000000000017 /* Features/Tasks/TaskRepository.swift */,
-				F5A3B4C5D6E7000000000018 /* Features/Tasks/SupabaseTaskRepository.swift */,
-				F5A3B4C5D6E7000000000019 /* Features/Tasks/TaskStore.swift */,
-				F5A3B4C5D6E700000000001A /* Features/Tasks/TasksView.swift */,
-				F5A3B4C5D6E700000000001B /* Features/Tasks/TaskEditorSheet.swift */,
+				F2A3B4C5D6E7000000000039 /* Workspace */,
+				F3A3B4C5D6E7000000000039 /* People */,
+				F3A3B4C5D6E700000000003A /* Invitations */,
+				F4A3B4C5D6E7000000000039 /* Guests */,
+				F7A3B4C5D6E7000000000039 /* Inspiration */,
+				F7A3B4C5D6E700000000003A /* Attachments */,
+				FAA3B4C5D6E7000000000039 /* Maps */,
+				F6A3B4C5D6E7000000000011 /* VendorModels.swift */,
+				F6A3B4C5D6E7000000000012 /* VendorRepository.swift */,
+				F6A3B4C5D6E7000000000013 /* SupabaseVendorRepository.swift */,
+				F6A3B4C5D6E7000000000014 /* BudgetModels.swift */,
+				F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */,
+				F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
+				F6A3B4C5D6E7000000000017 /* VenueModels.swift */,
+				F6A3B4C5D6E7000000000018 /* VenueRepository.swift */,
+				F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
+				BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */,
+				BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */,
+				BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */,
+				BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */,
+				F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */,
+				F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */,
+				F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */,
+				F5A3B4C5D6E7000000000016 /* TaskModels.swift */,
+				F5A3B4C5D6E7000000000017 /* TaskRepository.swift */,
+				F5A3B4C5D6E7000000000018 /* SupabaseTaskRepository.swift */,
+				F5A3B4C5D6E7000000000019 /* TaskStore.swift */,
+				F5A3B4C5D6E700000000001A /* TasksView.swift */,
+				F5A3B4C5D6E700000000001B /* TaskEditorSheet.swift */,
 				A1B2C3D4E5F600000000001A /* Info.plist */,
 				A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */,
 				A1B2C3D4E5F6000000000012 /* ContentView.swift */,
 				A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */,
 				A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */,
+				F3C74FAC75B1FCB79EB74185 /* MapWorkspaceView.swift */,
+				36697F493ADC8C7948BE3C3F /* VenuesView.swift */,
+				4EDA0836CF273871C711B1C9 /* VenueDetailView.swift */,
+				7FF5D34ADBBD2CB63EEA023B /* AddVenueSheet.swift */,
+				E6B825321A83F896EC030FF7 /* GuestsView.swift */,
+				D35AD6546386D0ACE9DBA4BA /* GuestDetailView.swift */,
+				7996C3888797713DA2463A22 /* AddGuestSheet.swift */,
+				4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */,
 			);
 			path = Vowbase;
-			sourceTree = "<group>";
-		};
-		DAA3B4C5D6E7000000000031 /* App shell */ = {
-			isa = PBXGroup;
-			children = (
-				DAA3B4C5D6E7000000000011 /* AppTab.swift */,
-				DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */,
-			);
-			path = AppShell;
-			sourceTree = "<group>";
-		};
-		DAA3B4C5D6E7000000000032 /* Design system */ = {
-			isa = PBXGroup;
-			children = (
-				DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */,
-				DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */,
-				DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */,
-				DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */,
-				DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */,
-			);
-			path = DesignSystem;
 			sourceTree = "<group>";
 		};
 		A1B2C3D4E5F6000000000032 /* Products */ = {
@@ -415,6 +426,31 @@
 			path = Backend;
 			sourceTree = "<group>";
 		};
+		DAA3B4C5D6E7000000000031 /* AppShell */ = {
+			isa = PBXGroup;
+			children = (
+				DAA3B4C5D6E7000000000011 /* AppTab.swift */,
+				DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */,
+				6FA400629A2175E9C6330F2E /* WeddingAppShell.swift */,
+				730B95063539CAED2656EDE9 /* WorkspaceStore.swift */,
+			);
+			path = AppShell;
+			sourceTree = "<group>";
+		};
+		DAA3B4C5D6E7000000000032 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */,
+				DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */,
+				DAA3B4C5D6E7000000000015 /* VowbaseMetrics.swift */,
+				DAA3B4C5D6E7000000000016 /* VowbaseComponents.swift */,
+				DAA3B4C5D6E7000000000017 /* QuickAddFAB.swift */,
+				00C6542E2737CDCD45AAED91 /* VowbaseVenueImage.swift */,
+				57DA820279E3B32E4187F265 /* StatusCapsules.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 		E1F2A3B4C5D6000000000038 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -423,7 +459,7 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		F2A3B4C5D6E7000000000039 /* Features/Workspace */ = {
+		F2A3B4C5D6E7000000000039 /* Workspace */ = {
 			isa = PBXGroup;
 			children = (
 				F2A3B4C5D6E7000000000011 /* WorkspaceModels.swift */,
@@ -433,7 +469,7 @@
 			path = Features/Workspace;
 			sourceTree = "<group>";
 		};
-		F3A3B4C5D6E7000000000039 /* Features/People */ = {
+		F3A3B4C5D6E7000000000039 /* People */ = {
 			isa = PBXGroup;
 			children = (
 				F3A3B4C5D6E7000000000011 /* ProfileModels.swift */,
@@ -443,7 +479,7 @@
 			path = Features/People;
 			sourceTree = "<group>";
 		};
-		F3A3B4C5D6E700000000003A /* Features/Invitations */ = {
+		F3A3B4C5D6E700000000003A /* Invitations */ = {
 			isa = PBXGroup;
 			children = (
 				F3A3B4C5D6E7000000000014 /* InvitationModels.swift */,
@@ -453,7 +489,7 @@
 			path = Features/Invitations;
 			sourceTree = "<group>";
 		};
-		F4A3B4C5D6E7000000000039 /* Features/Guests */ = {
+		F4A3B4C5D6E7000000000039 /* Guests */ = {
 			isa = PBXGroup;
 			children = (
 				F4A3B4C5D6E7000000000011 /* GuestModels.swift */,
@@ -465,7 +501,7 @@
 			path = Features/Guests;
 			sourceTree = "<group>";
 		};
-		F7A3B4C5D6E7000000000039 /* Features/Inspiration */ = {
+		F7A3B4C5D6E7000000000039 /* Inspiration */ = {
 			isa = PBXGroup;
 			children = (
 				F7A3B4C5D6E7000000000011 /* InspirationModels.swift */,
@@ -475,7 +511,7 @@
 			path = Features/Inspiration;
 			sourceTree = "<group>";
 		};
-		F7A3B4C5D6E700000000003A /* Features/Attachments */ = {
+		F7A3B4C5D6E700000000003A /* Attachments */ = {
 			isa = PBXGroup;
 			children = (
 				F7A3B4C5D6E7000000000014 /* AttachmentModels.swift */,
@@ -485,7 +521,7 @@
 			path = Features/Attachments;
 			sourceTree = "<group>";
 		};
-		FAA3B4C5D6E7000000000039 /* Features/Maps */ = {
+		FAA3B4C5D6E7000000000039 /* Maps */ = {
 			isa = PBXGroup;
 			children = (
 				FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */,
@@ -532,8 +568,6 @@
 				A1B2C3D4E5F60000000000A1 /* PBXTargetDependency */,
 			);
 			name = VowbaseTests;
-			packageProductDependencies = (
-			);
 			productName = VowbaseTests;
 			productReference = A1B2C3D4E5F6000000000013 /* VowbaseTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -647,24 +681,24 @@
 				A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */,
 				C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */,
 				F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */,
-				F5A3B4C5D6E7000000000003 /* Features/Schedule/ScheduleModels.swift in Sources */,
-				F5A3B4C5D6E7000000000004 /* Features/Schedule/ScheduleRepository.swift in Sources */,
-				F5A3B4C5D6E7000000000005 /* Features/Schedule/SupabaseScheduleRepository.swift in Sources */,
-				F5A3B4C5D6E7000000000006 /* Features/Tasks/TaskModels.swift in Sources */,
-				F5A3B4C5D6E7000000000007 /* Features/Tasks/TaskRepository.swift in Sources */,
-				F5A3B4C5D6E7000000000008 /* Features/Tasks/SupabaseTaskRepository.swift in Sources */,
-				F5A3B4C5D6E7000000000009 /* Features/Tasks/TaskStore.swift in Sources */,
-				F5A3B4C5D6E700000000000A /* Features/Tasks/TasksView.swift in Sources */,
-				F5A3B4C5D6E700000000000B /* Features/Tasks/TaskEditorSheet.swift in Sources */,
-				F6A3B4C5D6E7000000000001 /* Features/Vendors/VendorModels.swift in Sources */,
-				F6A3B4C5D6E7000000000002 /* Features/Vendors/VendorRepository.swift in Sources */,
-				F6A3B4C5D6E7000000000003 /* Features/Vendors/SupabaseVendorRepository.swift in Sources */,
-				F6A3B4C5D6E7000000000004 /* Features/Budget/BudgetModels.swift in Sources */,
-				F6A3B4C5D6E7000000000005 /* Features/Budget/BudgetRepository.swift in Sources */,
-				F6A3B4C5D6E7000000000006 /* Features/Budget/SupabaseBudgetRepository.swift in Sources */,
-				F6A3B4C5D6E7000000000007 /* Features/Venues/VenueModels.swift in Sources */,
-				F6A3B4C5D6E7000000000008 /* Features/Venues/VenueRepository.swift in Sources */,
-				F6A3B4C5D6E7000000000009 /* Features/Venues/SupabaseVenueRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000003 /* ScheduleModels.swift in Sources */,
+				F5A3B4C5D6E7000000000004 /* ScheduleRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000005 /* SupabaseScheduleRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000006 /* TaskModels.swift in Sources */,
+				F5A3B4C5D6E7000000000007 /* TaskRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000008 /* SupabaseTaskRepository.swift in Sources */,
+				F5A3B4C5D6E7000000000009 /* TaskStore.swift in Sources */,
+				F5A3B4C5D6E700000000000A /* TasksView.swift in Sources */,
+				F5A3B4C5D6E700000000000B /* TaskEditorSheet.swift in Sources */,
+				F6A3B4C5D6E7000000000001 /* VendorModels.swift in Sources */,
+				F6A3B4C5D6E7000000000002 /* VendorRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000003 /* SupabaseVendorRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000004 /* BudgetModels.swift in Sources */,
+				F6A3B4C5D6E7000000000005 /* BudgetRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000006 /* SupabaseBudgetRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */,
+				F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */,
+				F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */,
 				F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */,
 				F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */,
 				F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */,
@@ -675,10 +709,22 @@
 				FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */,
 				FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */,
 				FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */,
-				BAA3B4C5D6E7000000000001 /* Features/Venues/VenueResearchModels.swift in Sources */,
-				BAA3B4C5D6E7000000000002 /* Features/Venues/VenueResearchRepository.swift in Sources */,
-				BAA3B4C5D6E7000000000003 /* Features/Venues/APIVenueResearchRepository.swift in Sources */,
-				BAA3B4C5D6E7000000000004 /* Features/Venues/VenuePhotoService.swift in Sources */,
+				BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */,
+				BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */,
+				BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */,
+				15E1A7A14A9B72A0EBC4C436 /* WeddingAppShell.swift in Sources */,
+				6DAB94EA72FE5E2A600F3611 /* WorkspaceStore.swift in Sources */,
+				CA3683C7F5F53F3AF2771D3C /* MapWorkspaceView.swift in Sources */,
+				B7C1BC4DF5CCE139CAED263F /* VenuesView.swift in Sources */,
+				AE9AF995C56EA551D49B981C /* VenueDetailView.swift in Sources */,
+				0D3111EF4928E8BDDB72D9AD /* AddVenueSheet.swift in Sources */,
+				8884FC7BABA2033C29CF6C84 /* GuestsView.swift in Sources */,
+				6214D764C1DC0E580B0BED8F /* GuestDetailView.swift in Sources */,
+				B2614CFCBF8AAC13B84F6F07 /* AddGuestSheet.swift in Sources */,
+				4F580EC44260F8700430B2B8 /* GuestFieldAdmin.swift in Sources */,
+				782C2CE444A0084D1EA792F2 /* VowbaseVenueImage.swift in Sources */,
+				6D218D18BD8DBDF535E03113 /* StatusCapsules.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -833,8 +879,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = VowbaseIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_ENTITLEMENTS = Vowbase/Vowbase.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -859,8 +905,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = VowbaseIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_ENTITLEMENTS = Vowbase/Vowbase.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;

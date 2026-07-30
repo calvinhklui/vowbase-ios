@@ -60,11 +60,12 @@ for the first time since this document was drafted: no branch is mid-rewrite of
 - **`travel` is still hardcoded to `"Unavailable"`** (`ContentView.swift:4526`). Every
   other gap the Venues spec named has been closed; this is the last one, and it is the one
   this document exists to fix. Phase 4 is now the highest-value unclaimed work in the app.
-- **One thing regressed past the token:** `TasksView` still carries
-  `.padding(.bottom, 96)` and `.padding(.bottom, 100)`
-  (`Features/Tasks/TasksView.swift:70,327`). It shipped in parallel with the clearance
-  work and never migrated. That is the exact double-inset bug the Venues branch fixed
-  everywhere else — see §7.5.
+- **One thing regressed past the token:** the root list's `.padding(.bottom, 96)`
+  (`Features/Tasks/TasksView.swift:70`) shipped in parallel with the clearance work and
+  never migrated — the exact double-inset bug the Venues branch fixed everywhere else. Now
+  fixed as part of this split; see §7.5. `TaskBoard`'s separate `.padding(.bottom, 100)`
+  (`:327`) is not this bug — it's breathing room inside a horizontally-scrolling lane, not
+  clearance from the floating tab bar, and is left alone.
 
 > **Process note.** The Venues PR merge briefly reverted this document to its pre-Tasks
 > state, because the branch was cut before that revision; the following merge from remote
@@ -431,11 +432,13 @@ overlay in `WeddingAppShell`, so it stays visible on screens pushed inside a tab
 `VenueDetailView` uses the default, which is right. Treat the Venues spec §8.2 code block
 as superseded by `VowbaseComponents.swift:19-30`.
 
-**Two migrations still outstanding.** `TasksView` never adopted the token and still has
-`.padding(.bottom, 96)` at line 70 and `.padding(.bottom, 100)` at line 327 — the second
-is not even the same number, which is how these drift. Both should become
-`.vowbaseScrollClearance()`. This is a five-minute fix and it does not need to wait for
-anything in this document.
+**Fixed as part of Phase 0.** `TasksView`'s root list carried `.padding(.bottom, 96)`
+(line 70) instead of the token — now `.vowbaseScrollClearance()`. `TaskBoard`'s
+`.padding(.bottom, 100)` (line 327) is deliberately untouched: it isn't the same bug. That
+scroll view is a horizontal lane carousel nested *inside* the vertical list the clearance
+already applies to; its bottom padding is breathing room within each lane's card stack, not
+clearance from the floating tab bar or FAB. Applying the token there would be reaching for
+the same fix for a different problem, precisely because the two numbers looked alike.
 
 **Where §6.5 leaves this.** Moving the FAB to ride the console's top edge removes the
 reason clearance must account for it *on console-bearing screens* — but pushed detail

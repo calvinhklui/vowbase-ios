@@ -45,3 +45,28 @@ enum VowbaseDesign {
     /// Foreground color for text or symbols placed on the rose accent.
     static let onRose = Color.white
 }
+
+// MARK: - Feature-facing aliases and title/eyebrow helpers moved from ContentView.swift's split (Phase 0)
+enum VowbaseTheme {
+    static let background = VowbaseDesign.background
+    static let groupedBackground = VowbaseDesign.groupedBackground
+    static let ink = VowbaseDesign.textPrimary
+    static let mutedInk = VowbaseDesign.textSecondary
+    static let rose = VowbaseDesign.rose
+    static let blush = VowbaseDesign.blush
+    static let border = VowbaseDesign.separator
+    static let guestBlue = VowbaseDesign.guestBlue
+}
+
+extension Text {
+    func displayTitle() -> some View {
+        font(VowbaseType.screenDisplay)
+            .foregroundStyle(VowbaseTheme.ink)
+    }
+
+    func eyebrow() -> some View {
+        font(VowbaseType.eyebrow)
+            .tracking(1.6)
+            .foregroundStyle(VowbaseTheme.rose)
+    }
+}
