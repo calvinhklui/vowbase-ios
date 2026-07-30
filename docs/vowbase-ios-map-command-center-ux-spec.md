@@ -2,7 +2,9 @@
 
 Status: Proposed
 Date: July 30, 2026
-Companion to `vowbase-ios-mvp-ux-spec.md` and `vowbase-ios-venues-ux-spec.md`.
+Revised: July 30, 2026 — see §0
+Companion to `vowbase-ios-mvp-ux-spec.md`, `vowbase-ios-venues-ux-spec.md`,
+`vowbase-ios-guests-ux-spec.md`, and `vowbase-ios-tasks-implementation-plan.md`.
 
 The MVP spec made the map the home screen and gave it two layer toggles and a shortlist
 drawer. That skeleton is built (`MapWorkspaceView` in `ContentView.swift`). This document
@@ -11,7 +13,34 @@ know where their wedding stands — and defines the structural framework that le
 day-of events, lodging, and budget land in it later without a second redesign.
 
 Where this document contradicts the MVP spec, this document wins. The deliberate
-reversals are named in §14.
+reversals are named in §15.
+
+---
+
+## 0. Revision — what shipped while this was in draft
+
+Between the first draft and now, three things landed on `main` that this document was
+written without. None of them invalidate the proposal; two of them strengthen it and one
+forces a decision that was parked as an open question.
+
+| What shipped | Where | Effect here |
+| --- | --- | --- |
+| **Tasks tab** — a fourth tab, no map presence | `Features/Tasks/`, `AppTab.tasks` | Proves the canvas-optional lens. Closes open question 3. Forces a reckoning with the Overview "Needs you" module — §11.3 |
+| **Guests rewrite** — inline detail editing, filter tokens, custom fields, display resolver | `Features/Guests/`, `docs/vowbase-ios-guests-ux-spec.md` | The console's guest rows must consume the display resolver, not `customFields["group"]` — §7.4 |
+| **Venues inline editing** — in flight on `feat/venues-scroll-clearance` | `docs/vowbase-ios-venues-ux-spec.md` §8, §10 | Introduces `vowbaseScrollClearance`, which the console must adopt rather than invent — §7.5. Its §8 FAB-overlap fix and this document's §6.5 FAB move are the same bug; coordinate them |
+
+Four consequences, each folded into the relevant section below:
+
+1. **Four tabs, not three.** The lens rail's five-slot budget is now nearly spent before
+   any new domain arrives. §9 restated with real numbers.
+2. **Tasks is a real domain that owns "what's next."** The Overview module can no longer
+   invent its own nudge list in isolation. §11.3 rewritten.
+3. **Roles exist.** `VowbaseWorkspaceStore.canManageTasks` derives write permission from
+   `WeddingMembership.role`. Nothing in this document acknowledged read-only roles. §10.1
+   is new.
+4. **`ContentView.swift` is now 4,140 lines**, up from 2,108. Phase 0 costs more and
+   matters more — but the split precedent is set, because Tasks shipped entirely outside
+   it. §16 revised.
 
 ---
 
@@ -22,11 +51,12 @@ Read against the current build, not against the mockups:
 1. **The map decorates; it does not answer.** It is zoomed to the Northeast with two
    overlapping pins and one guest bubble. Nothing on screen states the one thing only a
    map can tell you: *what this venue choice costs the people you are inviting.* The
-   `travel` field is literally hardcoded to `"Unavailable"` (`ContentView.swift:2028`)
+   `travel` field is literally hardcoded to `"Unavailable"` (`ContentView.swift:4026`)
    while `MapWorkflowRepository.travelTimes` sits unused.
-2. **The IA duplicates itself.** The tab bar offers Map / Venues / Guests. The map offers
-   Venues / Guests layer chips. Two controls, one taxonomy. Adding vendors means adding
-   them in both places.
+2. **The IA duplicates itself.** The tab bar offers Map / Venues / Guests / Tasks. The map
+   offers Venues / Guests layer chips. Two controls, one taxonomy. Adding vendors means
+   adding them in both places — and Tasks has already had to pick a side, appearing in the
+   bar but not on the map, with nothing in the design saying why.
 3. **The layer chips are settings, not a point of view.** Two booleans with checkmarks
    consume the most valuable strip on the screen and do not scale past four objects.
 4. **The identity bar spends 80 pt telling the couple their own names.** No date, no
@@ -58,6 +88,24 @@ Three named parts, used consistently for the rest of this document:
 | **Canvas** | The map. Always present, always the background. |
 | **Console** | The bottom sheet. Three detents. Always shows the active lens. |
 | **Lens rail** | The bottom bar. Replaces both the tab bar and the layer chips. |
+
+### 2.1 Canvas-optional lenses
+
+Not every planning object has a place. Tasks shipped with no map presence at all, and
+budget never will have one. The lens model must therefore allow a lens that contributes
+**nothing** to the canvas — and it does, cleanly:
+
+- A canvas-optional lens contributes no annotations. Every other layer keeps rendering at
+  its context weight, so the map does not go blank; it simply has no focus layer.
+- Its console opens at the **half** detent rather than peek, because there is no map
+  selection for a peek rail to caption.
+- Its console header has no impact readout — that line falls back to the lens's own
+  summary (`12 open · 3 due this week`).
+- The camera does not move when you switch to it, and the map you left is still there when
+  you switch back. That continuity is the whole argument for one canvas.
+
+Tasks is the proof this works rather than a special case to code around: it is a full
+first-class lens that happens to draw nothing. Budget, when it arrives, is the same shape.
 
 ---
 
@@ -306,6 +354,32 @@ What changes: it is reached by dragging up rather than by a tab, the map stays b
 and the filter chips sit directly under the header instead of under a screen title. The
 screen title is gone — the lens rail already says where you are.
 
+Two things the console must inherit rather than reinvent, both landed or landing since
+this was drafted:
+
+- **The Guests display resolver.** The guest row's subtitle comes from the wedding's
+  designated subtitle column, resolved from column *definitions*, not from a literal
+  `customFields["group"]` lookup — see `vowbase-ios-guests-ux-spec.md` §"Display resolver".
+  An absent value renders as nothing, not `No group`. The peek rail card (§7.3) uses the
+  same resolver, so a wedding that groups by `side` or `table` reads correctly in both.
+- **Active filter tokens** carry over from the Guests spec as-is. They sit between the
+  chips and the list, and clearing them does not clear search.
+
+### 7.5 Clearance
+
+Do not invent bottom padding. `feat/venues-scroll-clearance` introduces
+`VowbaseControlMetric.quickAddClearance` and a `vowbaseScrollClearance(includesQuickAdd:)`
+modifier precisely so no screen carries its own constant, and the console's list is one
+more scroll container that must adopt it.
+
+Note the overlap: that branch's §8 fix and this document's §6.5 FAB relocation address the
+**same bug** from opposite ends. Its fix insets content beneath a FAB that floats over
+content; §6.5 moves the FAB so it never floats over content at all. Both are worth having
+— pushed detail screens keep the inset even once the map's FAB has moved — but land the
+branch first and treat §6.5 as removing the reason the clearance has to include the FAB on
+console-bearing screens. Two people fixing this independently will produce a double inset,
+which is the bug the branch is fixing.
+
 ---
 
 ## 8. The impact readout
@@ -350,19 +424,35 @@ sizing, and haptics — the visual work already done carries over unchanged.
 
 ```
 ┌────────────────────────────────────────────┐
-│   ◉         📍          👥                 │
-│ Overview  Venues     Guests                │
+│   ◉        📍        👥        ☑︎          │
+│ Overview  Venues   Guests    Tasks         │
 └────────────────────────────────────────────┘
 ```
 
 - Active slot: filled glyph, white label, `.white.opacity(0.16)` capsule — as built today.
 - Selection is conveyed by capsule, glyph fill, and `.isSelected` trait, never by color
   alone.
-- **Overflow rule:** at most five slots. `Overview` is always leading. When more than five
-  lenses exist, the fifth slot becomes `More`, opening a grid sheet of the remainder; the
-  chosen lens takes the fourth slot for the session. No horizontal scrolling — a rail that
-  scrolls is a rail whose targets move.
 - Switching lenses: 0.22 s crossfade on markers, console keeps its detent, camera holds.
+  A canvas-optional lens (§2.1) crossfades to no focus layer and moves no camera.
+
+### 9.1 The slot budget is nearly spent
+
+Tasks made this urgent. Four lenses exist **today** — Overview, Venues, Guests, Tasks —
+against a five-slot rail. Vendors takes the fifth exactly; Lodging is the first one that
+overflows.
+
+- **At five or fewer:** all lenses get a fixed, equal-width slot. `Overview` always leads.
+- **At six or more:** the fifth slot becomes `More`, opening a grid sheet of the
+  remainder. The lens chosen from that sheet occupies the fourth slot for the session, so
+  the thing you are actually working on is never two taps away twice.
+- No horizontal scrolling. A rail that scrolls is a rail whose targets move.
+
+Slot width, at a 393 pt screen with the rail's 14 pt insets, 6 pt padding and 4 pt gaps:
+**four slots = 85 pt, five = 67 pt.** `Overview` is the longest label and the one that
+governs. The prototype renders three slots at 111 pt, so neither of these has been
+measured on a device — do that before Vendors lands. If `Overview` will not hold at
+11 pt semibold in 67 pt, the rail drops to **glyph-only with labels kept for VoiceOver**
+rather than shrinking type below legibility or truncating a navigation target.
 
 ---
 
@@ -370,17 +460,38 @@ sizing, and haptics — the visual work already done carries over unchanged.
 
 The FAB is lens-aware, which is what keeps it one tap forever.
 
-- **Tap** → the active lens's create sheet directly. On Venues, tap = Add venue. On
-  Guests, tap = Add guest. On Overview, tap = the current expanded panel.
+- **Tap** → the active lens's create sheet directly. On Venues, tap = Add venue; on
+  Guests, Add guest; on Tasks, Add task. On Overview, tap opens the panel.
 - **Long press** → the full panel of every lens's create action, as `QuickAddPanel` does
-  today.
+  today. It now carries three rows (Task, Venue, Guest), which is exactly the growth that
+  motivates making tap lens-aware: the panel gets longer with every domain, the tap never
+  does.
 - The FAB's glyph carries the lens tint ring so the primary action is legible before you
   press it.
 - Creating from the canvas: long-pressing empty map opens `Add venue here` with the
   coordinate pre-filled and reverse-geocoded. Same path as a Places search result.
 
 `QuickAddPanel` needs no structural change — it becomes a list driven by the lens registry
-rather than two hardcoded rows.
+rather than the three hardcoded rows it has today.
+
+### 10.1 Roles
+
+The Tasks work introduced write permissions the rest of the app does not yet honour:
+`VowbaseWorkspaceStore.canManageTasks` derives from `WeddingMembership.role`, and parent
+and viewer roles are read-only. The command center inherits this, and the rule from the
+Tasks plan holds everywhere — *never render a control that predictably fails*:
+
+- A read-only role gets **no FAB at all**, not a disabled one. There is nothing it could
+  usefully do.
+- Long-press quick add is likewise absent, as is long-press-to-add on the canvas.
+- Every lens still appears in the rail, and the console still lists everything. Reading the
+  plan is the whole point of these roles.
+- The Overview "Needs you" module still renders, but its rows route to the object rather
+  than to an edit affordance, and nudges cannot be promoted into tasks (§11.3).
+
+Per-domain write permission is a later problem. Today the role gate is uniform, so derive
+one `canEdit` on the store and let every lens read it rather than growing a matrix before
+there is anything to put in it.
 
 ---
 
@@ -435,19 +546,68 @@ All four are derivable from data already loaded — no backend work.
 | **Reach** | `travelTimes` for the leading venue | — |
 | **Guests** | RSVP tallies | — |
 
-### 11.3 "Needs you" rules
+### 11.3 "Needs you" — reconciling with the Tasks domain
 
-Ordered; the first three that fire are shown.
+This module was drafted when nothing in the app tracked what to do next. Tasks now does,
+with real due dates, priorities, owners, and a five-lane board. Two competing answers to
+"what needs me?" is precisely the duplication this whole document exists to remove — the
+tab bar and the layer chips all over again. So resolve it rather than shipping both.
+
+**They are different kinds of thing, and the module must keep them visibly different.**
+
+| | Task | Nudge |
+| --- | --- | --- |
+| Origin | A person wrote it down | The app noticed a data condition |
+| Has | Due date, owner, priority, status | None of these |
+| Ends when | Someone marks it Done | The condition stops being true |
+| Can be assigned | Yes | No |
+| Lives in | `wedding_tasks` | Nowhere — recomputed every render |
+
+A nudge is not a lesser task; it is an observation. "18 guests have no location" is not
+work someone agreed to do, and rendering it as a task with no owner and no due date would
+make the task list dishonest.
+
+**The module's composition, in order:**
+
+1. **Overdue tasks**, then **tasks due within 7 days** — real commitments, up to three.
+   Same ordering as the Tasks list: due date, then priority, then title.
+2. **At most two nudges**, from the rules below, only if space remains.
+3. If neither produces a row, the module hides. An empty "Needs you" is worse than none.
+
+**Suppression.** A nudge is dropped when an open task plausibly covers it. Do this with an
+explicit `coversNudge: NudgeID?` written when a task is created *from* a nudge — not by
+matching title text, which will produce false positives on any wedding whose planner
+happens to name a task "Guest locations."
+
+**Promotion is the bridge.** Every nudge row carries a trailing `＋` that creates a real
+task from it: title pre-filled, `coversNudge` set, editor open on the due-date field. This
+is what makes Tasks and the map one product rather than two — the app notices something,
+and one tap turns the observation into work someone owns. Hidden for read-only roles
+(§10.1).
+
+**Nudge rules,** unchanged in substance from the first draft, now capped at two shown:
 
 1. `venues.isEmpty` → *Add your first venue*
 2. `toured ≥ 2 && booked == 0` → *Pick a venue — N toured, none held* → Venues, compare
 3. `guests.withoutCoordinate > 0` → *N guests have no location* → Guests, filtered
 4. `daysUntilWedding ≤ 120 && rsvpPending > 0` → *N RSVPs outstanding* → Guests, filtered
-5. `booked == 1` → collapses the module to one confirmation row and demotes it to
-   `.ambient`
+5. `booked == 1` → drops rules 1–2 and demotes the module to `.ambient`
 
 Later domains append rules — vendor payment due inside 14 days, an event without a
-location, a lodging block under-filled — without touching the module's rendering.
+location, a lodging block under-filled — without touching the module's rendering. Each new
+rule needs a stable `NudgeID` so promotion and suppression keep working.
+
+### 11.4 Does Overview still earn a rail slot?
+
+Fair challenge now that Tasks exists, and worth stating rather than assuming. Overview
+keeps three things Tasks cannot hold: the countdown, the reach readout, and cross-domain
+observations that nobody wrote down. Those have no other home. But if `Needs you` is the
+only module anyone reads, Overview is a worse Tasks tab and should be deleted, with the
+countdown moving to the context bar (where it already is) and reach moving to the Venues
+console header (where it already is).
+
+Decide this from usage after Phase 5, not from argument. The instrumentation is one event:
+which module a session taps first.
 
 ---
 
@@ -459,10 +619,24 @@ location, a lodging block under-filled — without touching the module's renderi
 | No workspace | Map at world zoom, no markers | Full-detent explainer + "Create a wedding" |
 | Lens empty | No focus markers; context layers remain | Empty card with the lens's create action |
 | Offline | Cached tiles; markers still render from cached data | Muted banner in the header; impact readout shows `Retry` |
-| Error | Unchanged | Inline in the header, not a full-screen takeover |
+| Read failed | Unchanged | Inline in the header, not a full-screen takeover |
+| Write failed | Unchanged | The shipped `SaveFailure` alert — see below |
 
 The current build's centered `ProgressView("Loading your wedding")` over the whole screen
 goes away. The map is instantly useful; the data can arrive underneath it.
+
+**Reads and writes fail differently, and the first draft conflated them.** `WeddingAppShell`
+now presents a `SaveFailure` alert with *Try again* / *Discard changes* (`ContentView.swift:156`),
+which arrived with the Guests inline editor. That is the right shape for a failed write:
+the user typed something, it is at risk, and a banner they can scroll past would lose it.
+Keep it, app-wide, and do not build a second inline pattern that competes.
+
+Inline-in-the-header is for **reads** — a travel request that timed out, a stale list, an
+offline map. Nothing is at risk, so nothing should be modal. §8.1's four unavailable
+states are all read failures and all stay inline.
+
+The console must also carry `.refreshable` at the half and full detents, matching the pull
+to refresh both lists gained in `857e064`. Peek has no scroll of its own to pull.
 
 ---
 
@@ -491,7 +665,7 @@ goes away. The map is instantly useful; the data can arrive underneath it.
 
 Unchanged from the MVP spec and extended:
 
-- Guest positions come only from `originPrecision == "city"` (`ContentView.swift:1729`).
+- Guest positions come only from `originPrecision == "city"` (`ContentView.swift:3366`).
   No household pins, ever.
 - The impact readout is computed against **clusters**, never individuals, and reports
   aggregates only.
@@ -504,38 +678,61 @@ Unchanged from the MVP spec and extended:
 
 | Today | Becomes | Why |
 | --- | --- | --- |
-| `AppTab` (Map/Venues/Guests) | `PlanLens` (Overview/Venues/Guests/…) | One taxonomy, extensible |
+| `AppTab` (Map/Venues/Guests/Tasks) | `PlanLens` (Overview/Venues/Guests/Tasks/…) | One taxonomy, extensible |
 | `VowbaseTabBar` | Lens rail | Same component, new source of truth |
 | `LayerChip` × 2 | *Deleted* | The rail already does this |
 | `IdentityBar` | Context bar | 80 pt of names → 52 pt of names, date, and search |
 | `ShortlistPanel` | Console, peek detent | Gains detents and selection-aware header |
 | `VenuesView` / `GuestsView` bodies | Console, half/full detent | Same lists, no separate screen |
+| `TasksView` body | Console, half/full detent | Canvas-optional lens, §2.1 — the view itself is unchanged |
 | `MapVenueCard` (4 facts, truncating) | Rail card (2 facts) | Location is redundant beside a pin |
 | `travel = "Unavailable"` | Impact readout | Wires up `travelTimes`, already in the API |
 | Bottom-right floating FAB | FAB riding the console's top edge | Stops overlapping cards |
 
+What this explicitly does **not** replace, now that it exists: the Tasks list and board,
+the task editor, the Guests inline detail editor, the custom-field manager, or the
+`SaveFailure` alert. Those are content inside the console, not structure around it. This
+document changes how you get to a list, never what the list is.
+
 Deliberate reversals of the MVP spec:
 
-1. **"Exactly three top-level destinations."** Now: exactly one surface, N lenses.
+1. **"Exactly three top-level destinations."** Already reversed by the Tasks plan, which
+   took it to four. Now: exactly one surface, N lenses.
 2. **"An all-off layer state is allowed."** Now: unreachable, and no loss.
 3. **"The FAB sits inside the bottom-right of the Shortlist surface."** Now: above it.
+
+And one reversal of this document's own first draft: it claimed every lens contributes to
+the canvas. Tasks does not, and §2.1 now says so.
 
 ---
 
 ## 16. Build order
 
-A precondition first: `ContentView.swift` is 2,108 lines with every type `private` in one
-file. None of this is testable or reviewable in place. Split before building.
+A precondition first: `ContentView.swift` is **4,140 lines**, up from 2,108 when this was
+drafted. None of this is testable or reviewable in place. Split before building.
 
-**Phase 0 — Split.** `AppShell/`, `Features/Map/`, `Features/Venues/Views/`,
-`Features/Guests/Views/`, `DesignSystem/Components/`. Move `VowbaseWorkspaceStore` to
-`AppShell/WorkspaceStore.swift` and make it internal. Behavior-neutral; existing tests
-must pass untouched.
+The good news is that the split no longer needs arguing for — it is already happening.
+Tasks shipped **entirely outside** `ContentView.swift` (`Features/Tasks/TasksView.swift`,
+`TaskStore.swift`, `TaskEditorSheet.swift`, `TaskModels.swift`), Guests moved
+`GuestFiltering`, `GuestFieldEditing` and `GuestModels` out, and `MVPVenue`, `MVPGuest`,
+`GuestCluster` and `VowbaseWorkspaceStore` are now internal rather than `private`. The
+pattern and the precedent both exist. What is left in the blob is the Map, Venues and
+Guests *views*, plus the store.
 
-**Phase 1 — Lens model.** `PlanLens` enum + registry. Replace `AppTab` and delete
-`LayerChip`. The rail renders from the registry. Venues and Guests conform. The screen
-looks nearly identical; the structure is now additive. *This is the skeleton the rest
-hangs on — ship it alone if nothing else ships.*
+**Phase 0 — Split.** Finish what Tasks started. `AppShell/`, `Features/Map/`,
+`Features/Venues/Views/`, `Features/Guests/Views/`. Move `VowbaseWorkspaceStore` to
+`AppShell/WorkspaceStore.swift`. Behavior-neutral; existing tests must pass untouched.
+
+> **Sequencing against work in flight.** `feat/venues-scroll-clearance` is rewriting
+> `VenuePatch`, `MVPVenue` and the venue detail inside `ContentView.swift` right now. A
+> file-splitting commit and an inline-editing rewrite in the same 4,000-line file will
+> conflict badly. Land that branch first, then split. Do not run these in parallel.
+
+**Phase 1 — Lens model.** `PlanLens` enum + registry, including the canvas-optional case
+(§2.1) — Tasks needs it on day one, so it is no longer a hypothetical to design around.
+Replace `AppTab` and delete `LayerChip`. The rail renders from the registry. Venues,
+Guests and Tasks conform. The screen looks nearly identical; the structure is now
+additive. *This is the skeleton the rest hangs on — ship it alone if nothing else ships.*
 
 **Phase 2 — Console.** Three detents, selection-aware header, redesigned rail card,
 list bodies moved in, camera insets wired to sheet height. FAB relocated.
@@ -547,12 +744,16 @@ glyph (field can land inert and gain results in 3b).
 states, and replace the hardcoded `travel` string. Highest user-visible payoff; depends
 on nothing above except the console header.
 
-**Phase 5 — Overview lens.** Module contract, the four MVP modules, the "Needs you"
-rules.
+**Phase 5 — Overview lens.** Module contract, the four MVP modules, and the task/nudge
+reconciliation in §11.3 — including `NudgeID`, the `coversNudge` field on tasks, and
+promotion. Depends on Tasks, which now exists, so this is unblocked.
 
 **Phase 6+ — New domains.** Each is: one `PlanLens` conformance, one rail card, one list
-row, one create sheet, one overview module. Vendors first (`VendorRepository` exists),
-then day-of events (`ScheduleRepository` exists), then lodging.
+row, one create sheet, one overview module — and, for a canvas-optional domain, no map
+work at all. Vendors first (`VendorRepository` exists), then day-of events
+(`ScheduleRepository` exists), then lodging. Vendors takes the fifth rail slot; Lodging is
+the one that triggers §9.1's overflow rule, so settle that before Lodging, not before
+Vendors.
 
 ---
 
@@ -571,9 +772,18 @@ then day-of events (`ScheduleRepository` exists), then lodging.
 
 1. **Does Overview earn the leading slot, or is it the wrong default landing?** My read:
    land on Overview when a blocking rule fires, otherwise land on the last-used lens.
-   Worth a decision before Phase 5.
+   Worth a decision before Phase 5. Sharper now that Tasks exists — see §11.4 for the
+   stronger version of this question, which is whether Overview should exist at all.
 2. **Travel request cost.** `travelTimes` per venue selection across N clusters could be
    chatty. Needs a per-venue cache keyed on `(venueID, clusterSignature)`; the API already
    reports `.cache` as a source, so confirm the server caches before we build a client one.
-3. **Budget as a lens with no canvas presence.** The lens model must allow a console-only
-   lens. Cheap to allow now, awkward to retrofit — decide in Phase 1.
+3. ~~**Budget as a lens with no canvas presence.**~~ **Answered by Tasks**, which shipped
+   as exactly that. The lens model must support it, and §2.1 now specifies the behavior.
+4. **Does the console's half detent leave enough room for the Tasks board?** Tasks Board
+   mode is a horizontal lane scroller that wants height, and the plan gives iPhone a lane
+   filling most of the viewport. Half detent may force Board to open at full, which is
+   defensible but should be a stated rule rather than an accident. Decide in Phase 2.
+5. **Does `@AppStorage` list/board preference survive becoming a lens?** The Tasks plan
+   persists presentation mode locally and preserves it across tab switches. Console detent
+   is also per-lens session state. Confirm these two do not fight when Tasks becomes a
+   lens whose console has its own detent memory.
