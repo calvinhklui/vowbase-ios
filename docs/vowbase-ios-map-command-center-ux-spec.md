@@ -19,17 +19,17 @@ reversals are named in §15.
 
 ## 0. Revision — what shipped while this was in draft
 
-Between the first draft and now, three things landed on `main` that this document was
-written without. None of them invalidate the proposal; two of them strengthen it and one
-forces a decision that was parked as an open question.
+Three things landed on `main` that this document was written without. None of them
+invalidate the proposal; two strengthen it and one forces a decision that was parked as an
+open question.
 
 | What shipped | Where | Effect here |
 | --- | --- | --- |
 | **Tasks tab** — a fourth tab, no map presence | `Features/Tasks/`, `AppTab.tasks` | Proves the canvas-optional lens. Closes open question 3. Forces a reckoning with the Overview "Needs you" module — §11.3 |
 | **Guests rewrite** — inline detail editing, filter tokens, custom fields, display resolver | `Features/Guests/`, `docs/vowbase-ios-guests-ux-spec.md` | The console's guest rows must consume the display resolver, not `customFields["group"]` — §7.4 |
-| **Venues inline editing** — in flight on `feat/venues-scroll-clearance` | `docs/vowbase-ios-venues-ux-spec.md` §8, §10 | Introduces `vowbaseScrollClearance`, which the console must adopt rather than invent — §7.5. Its §8 FAB-overlap fix and this document's §6.5 FAB move are the same bug; coordinate them |
+| **Venues inline editing** — merged in `b2ea8d5` | `docs/vowbase-ios-venues-ux-spec.md` §4, §8, §10 | Ships `vowbaseScrollClearance`, rebuilds `VenuePatch` and `MVPVenue`. Unblocks Phase 0 — §7.5, §16 |
 
-Four consequences, each folded into the relevant section below:
+Consequences, each folded into the relevant section below:
 
 1. **Four tabs, not three.** The lens rail's five-slot budget is now nearly spent before
    any new domain arrives. §9 restated with real numbers.
@@ -38,9 +38,38 @@ Four consequences, each folded into the relevant section below:
 3. **Roles exist.** `VowbaseWorkspaceStore.canManageTasks` derives write permission from
    `WeddingMembership.role`. Nothing in this document acknowledged read-only roles. §10.1
    is new.
-4. **`ContentView.swift` is now 4,140 lines**, up from 2,108. Phase 0 costs more and
+4. **`ContentView.swift` is now 4,640 lines**, up from 2,108. Phase 0 costs more and
    matters more — but the split precedent is set, because Tasks shipped entirely outside
    it. §16 revised.
+
+### 0.1 Second pass — the Venues branch has landed
+
+`feat/venues-scroll-clearance` merged and its worktrees are gone. The codebase is stable
+for the first time since this document was drafted: no branch is mid-rewrite of
+`ContentView.swift`. What that changed:
+
+- **Phase 0 is unblocked.** The sequencing warning in §16 is discharged. Split now, before
+  something else claims the file.
+- **`vowbaseScrollClearance` exists** (`DesignSystem/VowbaseComponents.swift:23`) — but
+  with the *opposite* `includesQuickAdd` semantics the Venues spec proposed. §7.5 corrected.
+- **`MVPVenue` is no longer lossy.** It now carries `capacityMin`/`capacityMax`,
+  `venueEstimateTextRaw`, `coverPhotoURL`, `photos: [VenuePhotoDisplay]` and `ourNotes`.
+  The rail card and console list can read real fields instead of pre-formatted strings.
+- **`VenuePatch` is all `NullablePatch`,** so fields can be cleared. Venues spec §10.1 and
+  §10.2 are both closed.
+- **`travel` is still hardcoded to `"Unavailable"`** (`ContentView.swift:4526`). Every
+  other gap the Venues spec named has been closed; this is the last one, and it is the one
+  this document exists to fix. Phase 4 is now the highest-value unclaimed work in the app.
+- **One thing regressed past the token:** `TasksView` still carries
+  `.padding(.bottom, 96)` and `.padding(.bottom, 100)`
+  (`Features/Tasks/TasksView.swift:70,327`). It shipped in parallel with the clearance
+  work and never migrated. That is the exact double-inset bug the Venues branch fixed
+  everywhere else — see §7.5.
+
+> **Process note.** The Venues PR merge briefly reverted this document to its pre-Tasks
+> state, because the branch was cut before that revision; the following merge from remote
+> restored it. Long-lived branches that touch `docs/` will keep doing this. Rebase them, or
+> keep spec edits out of feature branches.
 
 ---
 
@@ -51,7 +80,7 @@ Read against the current build, not against the mockups:
 1. **The map decorates; it does not answer.** It is zoomed to the Northeast with two
    overlapping pins and one guest bubble. Nothing on screen states the one thing only a
    map can tell you: *what this venue choice costs the people you are inviting.* The
-   `travel` field is literally hardcoded to `"Unavailable"` (`ContentView.swift:4026`)
+   `travel` field is literally hardcoded to `"Unavailable"` (`ContentView.swift:4526`)
    while `MapWorkflowRepository.travelTimes` sits unused.
 2. **The IA duplicates itself.** The tab bar offers Map / Venues / Guests / Tasks. The map
    offers Venues / Guests layer chips. Two controls, one taxonomy. Adding vendors means
@@ -62,12 +91,21 @@ Read against the current build, not against the mockups:
 4. **The identity bar spends 80 pt telling the couple their own names.** No date, no
    countdown, no state.
 5. **Everything in the shortlist card truncates.** "Celebrate at…", "1000, Richmon…",
-   "Unavailable m…". Four facts crammed into 165 pt.
+   "Unavailable m…". Four facts crammed into 165 pt — `MapVenueCard` is unchanged.
 6. **The shortlist is a list beside a map, not a list of the map.** Selection sync exists;
    consequence does not.
-7. **The FAB sits on top of the content it is meant to add to.**
+7. **The FAB sits on top of the content it is meant to add to.** Fixed everywhere else by
+   `vowbaseScrollClearance`, which the map never adopted: the clearance landed on Venues,
+   Venue Detail and Guests, not on `ShortlistPanel`.
 
 The screen has the right instinct — map first — and the wrong information model.
+
+**Worth stating plainly after three merges:** Venues, Guests and Tasks have each had a
+dedicated design pass and a rewrite. The map has had none. Every item above is still
+literally true of the shipped code — `MapWorkspaceView`, `LayerChip`, `ShortlistPanel`,
+`MapVenueCard`, `VenueMapAnnotation` and `GuestClusterAnnotation` are byte-identical to
+`c4d7e88`, the commit before any of that work began. The map is now the least-attended
+surface in the app and the one the app opens to.
 
 ---
 
@@ -341,8 +379,16 @@ already looking at, so restating the address is redundant.
 - At Accessibility Dynamic Type sizes the rail becomes a single full-width vertical card
   and the peek detent grows to fit it.
 
-Each lens supplies its own card. Guests: avatar + name + RSVP capsule + group. Vendors
-later: category glyph + name + status + next payment due.
+Each lens supplies its own card. Guests: avatar + name + RSVP capsule + group, with the
+group line coming from the display resolver (§7.4). Vendors later: category glyph + name +
+status + next payment due.
+
+**Read structured fields, not display strings.** The Venues merge rebuilt `MVPVenue` so it
+carries `capacityMin`/`capacityMax`, `venueEstimateTextRaw`, `coverPhotoURL` and
+`photos: [VenuePhotoDisplay]` alongside the derived `capacity` and `estimate` strings. The
+card takes `coverPhotoURL` directly rather than `photoURLs.first`, and any future fact it
+shows formats from the numeric field. The pre-formatted string is for display only and is
+already lossy for anything that needs to compare or sort.
 
 ### 7.4 Half and full — the list
 
@@ -367,18 +413,35 @@ this was drafted:
 
 ### 7.5 Clearance
 
-Do not invent bottom padding. `feat/venues-scroll-clearance` introduces
-`VowbaseControlMetric.quickAddClearance` and a `vowbaseScrollClearance(includesQuickAdd:)`
-modifier precisely so no screen carries its own constant, and the console's list is one
-more scroll container that must adopt it.
+Do not invent bottom padding. `VowbaseControlMetric.quickAddClearance` (88 pt) and
+`vowbaseScrollClearance(includesQuickAdd:)` shipped for exactly this reason, and the
+console's list is one more scroll container that adopts them.
 
-Note the overlap: that branch's §8 fix and this document's §6.5 FAB relocation address the
-**same bug** from opposite ends. Its fix insets content beneath a FAB that floats over
-content; §6.5 moves the FAB so it never floats over content at all. Both are worth having
-— pushed detail screens keep the inset even once the map's FAB has moved — but land the
-branch first and treat §6.5 as removing the reason the clearance has to include the FAB on
-console-bearing screens. Two people fixing this independently will produce a double inset,
-which is the bug the branch is fixing.
+**The shipped `includesQuickAdd` means the opposite of what the Venues spec's §8.2 example
+said,** and this document repeated the wrong version. The spec's sample passed `false` for
+"pushed detail screens, which have no FAB." They do have one: the FAB is an app-shell
+overlay in `WeddingAppShell`, so it stays visible on screens pushed inside a tab's own
+`NavigationStack`. The shipped rule is therefore:
+
+| Screen | Value | Because |
+| --- | --- | --- |
+| Any screen under the app shell, pushed or root | `true` (default) | The FAB floats above it |
+| Full-screen `.sheet` with no app chrome | `false` | Nothing floats above it |
+
+`VenueDetailView` uses the default, which is right. Treat the Venues spec §8.2 code block
+as superseded by `VowbaseComponents.swift:19-30`.
+
+**Two migrations still outstanding.** `TasksView` never adopted the token and still has
+`.padding(.bottom, 96)` at line 70 and `.padding(.bottom, 100)` at line 327 — the second
+is not even the same number, which is how these drift. Both should become
+`.vowbaseScrollClearance()`. This is a five-minute fix and it does not need to wait for
+anything in this document.
+
+**Where §6.5 leaves this.** Moving the FAB to ride the console's top edge removes the
+reason clearance must account for it *on console-bearing screens* — but pushed detail
+screens keep the app-shell FAB and therefore keep the full inset. So §6.5 does not delete
+the token; it narrows where the FAB half of it applies. Keep one modifier, and let the
+lens decide what it passes.
 
 ---
 
@@ -626,7 +689,7 @@ The current build's centered `ProgressView("Loading your wedding")` over the who
 goes away. The map is instantly useful; the data can arrive underneath it.
 
 **Reads and writes fail differently, and the first draft conflated them.** `WeddingAppShell`
-now presents a `SaveFailure` alert with *Try again* / *Discard changes* (`ContentView.swift:156`),
+now presents a `SaveFailure` alert with *Try again* / *Discard changes* (`ContentView.swift:161`),
 which arrived with the Guests inline editor. That is the right shape for a failed write:
 the user typed something, it is at risk, and a banner they can scroll past would lose it.
 Keep it, app-wide, and do not build a second inline pattern that competes.
@@ -665,7 +728,7 @@ to refresh both lists gained in `857e064`. Peek has no scroll of its own to pull
 
 Unchanged from the MVP spec and extended:
 
-- Guest positions come only from `originPrecision == "city"` (`ContentView.swift:3366`).
+- Guest positions come only from `originPrecision == "city"` (`ContentView.swift:3860`).
   No household pins, ever.
 - The impact readout is computed against **clusters**, never individuals, and reports
   aggregates only.
@@ -708,7 +771,7 @@ the canvas. Tasks does not, and §2.1 now says so.
 
 ## 16. Build order
 
-A precondition first: `ContentView.swift` is **4,140 lines**, up from 2,108 when this was
+A precondition first: `ContentView.swift` is **4,640 lines**, up from 2,108 when this was
 drafted. None of this is testable or reviewable in place. Split before building.
 
 The good news is that the split no longer needs arguing for — it is already happening.
@@ -723,10 +786,16 @@ Guests *views*, plus the store.
 `Features/Venues/Views/`, `Features/Guests/Views/`. Move `VowbaseWorkspaceStore` to
 `AppShell/WorkspaceStore.swift`. Behavior-neutral; existing tests must pass untouched.
 
-> **Sequencing against work in flight.** `feat/venues-scroll-clearance` is rewriting
-> `VenuePatch`, `MVPVenue` and the venue detail inside `ContentView.swift` right now. A
-> file-splitting commit and an inline-editing rewrite in the same 4,000-line file will
-> conflict badly. Land that branch first, then split. Do not run these in parallel.
+> **Now unblocked, and the window is open.** The previous revision said to wait for
+> `feat/venues-scroll-clearance`. It merged in `b2ea8d5`, the worktrees are cleaned up, and
+> no branch is currently mid-rewrite of `ContentView.swift`. This is the first stable
+> moment since Tasks landed. The file has grown by 2,500 lines across two such windows —
+> take this one.
+
+Two small cleanups belong in Phase 0 because they are the same kind of work and touch the
+same files: migrate `TasksView`'s two hardcoded bottom paddings to
+`vowbaseScrollClearance()` (§7.5), and delete the Venues spec §8.2 code block that
+documents the wrong `includesQuickAdd` semantics.
 
 **Phase 1 — Lens model.** `PlanLens` enum + registry, including the canvas-optional case
 (§2.1) — Tasks needs it on day one, so it is no longer a hypothetical to design around.
@@ -741,8 +810,16 @@ list bodies moved in, camera insets wired to sheet height. FAB relocated.
 glyph (field can land inert and gain results in 3b).
 
 **Phase 4 — Impact readout.** Wire `travelTimes`, cluster badges, the four unavailable
-states, and replace the hardcoded `travel` string. Highest user-visible payoff; depends
-on nothing above except the console header.
+states, and replace the hardcoded `travel` string. Highest user-visible payoff; depends on
+nothing above except the console header.
+
+> **This is now the last open gap the Venues spec named.** Its §10.1 (`VenuePatch` cannot
+> clear fields), §10.2 (`MVPVenue` is lossy) and §10.3 (no photo upload path) all closed in
+> the merge. §10.4 — guest travel is hardcoded — did not. The compare view's travel row,
+> the venue card's third fact, and this document's entire argument for a map all resolve to
+> the same string literal at `ContentView.swift:4526`. Phase 4 can be pulled ahead of
+> Phases 1–3 if the structural work stalls: it needs only the console header, and the
+> header could ship as a plain row on the existing `ShortlistPanel`.
 
 **Phase 5 — Overview lens.** Module contract, the four MVP modules, and the task/nudge
 reconciliation in §11.3 — including `NudgeID`, the `coversNudge` field on tasks, and
