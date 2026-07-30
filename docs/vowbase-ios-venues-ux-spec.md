@@ -13,7 +13,7 @@ inline-editable."* We are reversing that. Rationale is in §2.
 
 | Question | Answer |
 |---|---|
-| Which column are "notes"? | `our_notes` — it's what the screen shows today whenever it has content. `notes` becomes read-only research. §4.5 |
+| Which column are "notes"? | `our_notes` — confirmed against the web client, which reads and writes only that column under a section labelled "Our notes". Bare `notes` is legacy and isn't shown. §4.5 |
 | Can inline editing clear a field? | Yes. `VenuePatch` adopts `NullablePatch`. §10.1 |
 | Does the name row get an edit glyph? | No glyph on any row. §4.2 |
 
@@ -87,8 +87,6 @@ section bodies are `vowbaseCard()` surfaces except the hero.
 │  PHOTOS (6)              Manage    │  grid, §5/§6
 ├────────────────────────────────────┤
 │  DOCUMENTS (2)              Add    │  §7
-├────────────────────────────────────┤
-│  FROM RESEARCH                     │  read-only, collapsed by default, §10.2
 └────────────────────────────────────┘
                                         ← bottom clearance, §8
 ```
@@ -165,31 +163,45 @@ interrupted, and background the app.
 - The card in read state shows 6 lines and a `More` affordance; expanded read state has no
   cap. Tapping the collapsed body enters edit at the tapped character offset.
 
-### 4.5 Which field is "notes" — decided
+### 4.5 Which field is "notes" — decided: `our_notes`
 
 Today `MVPVenue.notes` resolves `our_notes ?? notes` (`ContentView.swift:2043`), but
-`VenuePatch` can only write `notes`. On a venue with research-populated `our_notes`,
-everything the user types goes to `notes` and is never displayed again. **This is a live
-data-loss bug**, not just a gap.
+`VenuePatch` can only write `notes`. The web client settles which half is right.
 
-The displayed field today is a fallback chain, not one column, so "keep what's shown"
-resolves to: **`our_notes` is the field, because it wins the coalesce whenever it has
-content.** Settled as:
+**What the web app does** (`Wedding/Vowbase`):
 
-- `our_notes` is the couple's notes. It is what the Notes section reads and writes.
-- `notes` is research-sourced prose. It becomes read-only, rendered in the **From
-  Research** section (§3), and is never written from iOS.
+- The Venues detail pane reads `venue.our_notes` and writes `onPatch({ our_notes: v || null })`
+  under a section literally labelled **"Our notes"**
+  (`src/routes/app.w.$weddingId.venues.tsx:653`).
+- The compare table reads `formatNotes(v.our_notes)` (same file, line 1120).
+- Bare `notes` is **never read anywhere in the web venue UI.**
+- Migration `20260720020949` added `our_notes` and backfilled it:
+  `UPDATE public.venues SET our_notes = notes WHERE our_notes IS NULL AND notes IS NOT NULL;`
+
+So `notes` is not research prose — it is a **legacy column that was already merged into
+`our_notes` in July 2026**. Settled as:
+
+- `our_notes` is the notes field, on both clients. It is what the Notes section reads and
+  writes, and it is cleared by writing `NULL` — exactly the semantics the web app uses, and
+  independent confirmation of §10.1.
+- **`notes` is not displayed on iOS at all.** Not in Notes, not in a research section.
+- The `?? venue.notes` fallback in `MVPVenue` is dead post-backfill and comes out with it.
 - `VenuePatch` gains `ourNotes`. See §10.1.
 
-**One behavior change to expect.** On a venue where `our_notes` is empty and `notes` has
-research prose, that prose is displayed in the Notes area *today*. After this change it
-moves down to From Research and the Notes card starts empty. That is the intended outcome —
-you should not be typing on top of text you didn't write — but it will look like content
-moved on venues that came from research.
+**Correction to an earlier draft of this spec:** it proposed surfacing `notes` read-only in
+a *From Research* section, on the assumption it held research prose. It doesn't, and that
+section is now dropped. Building it would have put a field on iOS that the web client
+cannot see — the same split-brain problem this section exists to close, just pointed the
+other way.
 
-The rejected alternative was seeding: pre-fill the editor with the research prose on first
-edit. It reads better in the moment and costs provenance — you end up with two near-identical
-copies and no way to tell which sentence was the couple's. Not worth it.
+**But `notes` is still actively written — by agents, not people.** The MCP tools
+`create_venue` and `update_venue` both accept a `notes` string and pass it straight into the
+column with no mapping to `our_notes`
+(`src/lib/mcp/tools/update-venue.ts:32`, `create-venue.ts:32`). Anything an agent has
+written to `notes` since the backfill is invisible in every UI. **This is a server-side bug
+and out of scope here** — flagging it because it is the reason the iOS coalesce looks
+load-bearing when it isn't. The fix belongs in those two tools: map `notes` → `our_notes`,
+or drop the field from their schemas.
 
 ### 4.6 Location is special
 
@@ -409,8 +421,10 @@ floating 96 pt short of the bottom, which is the visual tell that something is w
 
 ### 8.3 Also fix while in here
 
-- Add `.refreshable { await store.load() }` to Venues and Guests. The MVP spec calls for
-  pull-to-refresh on both; neither has it.
+- ~~Add `.refreshable` to Venues and Guests.~~ **Done** in `857e064` — both lists now
+  refresh (`ContentView.swift:590`, `961`). The clearance work above is untouched by that
+  commit: both lists still carry `.padding(.bottom, 96)` and the detail screen still has
+  none.
 - The venue detail's `navigationTitle("Venue")` should be the venue's name — the current
   static title wastes the one piece of orientation a pushed screen gets.
 
@@ -518,8 +532,8 @@ so editing capacity means round-tripping `"150–350"` through a parser.
 
 - `photos: [VenuePhoto]` alongside the resolved `[URL]` (pair them, keyed by photo ID).
 - `capacityMin`/`capacityMax` as `Int?`, with the formatted string derived at render time.
-- `researchNotes: String?` (the `notes` column) as a distinct read-only field, for §10.2's
-  From Research section, separate from `ourNotes`.
+- `ourNotes: String?` read straight from `our_notes`, replacing today's `our_notes ?? notes`
+  coalesce (§4.5). The `notes` column is not carried into the view model at all.
 
 ### 10.3 No upload path for venue photos
 
