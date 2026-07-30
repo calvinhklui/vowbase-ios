@@ -31,12 +31,21 @@ struct TasksView: View {
     @State private var presentation: TasksPresentation = .list
     @State private var query = ""
     @State private var showsCompleted = false
+    @State private var boardColumnID: String? = WeddingTaskStatus.backlog.rawValue
 
     var body: some View {
         NavigationStack {
-            Group {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 24) {
+                    TaskHeader(weddingTitle: store.weddingTitle, taskCount: taskStore.tasks.count, onSignOut: onSignOut)
+
+                    TaskSearchField(query: $query)
+
+                    TaskViewControls(presentation: $presentation, showsCompleted: $showsCompleted)
+
                 if taskStore.isLoading && taskStore.tasks.isEmpty {
                     ProgressView("Loading tasks")
+                        .padding(.vertical, 56)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if filteredTasks.isEmpty {
                     ContentUnavailableView {
@@ -50,37 +59,18 @@ struct TasksView: View {
                                 .tint(VowbaseTheme.rose)
                         }
                     }
+                    .padding(.vertical, 36)
+                    .frame(maxWidth: .infinity)
                 } else {
                     taskContent
                 }
             }
-            .background(VowbaseTheme.background)
-            .navigationTitle("Tasks")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $query, prompt: "Search tasks")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    if store.canManageTasks {
-                        Button { editor = .add } label: {
-                            Image(systemName: "plus")
-                        }
-                        .accessibilityLabel("Add task")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Picker("View", selection: $presentation) {
-                            ForEach(TasksPresentation.allCases) { option in
-                                Label(option.title, systemImage: option.systemImage).tag(option)
-                            }
-                        }
-                        Toggle("Show Completed", isOn: $showsCompleted)
-                    } label: {
-                        Image(systemName: presentation.systemImage)
-                    }
-                    .accessibilityLabel("Task view options")
-                }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 96)
             }
+            .background(VowbaseTheme.background)
+            .navigationBarHidden(true)
             .refreshable {
                 if let weddingID = store.wedding?.id { await taskStore.load(weddingID: weddingID) }
             }
@@ -94,28 +84,16 @@ struct TasksView: View {
     private var taskContent: some View {
         switch presentation {
         case .list:
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 22) {
-                    IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-
-                    TaskSummary(tasks: filteredTasks)
-                        .padding(.horizontal, 20)
-
-                    ForEach(TaskDateBucket.orderedBuckets(for: filteredTasks)) { bucket in
-                        let tasks = tasks(in: bucket)
-                        if !tasks.isEmpty {
-                            TaskSection(bucket: bucket, tasks: tasks, taskStore: taskStore, canManageTasks: store.canManageTasks) {
-                                editor = .edit($0.id)
-                            }
+            ForEach(TaskDateBucket.orderedBuckets(for: filteredTasks)) { bucket in
+                let tasks = tasks(in: bucket)
+                if !tasks.isEmpty {
+                    TaskSection(bucket: bucket, tasks: tasks, taskStore: taskStore, canManageTasks: store.canManageTasks) {
+                        editor = .edit($0.id)
                         }
                     }
                 }
-                .padding(.bottom, 120)
-            }
         case .board:
-            TaskBoard(tasks: filteredTasks, taskStore: taskStore, canManageTasks: store.canManageTasks) {
+            TaskBoard(tasks: filteredTasks, taskStore: taskStore, canManageTasks: store.canManageTasks, selectedColumnID: $boardColumnID) {
                 editor = .edit($0.id)
             }
         }
@@ -143,30 +121,74 @@ struct TasksView: View {
     }
 }
 
-private struct TaskSummary: View {
-    let tasks: [WeddingTask]
+private struct TaskHeader: View {
+    let weddingTitle: String
+    let taskCount: Int
+    let onSignOut: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            IdentityBar(weddingTitle: weddingTitle, onSignOut: onSignOut)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("TASK LIST")
+                    .font(VowbaseType.eyebrow)
+                    .tracking(1.6)
+                    .foregroundStyle(VowbaseTheme.rose)
+                Text("Tasks")
+                    .font(VowbaseType.screenDisplay)
+                    .foregroundStyle(VowbaseTheme.ink)
+                Text("\(taskCount) \(taskCount == 1 ? "task" : "tasks")")
+                    .font(.system(size: 18))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        }
+    }
+}
+
+private struct TaskSearchField: View {
+    @Binding var query: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(VowbaseTheme.mutedInk)
+            TextField("Search tasks", text: $query)
+                .textInputAutocapitalization(.sentences)
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: 52)
+        .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+    }
+}
+
+private struct TaskViewControls: View {
+    @Binding var presentation: TasksPresentation
+    @Binding var showsCompleted: Bool
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(VowbaseTheme.rose)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(openCount) open \(openCount == 1 ? "task" : "tasks")")
-                    .font(.system(size: 19, weight: .bold, design: .rounded))
-                    .foregroundStyle(VowbaseTheme.ink)
-                Text(urgentCount == 0 ? "A calm plan, all in one place." : "\(urgentCount) needs attention")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
+            Picker("Task view", selection: $presentation) {
+                ForEach(TasksPresentation.allCases) { option in
+                    Text(option.title).tag(option)
+                }
             }
-            Spacer()
-        }
-        .padding(16)
-        .background(VowbaseTheme.blush.opacity(0.7), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
+            .pickerStyle(.segmented)
 
-    private var openCount: Int { tasks.filter { $0.effectiveStatus != .done }.count }
-    private var urgentCount: Int { tasks.filter { $0.priority == .urgent && $0.effectiveStatus != .done }.count }
+            Button {
+                showsCompleted.toggle()
+            } label: {
+                Image(systemName: showsCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(showsCompleted ? .white : VowbaseTheme.ink)
+                    .frame(width: 52, height: 38)
+                    .background(showsCompleted ? VowbaseTheme.rose : VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showsCompleted ? "Hide completed tasks" : "Show completed tasks")
+        }
+    }
 }
 
 private struct TaskSection: View {
@@ -267,12 +289,13 @@ private struct TaskBoard: View {
     let tasks: [WeddingTask]
     let taskStore: TaskStore
     let canManageTasks: Bool
+    @Binding var selectedColumnID: String?
     let onEdit: (WeddingTask) -> Void
 
     private let columns: [WeddingTaskStatus] = [.backlog, .todo, .inProgress, .blocked, .done]
 
     var body: some View {
-        ScrollView(.horizontal) {
+        ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: 14) {
                 ForEach(columns, id: \.self) { status in
                     VStack(alignment: .leading, spacing: 11) {
@@ -296,11 +319,16 @@ private struct TaskBoard: View {
                     .frame(width: 274, alignment: .topLeading)
                     .frame(minHeight: 500, alignment: .top)
                     .background(VowbaseTheme.blush.opacity(0.45), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .id(status.rawValue)
                 }
             }
+            .scrollTargetLayout()
             .padding(20)
             .padding(.bottom, 100)
         }
+        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+        .scrollPosition(id: $selectedColumnID)
+        .accessibilityLabel("Task board columns")
     }
 }
 
