@@ -38,19 +38,19 @@ enum SheetDestination: Identifiable, Hashable {
 ///
 /// ## Shell integration
 /// Create this model in `WeddingAppShell` with `@State`, then pass it to the
-/// tab content. Views that need bindings should declare `@Bindable var
-/// navigation: AppNavigationModel` and bind directly to `selectedTab`, a tab
+/// lens content. Views that need bindings should declare `@Bindable var
+/// navigation: AppNavigationModel` and bind directly to `selectedLens`, a lens
 /// path, or `sheetDestination`. `selectVenueOnMap(_:)` is the canonical route
 /// from a list/detail to a focused map marker; `clearMapFocus()` acknowledges
-/// that request after Map has applied it.
+/// that request after Overview has applied it.
 @MainActor
 @Observable
 final class AppNavigationModel {
-    /// The currently visible root tab. The map remains the default workspace.
-    var selectedTab: AppTab
+    /// The currently visible lens. Overview — the map — remains the default.
+    var selectedLens: PlanLens
 
-    /// Independent navigation stacks preserve each tab's drill-in state.
-    var mapPath = NavigationPath()
+    /// Independent navigation stacks preserve each lens's drill-in state.
+    var overviewPath = NavigationPath()
     var venuesPath = NavigationPath()
     var guestsPath = NavigationPath()
     var tasksPath = NavigationPath()
@@ -58,18 +58,18 @@ final class AppNavigationModel {
     /// The one modal task currently presented by the app shell, if any.
     var sheetDestination: SheetDestination?
 
-    /// A venue Map should focus the next time it becomes visible.
+    /// A venue Overview should focus the next time it becomes visible.
     ///
-    /// This remains set until `clearMapFocus()` is called so a Map view can
-    /// consume it after it has appeared following a tab change.
+    /// This remains set until `clearMapFocus()` is called so the Overview lens
+    /// can consume it after it has appeared following a lens change.
     var focusedVenueID: UUID?
 
-    init(selectedTab: AppTab = .map) {
-        self.selectedTab = selectedTab
+    init(selectedLens: PlanLens = .overview) {
+        self.selectedLens = selectedLens
     }
 
-    func selectTab(_ tab: AppTab) {
-        selectedTab = tab
+    func selectLens(_ lens: PlanLens) {
+        selectedLens = lens
         sheetDestination = nil
     }
 
@@ -81,31 +81,31 @@ final class AppNavigationModel {
         sheetDestination = nil
     }
 
-    /// Routes to Map and requests that it select and reveal `venueID`.
+    /// Routes to Overview and requests that it select and reveal `venueID`.
     func selectVenueOnMap(_ venueID: UUID) {
-        selectedTab = .map
-        mapPath = NavigationPath()
+        selectedLens = .overview
+        overviewPath = NavigationPath()
         sheetDestination = nil
         focusedVenueID = venueID
     }
 
-    /// Clears a Map focus request after the Map has selected the venue.
+    /// Clears a map focus request after Overview has selected the venue.
     func clearMapFocus() {
         focusedVenueID = nil
     }
 
-    /// Clears presentation-only state while leaving the user's tab and
+    /// Clears presentation-only state while leaving the user's lens and
     /// navigation history intact.
     func clearTransientState() {
         sheetDestination = nil
         focusedVenueID = nil
     }
 
-    /// Returns one tab to its root without disturbing the other tabs.
-    func resetNavigation(for tab: AppTab) {
-        switch tab {
-        case .map:
-            mapPath = NavigationPath()
+    /// Returns one lens to its root without disturbing the others.
+    func resetNavigation(for lens: PlanLens) {
+        switch lens {
+        case .overview:
+            overviewPath = NavigationPath()
         case .venues:
             venuesPath = NavigationPath()
         case .guests:

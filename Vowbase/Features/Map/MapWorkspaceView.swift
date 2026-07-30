@@ -8,8 +8,6 @@ import SwiftUI
 struct MapWorkspaceView: View {
     let store: VowbaseWorkspaceStore
     let onSignOut: () -> Void
-    @State private var showsVenues = true
-    @State private var showsGuests = true
     @State private var position = MapCameraPosition.region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 40.2, longitude: -74.4),
@@ -20,31 +18,27 @@ struct MapWorkspaceView: View {
     var body: some View {
         ZStack(alignment: .top) {
             Map(position: $position) {
-                if showsVenues {
-                    ForEach(store.venues) { venue in
-                        if let coordinate = venue.coordinate {
-                            Annotation(venue.name, coordinate: coordinate, anchor: .bottom) {
-                                Button {
-                                    store.selectedVenueID = venue.id
-                                } label: {
-                                    VenueMapAnnotation(
-                                        venue: venue,
-                                        selected: store.selectedVenueID == venue.id
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("\(venue.name), \(venue.status.title)")
+                ForEach(store.venues) { venue in
+                    if let coordinate = venue.coordinate {
+                        Annotation(venue.name, coordinate: coordinate, anchor: .bottom) {
+                            Button {
+                                store.selectedVenueID = venue.id
+                            } label: {
+                                VenueMapAnnotation(
+                                    venue: venue,
+                                    selected: store.selectedVenueID == venue.id
+                                )
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(venue.name), \(venue.status.title)")
                         }
                     }
                 }
 
-                if showsGuests {
-                    ForEach(store.clusters) { cluster in
-                        Annotation("\(cluster.count) guests in \(cluster.city)", coordinate: cluster.coordinate) {
-                            GuestClusterAnnotation(cluster: cluster)
-                                .accessibilityLabel("\(cluster.count) guests in \(cluster.city)")
-                        }
+                ForEach(store.clusters) { cluster in
+                    Annotation("\(cluster.count) guests in \(cluster.city)", coordinate: cluster.coordinate) {
+                        GuestClusterAnnotation(cluster: cluster)
+                            .accessibilityLabel("\(cluster.count) guests in \(cluster.city)")
                     }
                 }
             }
@@ -53,10 +47,6 @@ struct MapWorkspaceView: View {
 
             VStack(alignment: .leading, spacing: 20) {
                 IdentityBar(weddingTitle: store.weddingTitle, onSignOut: onSignOut)
-                HStack(spacing: 10) {
-                    LayerChip(title: "Venues", icon: "mappin", isOn: $showsVenues, tint: VowbaseTheme.rose)
-                    LayerChip(title: "Guests", icon: "person.2", isOn: $showsGuests, tint: VowbaseTheme.guestBlue)
-                }
                 Spacer()
             }
             .padding(.horizontal, 16)
@@ -66,32 +56,6 @@ struct MapWorkspaceView: View {
             ShortlistPanel(store: store)
             .padding(.bottom, 8)
         }
-    }
-}
-
-private struct LayerChip: View {
-    let title: String
-    let icon: String
-    @Binding var isOn: Bool
-    let tint: Color
-
-    var body: some View {
-        Button { isOn.toggle() } label: {
-            HStack(spacing: 9) {
-                Image(systemName: icon)
-                Text(title)
-                Image(systemName: isOn ? "checkmark" : "eye.slash")
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(isOn ? tint : VowbaseTheme.mutedInk)
-            .padding(.horizontal, 18)
-            .frame(minHeight: 52)
-            .background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().stroke(isOn ? tint.opacity(0.38) : VowbaseTheme.border, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(isOn ? "Visible" : "Hidden")
     }
 }
 

@@ -43,6 +43,6 @@ struct VowbaseAuthenticatedContent: View {
     }
 }
 
-#Preview("Map") {
+#Preview("Overview") {
     ContentView()
 }

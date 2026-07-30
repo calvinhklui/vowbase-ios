@@ -23,13 +23,13 @@ struct WeddingAppShell: View {
     init(
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
-        initialTab: AppTab = .map,
+        initialLens: PlanLens = .overview,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
         self.taskStore = taskStore
         self.onSignOut = onSignOut
-        _navigation = State(initialValue: AppNavigationModel(selectedTab: initialTab))
+        _navigation = State(initialValue: AppNavigationModel(selectedLens: initialLens))
     }
 
     var body: some View {
@@ -40,8 +40,8 @@ struct WeddingAppShell: View {
             VowbaseTheme.background.ignoresSafeArea()
 
             Group {
-                switch navigation.selectedTab {
-                case .map:
+                switch navigation.selectedLens {
+                case .overview:
                     MapWorkspaceView(
                         store: store,
                         onSignOut: onSignOut
@@ -51,7 +51,7 @@ struct WeddingAppShell: View {
                         store: store,
                         onSignOut: onSignOut,
                         onAddVenue: { quickAdd = .venue },
-                        onReturnToMap: { navigation.selectedTab = .map }
+                        onReturnToMap: { navigation.selectedLens = .overview }
                     )
                 case .guests:
                     GuestsView(store: store, onSignOut: onSignOut)
@@ -69,7 +69,7 @@ struct WeddingAppShell: View {
 
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VowbaseTabBar(selection: $navigation.selectedTab)
+            LensRail(selection: $navigation.selectedLens)
         }
         .overlay {
             if isQuickAddPresented {
@@ -93,7 +93,7 @@ struct WeddingAppShell: View {
                 onAddTask: { taskEditor = .add }
             )
             .padding(.trailing, VowbaseControlMetric.screenInset)
-            .padding(.bottom, VowbaseTabBar.fabBottomClearance)
+            .padding(.bottom, LensRail.fabBottomClearance)
         }
         .sheet(item: $quickAdd) { destination in
             switch destination {
@@ -121,28 +121,31 @@ struct WeddingAppShell: View {
                 }
             )
         }
-        .animation(.snappy(duration: 0.28), value: navigation.selectedTab)
+        .animation(.snappy(duration: 0.28), value: navigation.selectedLens)
     }
 
 }
 
-private struct VowbaseTabBar: View {
+/// The lens rail. Replaces the plain tab bar: each slot is a `PlanLens`, so a
+/// new lens (Vendors, Lodging, …) is a new `PlanLens` case, not a new control.
+/// See spec §9.
+private struct LensRail: View {
     static let fabBottomClearance: CGFloat = 90
 
-    @Binding var selection: AppTab
+    @Binding var selection: PlanLens
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
             if #available(iOS 26, *) {
-                tabContent
+                railContent
                     .glassEffect(
                         .regular.tint(Color.black.opacity(0.54)),
                         in: Capsule()
                     )
             } else {
-                tabContent
+                railContent
                     .background(.ultraThinMaterial, in: Capsule())
                     .overlay {
                         Capsule()
@@ -156,13 +159,13 @@ private struct VowbaseTabBar: View {
         .padding(.bottom, 6)
     }
 
-    private var tabContent: some View {
+    private var railContent: some View {
         HStack(spacing: 4) {
-            ForEach(AppTab.allCases) { tab in
+            ForEach(PlanLens.allCases) { lens in
                 Button {
-                    select(tab)
+                    select(lens)
                 } label: {
-                    VowbaseTabBarItem(tab: tab, isSelected: selection == tab)
+                    LensRailItem(lens: lens, isSelected: selection == lens)
                 }
                 .buttonStyle(.plain)
             }
@@ -172,27 +175,27 @@ private struct VowbaseTabBar: View {
         .frame(height: 70)
     }
 
-    private func select(_ tab: AppTab) {
-        guard selection != tab else { return }
+    private func select(_ lens: PlanLens) {
+        guard selection != lens else { return }
 
         UISelectionFeedbackGenerator().selectionChanged()
         withAnimation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08)) {
-            selection = tab
+            selection = lens
         }
     }
 }
 
-private struct VowbaseTabBarItem: View {
-    let tab: AppTab
+private struct LensRailItem: View {
+    let lens: PlanLens
     let isSelected: Bool
 
     var body: some View {
         VStack(spacing: 4) {
-            Image(systemName: tab.systemImage)
+            Image(systemName: lens.systemImage)
                 .font(.system(size: 20, weight: .semibold))
                 .symbolVariant(.fill)
 
-            Text(tab.title)
+            Text(lens.title)
                 .font(.system(size: 11, weight: .semibold))
         }
         .foregroundStyle(isSelected ? .white : .white.opacity(0.72))
@@ -270,9 +273,9 @@ struct IdentityBar: View {
 }
 
 #Preview("Venues") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialTab: .venues)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialLens: .venues)
 }
 
 #Preview("Guests") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), initialTab: .guests)
+    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), initialLens: .guests)
 }
