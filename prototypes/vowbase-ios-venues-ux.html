@@ -1,0 +1,657 @@
+<title>Vowbase Venues — UX prototype</title>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5 7.5 12 15 19.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7.6" cy="12" r="1.25"/><circle cx="12" cy="12" r="1.25"/><circle cx="16.4" cy="12" r="1.25"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.5s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="10.2" r="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M2.6 5.9 9 3.4v14.7l-6.4 2.5V5.9Zm6.4-2.5 6 2.6v14.7l-6-2.6V3.4Zm6 2.6 6.4-2.5v14.7L15 20.7V6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M2.8 20c.5-3.4 3.1-5.6 6.2-5.6s5.7 2.2 6.2 5.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16.4 5.2a3.1 3.1 0 0 1 0 6M18 14.9c2.2.6 3.7 2.5 4.1 5.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-dollar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 6.4v11.2M14.7 9.1c-.5-.9-1.5-1.4-2.7-1.4-1.6 0-2.8.9-2.8 2.2 0 3 5.6 1.6 5.6 4.6 0 1.3-1.2 2.2-2.8 2.2-1.3 0-2.3-.5-2.8-1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.2" y="5.2" width="17.6" height="15.6" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.2 10h17.6M8 3.2v3.6M16 3.2v3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 14.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.2 3.5h3l1.6 4-2 1.5a12 12 0 0 0 6.2 6.2l1.5-2 4 1.6v3c0 1.1-.9 2-2 2A16.5 16.5 0 0 1 4.2 5.5c0-1.1.9-2 2-2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 2.8h7.5L19 8.3V21a1.6 1.6 0 0 1-1.6 1.6H6A1.6 1.6 0 0 1 4.4 21V4.4A1.6 1.6 0 0 1 6 2.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13.2 3v5.4H19M7.6 13h7.6M7.6 16.6h5.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8.4" cy="9.8" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.6 16.4 8.6 12l3.6 3.2 3.4-2.8 4.8 4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="masthead">
+  <p class="eyebrow">Vowbase iOS · design review</p>
+  <h1>Two screens to judge before we build.</h1>
+  <p class="dek">The inline-edit affordance and the comparison grid are the two decisions in the Venues spec that are much easier to argue about as pictures. Everything below is drawn in Vowbase's own tokens — rose <code>#C22659</code>, blush, New York for names, SF for everything else — so what you're judging is the app, not a mockup style. The three questions this board opened are now closed; the answers are at the foot.</p>
+  <ul class="meta">
+    <li><span>Source</span>docs/vowbase-ios-venues-ux-spec.md</li>
+    <li><span>Renders in</span>light &amp; dark, follow your theme</li>
+    <li><span>Pins</span>link to spec sections</li>
+  </ul>
+</header>
+
+<main>
+
+<!-- ═══════════════ PLATE 1 ═══════════════ -->
+<section class="plate">
+  <div class="plate-head">
+    <p class="plate-no">Plate 1</p>
+    <h2>Venue Detail — read, then editing in place</h2>
+    <p class="plate-dek">Same screen, two states. Nothing modal happens between them: the capacity cell's label is replaced by a field with the identical frame, and the rest of the screen stays live and legible.</p>
+  </div>
+
+  <div class="stage stage-2">
+
+    <!-- ---------- Phone A : read ---------- -->
+    <figure class="device-fig">
+      <div class="device">
+        <div class="screen">
+          <div class="statusbar"><span class="clock">9:41</span><span class="stat-r"><i class="sig"></i><i class="wifi"></i><i class="batt"></i></span></div>
+
+          <div class="navbar">
+            <button class="nav-btn" aria-label="Back"><svg class="gl"><use href="#i-back"/></svg></button>
+            <span class="nav-title">Riverside Pavilion</span>
+            <button class="nav-btn" aria-label="More"><svg class="gl"><use href="#i-dots"/></svg></button>
+          </div>
+
+          <div class="scroll">
+            <div class="carousel">
+              <div class="photo glasshouse"></div>
+              <div class="scrim"></div>
+              <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="pad">
+              <div class="row row-name">
+                <h3 class="venue-name">Riverside Pavilion</h3>
+              </div>
+              <button class="status-pill">Toured <svg class="gl gl-xs"><use href="#i-chev"/></svg></button>
+              <div class="row row-loc">
+                <span class="loc"><svg class="gl gl-s"><use href="#i-pin"/></svg>Example City</span>
+                <span class="act" title="View on map"><svg class="gl gl-s"><use href="#i-map"/></svg></span>
+              </div>
+
+              <p class="sec-label">Decision facts</p>
+              <div class="card facts">
+                <div class="fact"><span class="fv"><svg class="gl gl-s"><use href="#i-people"/></svg>150–350</span><span class="fc">guests</span></div>
+                <div class="fact"><span class="fv"><svg class="gl gl-s"><use href="#i-dollar"/></svg>$53.7K</span><span class="fc">venue est.</span></div>
+                <div class="fact empty"><span class="fv"><svg class="gl gl-s"><use href="#i-dollar"/></svg>Add all-in est.</span></div>
+                <div class="fact empty"><span class="fv"><svg class="gl gl-s"><use href="#i-cal"/></svg>Add dates</span></div>
+              </div>
+
+              <p class="sec-label">Notes</p>
+              <div class="card notes">
+                <p>The light at 5pm through the west glazing is the whole reason to book this. Coordinator is Dana — she holds dates for 10 days without a deposit.</p>
+                <p class="saved">Saved · 2 min ago</p>
+              </div>
+
+              <p class="sec-label">Details</p>
+              <div class="card list">
+                <div class="li"><span class="lk">Website</span><span class="lv">riversidepavilion.example<svg class="gl gl-s act"><use href="#i-link"/></svg></span></div>
+                <div class="li"><span class="lk">Contact</span><span class="lv">Dana Okonkwo</span></div>
+                <div class="li"><span class="lk">Phone</span><span class="lv">(415) 555-0148<svg class="gl gl-s act"><use href="#i-phone"/></svg></span></div>
+                <div class="li"><span class="lk">Email</span><span class="lv empty">Add email</span></div>
+              </div>
+
+              <div class="sec-head"><p class="sec-label">Photos <em>6</em></p><span class="sec-act">Manage</span></div>
+              <div class="thumbs"><i class="glasshouse"></i><i class="hall"></i><i class="garden"></i><i class="more">+3</i></div>
+
+              <div class="sec-head"><p class="sec-label">Documents <em>2</em></p><span class="sec-act">Add</span></div>
+              <div class="card list">
+                <div class="li doc"><svg class="gl gl-s rose"><use href="#i-doc"/></svg><span class="dl"><b>Riverside — 2027 Pricing.pdf</b><em>PDF · 1.2 MB · Calvin · Mar 4</em></span></div>
+                <div class="li doc"><svg class="gl gl-s rose"><use href="#i-doc"/></svg><span class="dl"><b>Catering menu.pdf</b><em>PDF · 480 KB · Priya · Feb 28</em></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <span class="tab"><svg class="gl"><use href="#i-map"/></svg>Map</span>
+            <span class="tab on"><svg class="gl"><use href="#i-pin"/></svg>Venues</span>
+            <span class="tab"><svg class="gl"><use href="#i-people"/></svg>Guests</span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>A.</b> Read state — every row is a tap target</figcaption>
+    </figure>
+
+    <!-- ---------- Phone B : editing ---------- -->
+    <figure class="device-fig">
+      <div class="device">
+        <div class="screen">
+          <div class="statusbar"><span class="clock">9:41</span><span class="stat-r"><i class="sig"></i><i class="wifi"></i><i class="batt"></i></span></div>
+
+          <div class="navbar">
+            <button class="nav-btn" aria-label="Back"><svg class="gl"><use href="#i-back"/></svg></button>
+            <span class="nav-title">Riverside Pavilion</span>
+            <button class="nav-btn" aria-label="More"><svg class="gl"><use href="#i-dots"/></svg></button>
+          </div>
+          <div class="hairline-progress"><i></i></div>
+
+          <div class="scroll">
+            <div class="carousel short">
+              <div class="photo glasshouse"></div>
+              <div class="scrim"></div>
+              <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="pad">
+              <div class="row row-name">
+                <h3 class="venue-name">Riverside Pavilion</h3>
+              </div>
+              <button class="status-pill">Toured <svg class="gl gl-xs"><use href="#i-chev"/></svg></button>
+              <div class="row row-loc">
+                <span class="loc"><svg class="gl gl-s"><use href="#i-pin"/></svg>Example City</span>
+                <span class="act" title="View on map"><svg class="gl gl-s"><use href="#i-map"/></svg></span>
+              </div>
+
+              <p class="sec-label">Decision facts</p>
+              <div class="card facts">
+                <div class="fact editing">
+                  <span class="fv"><svg class="gl gl-s"><use href="#i-people"/></svg><span class="field sel">150</span><span class="dash">–</span><span class="field">350</span></span>
+                  <span class="fc">guests</span>
+                </div>
+                <div class="fact"><span class="fv"><svg class="gl gl-s"><use href="#i-dollar"/></svg>$53.7K</span><span class="fc">venue est.</span></div>
+                <div class="fact empty"><span class="fv"><svg class="gl gl-s"><use href="#i-dollar"/></svg>Add all-in est.</span></div>
+                <div class="fact empty"><span class="fv"><svg class="gl gl-s"><use href="#i-cal"/></svg>Add dates</span></div>
+              </div>
+
+              <p class="sec-label">Notes</p>
+              <div class="card notes">
+                <p>The light at 5pm through the west glazing is the whole reason to book this. Coordinator is Dana — she holds dates for 10 days without a deposit.</p>
+              </div>
+              <p class="sec-label">Details</p>
+              <div class="card list">
+                <div class="li"><span class="lk">Website</span><span class="lv">riversidepavilion.example<svg class="gl gl-s act"><use href="#i-link"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kb">
+            <div class="kb-bar">
+              <span class="kb-nav"><i class="up">˄</i><i class="dn">˅</i></span>
+              <span class="kb-done">Done</span>
+            </div>
+            <div class="keypad">
+              <b>1</b><b>2<em>ABC</em></b><b>3<em>DEF</em></b>
+              <b>4<em>GHI</em></b><b>5<em>JKL</em></b><b>6<em>MNO</em></b>
+              <b>7<em>PQRS</em></b><b>8<em>TUV</em></b><b>9<em>WXYZ</em></b>
+              <b class="void"></b><b>0</b><b class="void del">⌫</b>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>B.</b> Editing capacity — no dimming, no Save button</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes-col">
+    <ol class="pins">
+      <li><span class="pin">4.2</span><p><b>The field replaces the label in place.</b> Same font, same baseline, same leading — the row must not shift by a pixel when it flips. Selection is "all" so overtyping replaces. The only new chrome is a 1&nbsp;pt rose underline.</p></li>
+      <li><span class="pin">4.2</span><p><b>The screen stays live.</b> No dimming, no scrim, no modal. You can read the notes while you fix the capacity. This is the entire argument for inline over a form sheet.</p></li>
+      <li><span class="pin">4.3</span><p><b>Saving is a 2&nbsp;pt hairline under the nav bar</b> — never a per-row spinner, which would make the row jump. On failure the row reverts with a rose flash and grows a one-line <em>Couldn't save — Retry</em> caption.</p></li>
+      <li><span class="pin">3</span><p><b>Unset fields are visible, not absent.</b> <em>Add all-in est.</em> and <em>Add email</em> are muted rows, not gaps. Today the whole Details section vanishes when every contact field is nil, which leaves no route to ever set them.</p></li>
+      <li><span class="pin">4.4</span><p><b>Notes is the one place we show save state.</b> <em>Saved · 2 min ago</em>, because it's the one field where losing input would actually hurt. Autosaves on a 2&nbsp;s idle timer, on blur, and on backgrounding.</p></li>
+      <li><span class="pin">4.6</span><p><b>Location is the one field that can't be a plain text box.</b> Editing it opens inline autocomplete; committing a typed string with nothing selected clears the coordinates and the row grows a muted <em>Not on map</em> caption — so the tradeoff is visible at the moment it's made, not the next time you open the Map tab.</p></li>
+    </ol>
+    <p class="ask"><b>Settled:</b> no edit glyph on any row — a pencil would imply the rows without one aren't editable. Discoverability rests on the muted <em>Add …</em> rows, a highlight on touch-down, and VoiceOver's button trait. If first-run testing says people don't find it, the fix is a one-time coach mark, not permanent chrome on every row.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ PLATE 2 ═══════════════ -->
+<section class="plate">
+  <div class="plate-head">
+    <p class="plate-no">Plate 2</p>
+    <h2>Compare — pinned attributes, paging venue columns</h2>
+    <p class="plate-dek">The current sheet stacks venues vertically, so you can never see two capacities at once — which is the whole job. Here the attribute column is pinned and the venue columns page horizontally, with the third always peeking so the gesture is discoverable.</p>
+  </div>
+
+  <div class="stage stage-1">
+    <figure class="device-fig wide">
+      <div class="device">
+        <div class="screen">
+          <div class="statusbar"><span class="clock">9:41</span><span class="stat-r"><i class="sig"></i><i class="wifi"></i><i class="batt"></i></span></div>
+
+          <div class="navbar cmp">
+            <button class="nav-btn txt">Done</button>
+            <span class="nav-title">Compare</span>
+            <span class="nav-right"><span class="toggle-chip">Differences only</span><button class="nav-btn" aria-label="More"><svg class="gl"><use href="#i-dots"/></svg></button></span>
+          </div>
+
+          <div class="grid-wrap">
+            <div class="cmp-head">
+              <div class="attr-col"></div>
+              <div class="ven-col">
+                <span class="vthumb glasshouse"></span>
+                <b>Riverside Pavilion</b>
+                <span class="chip">Toured</span>
+              </div>
+              <div class="ven-col">
+                <span class="vthumb hall"></span>
+                <b>Harbor Gallery</b>
+                <span class="chip">Shortlisted</span>
+              </div>
+              <div class="ven-col peek">
+                <span class="vthumb garden"></span>
+                <b>Fernbrook</b>
+                <span class="chip">Contacted</span>
+              </div>
+            </div>
+
+            <div class="cmp-body">
+              <div class="crow"><div class="attr-col">Location</div><div class="ven-col">Example City</div><div class="ven-col">Harbor District</div><div class="ven-col peek">Fernbrook</div></div>
+              <div class="crow"><div class="attr-col">Capacity</div><div class="ven-col best">150–350<i class="best-dot"></i></div><div class="ven-col">80–200</div><div class="ven-col peek">60–140</div></div>
+              <div class="crow"><div class="attr-col">Venue est.</div><div class="ven-col">$53.7K</div><div class="ven-col best">$41.2K<i class="best-dot"></i></div><div class="ven-col peek">$48.9K</div></div>
+              <div class="crow"><div class="attr-col">All-in est.</div><div class="ven-col dim">Not added</div><div class="ven-col">$68.0K</div><div class="ven-col peek dim">Not added</div></div>
+              <div class="crow"><div class="attr-col">Guest travel</div><div class="ven-col">1 hr 19 min</div><div class="ven-col best">48 min<i class="best-dot"></i></div><div class="ven-col peek">1 hr 02</div></div>
+              <div class="crow"><div class="attr-col">Dates</div><div class="ven-col dim">Not added</div><div class="ven-col">Jun–Sep 2027</div><div class="ven-col peek">Aug 2027</div></div>
+              <div class="crow"><div class="attr-col">Documents</div><div class="ven-col">3</div><div class="ven-col">1</div><div class="ven-col peek">0</div></div>
+              <div class="crow tall"><div class="attr-col">Notes</div><div class="ven-col note">The 5pm light through the west glazing is the whole reason to book this.</div><div class="ven-col note">Parking is the open question — 40 spaces for 200 guests.</div><div class="ven-col peek note">Owner retiring, may sell.</div></div>
+            </div>
+
+            <p class="foot"><i class="best-dot"></i> Best of the three, where better is unambiguous: lowest estimate, largest capacity, shortest travel.</p>
+          </div>
+
+          <div class="tabbar">
+            <span class="tab"><svg class="gl"><use href="#i-map"/></svg>Map</span>
+            <span class="tab on"><svg class="gl"><use href="#i-pin"/></svg>Venues</span>
+            <span class="tab"><svg class="gl"><use href="#i-people"/></svg>Guests</span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>C.</b> Compare — two venues fit; the third pages in</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes-col">
+    <ol class="pins">
+      <li><span class="pin">9.2</span><p><b>Row height is uniform across columns</b> — the tallest cell sets it. That single constraint is what makes the grid scannable and is exactly what the stacked list can't do.</p></li>
+      <li><span class="pin">9.2</span><p><b>The dot marks best-in-row on three attributes only:</b> lowest venue estimate, largest capacity ceiling, shortest guest travel. Nothing subjective gets a marker — we are not scoring the light at 5pm.</p></li>
+      <li><span class="pin">10.4</span><p><b>Guest travel is currently a hardcoded string</b> (<code>"Unavailable"</code> in ContentView). Until it's wired from the map repository this row reads <em>Not available</em> and is excluded from the dot logic — never a dash that reads as zero.</p></li>
+      <li><span class="pin">9.2</span><p><b>Not added stays visible.</b> An empty cell would read as "cheap" or "small." Naming the gap is what makes the couple go find the number.</p></li>
+      <li><span class="pin">9.3</span><p><b>Above accessibilityMedium the grid stops working at any column width.</b> At that threshold it flips to one card per attribute with all venues listed inside — so the comparison survives even though the grid doesn't.</p></li>
+      <li><span class="pin">9.1</span><p><b>Getting here:</b> a floating bar above the tab bar reading <em>2 selected · Clear · Compare</em>, not the inline button that scrolls away. The 4th selection gets a caption, not just a haptic nobody can feel.</p></li>
+    </ol>
+    <p class="ask"><b>Judge this:</b> two columns at 130&nbsp;pt each is tight for money and time strings at larger type. The alternative is one venue per page with the attribute column pinned — safer, but it stops being a comparison and becomes a flipbook. I'd hold the two-column floor.</p>
+  </div>
+</section>
+
+<section class="closing">
+  <h2>Settled — 30 July 2026</h2>
+  <div class="qs">
+    <div class="q done"><span class="qn">Notes live in <code>our_notes</code></span><h3>The web client settles it</h3><p>The web Venues pane reads <code>venue.our_notes</code> and writes <code>our_notes: v || null</code> under a section labelled <em>Our notes</em>; bare <code>notes</code> is never read there at all. A July 2026 migration had already backfilled <code>our_notes = notes</code>. <b>So <code>notes</code> is legacy, not research</b> — iOS mirrors the web exactly and stops displaying it. An earlier draft of the spec proposed surfacing it in a <em>From research</em> section; that's dropped, and so is the migration warning that came with it.</p></div>
+    <div class="q done"><span class="qn">Fields can be cleared</span><h3><code>VenuePatch</code> adopts <code>NullablePatch</code></h3><p>Optionals encoded with <code>encodeIfPresent</code> make <code>nil</code> mean "don't touch," with no way to express NULL — so today a website you set is a website you're stuck with. <code>GuestPatch</code> already solved this; venues take the same type. The web app clears with exactly these semantics (<code>v || null</code>), so this lines the two clients up rather than inventing anything. Every muted <em>Add …</em> row in Plate 1 depends on it.</p></div>
+    <div class="q done"><span class="qn">No glyph, on any row</span><h3>The pencil is out</h3><p>Marking one row as editable implies the unmarked ones aren't, which inverts the rule the whole screen runs on. Discoverability moves to the <em>Add …</em> rows, a touch-down highlight, and the VoiceOver button trait — none of which were ever carrying the glyph's weight anyway.</p></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>Drawn from <code>docs/vowbase-ios-venues-ux-spec.md</code>. Section numbers on the pins match the spec.</p>
+</footer>
+
+<style>
+/* ─────────── tokens ─────────── */
+:root{
+  --paper:#EDEAE5; --paper-2:#E3DFD9; --card:#F7F5F2;
+  --ink:#241F22; --ink-2:#6D6469; --ink-3:#9C9298;
+  --hair:rgba(36,31,34,.14); --hair-2:rgba(36,31,34,.07);
+  --rose:#C22659; --blush:#FFEDF2;
+  --screen:#FFFFFF; --grouped:#F2F2F7;
+  --label:#1C1C1E; --label-2:rgba(60,60,67,.62); --label-3:rgba(60,60,67,.34);
+  --sep:rgba(60,60,67,.20); --fill:rgba(118,118,128,.10);
+  --chrome:rgba(26,24,28,.72); --keyboard:#D1D3D9; --key:#FFFFFF;
+  --bezel:#141215; --shadow:rgba(36,31,34,.20);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#161318; --paper-2:#1E1A20; --card:#221D24;
+    --ink:#EEE8EB; --ink-2:#A69CA2; --ink-3:#736A70;
+    --hair:rgba(238,232,235,.16); --hair-2:rgba(238,232,235,.08);
+    --rose:#FF6996; --blush:#3D1C29;
+    --screen:#000000; --grouped:#1C1C1E;
+    --label:#FFFFFF; --label-2:rgba(235,235,245,.62); --label-3:rgba(235,235,245,.32);
+    --sep:rgba(84,84,88,.60); --fill:rgba(118,118,128,.22);
+    --chrome:rgba(70,66,74,.60); --keyboard:#2A2A2E; --key:#5B5B60;
+    --bezel:#000000; --shadow:rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161318; --paper-2:#1E1A20; --card:#221D24;
+  --ink:#EEE8EB; --ink-2:#A69CA2; --ink-3:#736A70;
+  --hair:rgba(238,232,235,.16); --hair-2:rgba(238,232,235,.08);
+  --rose:#FF6996; --blush:#3D1C29;
+  --screen:#000000; --grouped:#1C1C1E;
+  --label:#FFFFFF; --label-2:rgba(235,235,245,.62); --label-3:rgba(235,235,245,.32);
+  --sep:rgba(84,84,88,.60); --fill:rgba(118,118,128,.22);
+  --chrome:rgba(70,66,74,.60); --keyboard:#2A2A2E; --key:#5B5B60;
+  --bezel:#000000; --shadow:rgba(0,0,0,.55);
+}
+:root[data-theme="light"]{
+  --paper:#EDEAE5; --paper-2:#E3DFD9; --card:#F7F5F2;
+  --ink:#241F22; --ink-2:#6D6469; --ink-3:#9C9298;
+  --hair:rgba(36,31,34,.14); --hair-2:rgba(36,31,34,.07);
+  --rose:#C22659; --blush:#FFEDF2;
+  --screen:#FFFFFF; --grouped:#F2F2F7;
+  --label:#1C1C1E; --label-2:rgba(60,60,67,.62); --label-3:rgba(60,60,67,.34);
+  --sep:rgba(60,60,67,.20); --fill:rgba(118,118,128,.10);
+  --chrome:rgba(26,24,28,.72); --keyboard:#D1D3D9; --key:#FFFFFF;
+  --bezel:#141215; --shadow:rgba(36,31,34,.20);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",ui-sans-serif,system-ui,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+code{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.86em; background:var(--hair-2); padding:.1em .34em; border-radius:4px}
+:where(a,button):focus-visible{outline:2px solid var(--rose); outline-offset:3px; border-radius:4px}
+
+/* ─────────── page chrome ─────────── */
+.masthead{max-width:1180px; margin:0 auto; padding:clamp(48px,8vw,104px) clamp(20px,5vw,56px) 0}
+.eyebrow{
+  margin:0 0 22px; font-size:11.5px; font-weight:650; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--rose);
+}
+.masthead h1{
+  margin:0; font-family:ui-serif,"New York",Georgia,serif; font-weight:400;
+  font-size:clamp(38px,6.2vw,66px); line-height:1.02; letter-spacing:-.018em;
+  text-wrap:balance; max-width:15ch;
+}
+.dek{margin:22px 0 0; max-width:62ch; font-size:17px; line-height:1.62; color:var(--ink-2)}
+.meta{
+  list-style:none; margin:38px 0 0; padding:22px 0 0; border-top:1px solid var(--hair);
+  display:flex; flex-wrap:wrap; gap:8px 40px;
+  font-size:13px; color:var(--ink-2);
+}
+.meta span{display:block; font-size:10.5px; font-weight:650; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); margin-bottom:3px}
+
+main{max-width:1180px; margin:0 auto; padding:0 clamp(20px,5vw,56px)}
+
+.plate{padding:clamp(60px,9vw,110px) 0 0}
+.plate-head{max-width:60ch}
+.plate-no{
+  margin:0 0 12px; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3);
+}
+.plate h2{
+  margin:0; font-family:ui-serif,"New York",Georgia,serif; font-weight:400;
+  font-size:clamp(26px,3.4vw,36px); line-height:1.14; letter-spacing:-.012em; text-wrap:balance;
+}
+.plate-dek{margin:14px 0 0; font-size:15.5px; line-height:1.6; color:var(--ink-2)}
+
+.stage{
+  display:flex; flex-wrap:wrap; gap:clamp(28px,5vw,64px);
+  justify-content:center; align-items:flex-start;
+  margin:clamp(38px,5vw,60px) 0 0;
+  padding:clamp(28px,4vw,48px) clamp(16px,3vw,40px);
+  background:var(--paper-2); border:1px solid var(--hair-2); border-radius:20px;
+}
+.device-fig{margin:0; display:flex; flex-direction:column; align-items:center; gap:16px}
+figcaption{font-size:12.5px; color:var(--ink-2); text-align:center; max-width:34ch}
+figcaption b{color:var(--ink); font-weight:650}
+
+/* ─────────── device ─────────── */
+.device{
+  width:352px; padding:9px; background:var(--bezel); border-radius:50px;
+  box-shadow:0 26px 56px -18px var(--shadow), 0 2px 0 rgba(255,255,255,.06) inset;
+  flex:0 0 auto;
+}
+.screen{
+  position:relative; height:748px; overflow:hidden; border-radius:42px;
+  background:var(--screen); color:var(--label);
+  display:flex; flex-direction:column;
+  font-size:15px; line-height:1.35;
+}
+.wide .device{width:352px}
+
+.statusbar{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:13px 26px 5px; font-size:13.5px; font-weight:650; letter-spacing:.01em;
+  flex:0 0 auto;
+}
+.stat-r{display:flex; align-items:center; gap:5px}
+.stat-r i{display:block; background:currentColor; opacity:.9}
+.sig{width:15px; height:10px; clip-path:polygon(0 70%,15% 70%,15% 100%,0 100%,28% 48%,43% 48%,43% 100%,28% 100%,57% 26%,72% 26%,72% 100%,57% 100%,85% 0,100% 0,100% 100%,85% 100%)}
+.wifi{width:13px; height:10px; clip-path:polygon(50% 100%,20% 62%,80% 62%,50% 100%,50% 55%,8% 26%,20% 12%,50% 34%,80% 12%,92% 26%,50% 55%)}
+.stat-r i.batt{width:22px; height:11px; border:1.4px solid currentColor; border-radius:3.4px; background:none; position:relative}
+.stat-r i.batt::after{content:""; position:absolute; inset:1.6px; background:currentColor; border-radius:1.6px}
+
+.navbar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:6px 14px 9px; border-bottom:.5px solid var(--sep); flex:0 0 auto;
+}
+.nav-title{font-size:16px; font-weight:650; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.nav-btn{
+  appearance:none; background:none; border:0; padding:0; cursor:default;
+  color:var(--rose); display:flex; align-items:center; justify-content:center;
+  width:26px; height:26px; flex:0 0 auto;
+}
+.nav-btn.txt{width:auto; font:inherit; font-size:15.5px; font-weight:500}
+.nav-right{display:flex; align-items:center; gap:9px}
+.toggle-chip{
+  font-size:11px; font-weight:600; color:var(--rose); background:var(--blush);
+  padding:4px 9px; border-radius:99px; white-space:nowrap;
+}
+.navbar.cmp .nav-title{flex:1; text-align:center}
+
+.hairline-progress{height:2px; background:var(--fill); overflow:hidden; flex:0 0 auto}
+.hairline-progress i{display:block; width:38%; height:100%; background:var(--rose); border-radius:2px}
+
+.gl{width:17px; height:17px; fill:currentColor; flex:0 0 auto}
+.gl-s{width:14px; height:14px}
+.gl-xs{width:10px; height:10px}
+.rose{color:var(--rose)}
+
+.scroll{flex:1 1 auto; overflow:hidden; position:relative}
+.pad{padding:0 16px}
+
+/* carousel */
+.carousel{position:relative; height:186px; margin:0 0 16px; overflow:hidden}
+.carousel.short{height:132px}
+.photo{position:absolute; inset:0}
+.scrim{position:absolute; left:0; right:0; bottom:0; height:52px; background:linear-gradient(to top,rgba(0,0,0,.34),transparent)}
+.dots{position:absolute; left:0; right:0; bottom:11px; display:flex; justify-content:center; gap:6px}
+.dots i{width:5px; height:5px; border-radius:99px; background:rgba(255,255,255,.5)}
+.dots i.on{width:6px; height:6px; background:var(--rose); box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
+
+.glasshouse{
+  background:
+    repeating-linear-gradient(90deg,rgba(18,26,20,.30) 0 1px,transparent 1px 26px),
+    repeating-linear-gradient(0deg,rgba(18,26,20,.22) 0 1px,transparent 1px 34px),
+    radial-gradient(ellipse 44% 52% at 50% 62%,#F5C173 0%,#C8792F 42%,transparent 74%),
+    linear-gradient(178deg,#1E3527 0%,#2C4632 38%,#16281D 100%);
+}
+.hall{
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 3px,transparent 3px 19px),
+    radial-gradient(ellipse 70% 46% at 50% 78%,#D8CDBC 0%,#A8998A 55%,transparent 80%),
+    linear-gradient(172deg,#8FA3B4 0%,#B9B2A4 46%,#6E6A63 100%);
+}
+.garden{
+  background:
+    radial-gradient(circle at 28% 34%,rgba(255,255,255,.28) 0 12%,transparent 42%),
+    radial-gradient(ellipse 60% 50% at 62% 74%,#7E9A5C 0%,#4A6437 60%,transparent 82%),
+    linear-gradient(160deg,#A8B98C 0%,#5C7442 52%,#33471F 100%);
+}
+
+/* rows */
+.row{display:flex; align-items:center; gap:10px}
+.row-name{margin-bottom:8px}
+.venue-name{
+  margin:0; font-family:ui-serif,"New York",Georgia,serif; font-weight:400;
+  font-size:26px; line-height:1.14; letter-spacing:-.012em;
+}
+.status-pill{
+  appearance:none; border:0; cursor:default; display:inline-flex; align-items:center; gap:5px;
+  background:var(--blush); color:var(--rose); font:inherit; font-size:12.5px; font-weight:600;
+  padding:4px 11px; border-radius:99px; margin:0 0 12px;
+}
+.row-loc{justify-content:space-between; padding:0 0 16px; border-bottom:.5px solid var(--sep); margin-bottom:16px}
+.loc{display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--label-2)}
+.act{color:var(--rose)}
+
+.sec-label{
+  margin:0 0 8px; font-size:10.5px; font-weight:700; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--label-2);
+}
+.sec-label em{font-style:normal; color:var(--label-3)}
+.sec-head{display:flex; align-items:baseline; justify-content:space-between; margin-top:20px}
+.sec-act{font-size:13px; font-weight:600; color:var(--rose)}
+
+.card{background:var(--grouped); border-radius:14px; padding:14px; margin:0 0 20px}
+.facts{display:grid; grid-template-columns:1fr 1fr; gap:15px 12px}
+.fact{display:flex; flex-direction:column; gap:2px}
+.fv{display:inline-flex; align-items:center; gap:6px; font-size:15px; font-weight:600; letter-spacing:-.01em; font-variant-numeric:tabular-nums}
+.fc{font-size:11.5px; color:var(--label-2); padding-left:20px}
+.fact.empty .fv{font-weight:400; color:var(--label-3)}
+.fact.editing .fv{color:var(--label)}
+.field{
+  display:inline-block; min-width:32px; padding:0 2px 2px;
+  border-bottom:1.5px solid var(--rose); font-variant-numeric:tabular-nums;
+}
+.field.sel{background:color-mix(in srgb,var(--rose) 24%,transparent); border-radius:2px 2px 0 0}
+.dash{color:var(--label-2); padding:0 1px}
+
+.notes p{margin:0; font-size:14px; line-height:1.5; color:var(--label)}
+.notes .saved{margin-top:9px; font-size:11.5px; color:var(--label-3)}
+
+.list{padding:0}
+.li{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 14px; border-bottom:.5px solid var(--sep); font-size:14px}
+.li:last-child{border-bottom:0}
+.lk{color:var(--label-2); flex:0 0 auto}
+.lv{display:inline-flex; align-items:center; gap:8px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lv.empty{color:var(--label-3)}
+.li.doc{justify-content:flex-start; gap:11px}
+.dl{display:flex; flex-direction:column; gap:1px; overflow:hidden}
+.dl b{font-weight:500; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.dl em{font-style:normal; font-size:11px; color:var(--label-2)}
+
+.thumbs{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:0 0 4px}
+.thumbs i{display:block; aspect-ratio:1; border-radius:8px}
+.thumbs .more{
+  background:var(--grouped); color:var(--label-2); font-style:normal;
+  font-size:12.5px; font-weight:600; display:flex; align-items:center; justify-content:center;
+}
+/* tab bar */
+.tabbar{
+  position:absolute; left:16px; right:16px; bottom:14px; height:62px;
+  display:flex; align-items:center; gap:4px; padding:5px;
+  background:var(--chrome); border-radius:99px;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 12px 26px -8px rgba(0,0,0,.42);
+}
+.tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  font-size:10px; font-weight:650; color:rgba(255,255,255,.72);
+  padding:8px 0; border-radius:99px;
+}
+.tab .gl{width:19px; height:19px}
+.tab.on{color:#fff; background:rgba(255,255,255,.17)}
+
+/* keyboard */
+.kb{flex:0 0 auto; background:var(--keyboard)}
+.kb-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:7px 14px; background:var(--grouped); border-top:.5px solid var(--sep); border-bottom:.5px solid var(--sep);
+}
+.kb-nav{display:flex; gap:20px; color:var(--rose); font-size:15px; font-weight:700}
+.kb-nav i{font-style:normal}
+.kb-done{color:var(--rose); font-size:15px; font-weight:600}
+.keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:7px 6px; padding:9px 6px 26px}
+.keypad b{
+  background:var(--key); border-radius:6px; height:40px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-size:20px; font-weight:400; line-height:1;
+  box-shadow:0 1px 0 rgba(0,0,0,.28);
+}
+.keypad b em{font-style:normal; font-size:8px; font-weight:600; letter-spacing:.09em; color:var(--label-2); margin-top:2px}
+.keypad .void{background:transparent; box-shadow:none}
+.keypad .del{font-size:17px; color:var(--label-2)}
+
+/* ─────────── compare grid ─────────── */
+.grid-wrap{flex:1 1 auto; overflow:hidden; padding:0 0 0 14px; font-size:13px}
+.cmp-head{display:flex; gap:0; padding:12px 0 10px; border-bottom:.5px solid var(--sep)}
+.cmp-head .attr-col{flex:0 0 74px}
+.cmp-head .ven-col{
+  flex:0 0 118px; display:flex; flex-direction:column; align-items:flex-start; gap:5px;
+  padding-right:12px;
+}
+.vthumb{display:block; width:100%; aspect-ratio:16/9; border-radius:7px}
+.cmp-head b{font-family:ui-serif,"New York",Georgia,serif; font-weight:400; font-size:14px; line-height:1.15; letter-spacing:-.008em}
+.chip{font-size:9.5px; font-weight:650; color:var(--rose); background:var(--blush); padding:2.5px 7px; border-radius:99px}
+
+.cmp-body{display:flex; flex-direction:column}
+.crow{display:flex; align-items:stretch; border-bottom:.5px solid var(--sep); min-height:38px}
+.crow .attr-col{
+  flex:0 0 74px; display:flex; align-items:center; font-size:11px; color:var(--label-2);
+  padding:9px 8px 9px 0;
+}
+.crow .ven-col{
+  flex:0 0 118px; display:flex; align-items:center; gap:6px; padding:9px 12px 9px 0;
+  font-size:13px; font-variant-numeric:tabular-nums;
+}
+.crow.tall .ven-col{align-items:flex-start; font-size:11.5px; line-height:1.4; color:var(--label-2)}
+.crow .dim{color:var(--label-3)}
+.crow .best{font-weight:650}
+.best-dot{width:6px; height:6px; border-radius:99px; background:var(--rose); flex:0 0 auto; display:inline-block}
+.peek{opacity:.34}
+.foot{
+  display:flex; align-items:center; gap:7px; margin:12px 14px 0 0;
+  font-size:10.5px; line-height:1.4; color:var(--label-3);
+}
+
+/* ─────────── annotations ─────────── */
+.notes-col{margin:clamp(30px,4vw,44px) 0 0}
+.pins{
+  list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:2px 34px;
+}
+.pins li{display:flex; gap:14px; padding:18px 0; border-top:1px solid var(--hair-2)}
+.pin{
+  flex:0 0 auto; width:36px; height:36px; border-radius:99px;
+  border:1px solid color-mix(in srgb,var(--rose) 50%,transparent); color:var(--rose);
+  display:flex; align-items:center; justify-content:center;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:-.02em;
+}
+.pins p{margin:0; font-size:14px; line-height:1.55; color:var(--ink-2)}
+.pins b{color:var(--ink); font-weight:600}
+.pins em{font-style:italic}
+.ask{
+  margin:26px 0 0; padding:18px 20px; border-left:2px solid var(--rose);
+  background:color-mix(in srgb,var(--rose) 6%,transparent);
+  border-radius:0 10px 10px 0; font-size:14.5px; line-height:1.58; color:var(--ink-2); max-width:74ch;
+}
+.ask b{color:var(--ink)}
+
+/* ─────────── closing ─────────── */
+.closing{padding:clamp(64px,9vw,110px) 0 0}
+.closing h2{
+  margin:0 0 34px; font-family:ui-serif,"New York",Georgia,serif; font-weight:400;
+  font-size:clamp(24px,3.2vw,33px); letter-spacing:-.012em;
+}
+.qs{display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:2px 34px}
+.q{padding:22px 0; border-top:1px solid var(--hair)}
+.qn{
+  display:flex; align-items:baseline; gap:7px; margin-bottom:11px;
+  font-size:11px; font-weight:650; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--rose); text-wrap:balance;
+}
+.q.done .qn::before{content:"✓"; font-size:12px; letter-spacing:0; line-height:1}
+.qn code{background:none; padding:0; font-size:11px; letter-spacing:0; text-transform:none}
+.q h3{margin:0 0 9px; font-size:16.5px; font-weight:600; letter-spacing:-.008em; text-wrap:balance}
+.q h3 code{font-size:.9em}
+.q p{margin:0; font-size:14px; line-height:1.58; color:var(--ink-2)}
+.q p b{color:var(--ink); font-weight:600}
+.q p em{font-style:italic}
+
+footer{
+  max-width:1180px; margin:clamp(64px,9vw,104px) auto 0; padding:24px clamp(20px,5vw,56px) 64px;
+  border-top:1px solid var(--hair);
+}
+footer p{margin:0; font-size:12.5px; color:var(--ink-3)}
+
+@media (max-width:820px){
+  .device{width:min(352px,92vw)}
+  .stage{padding:22px 12px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>

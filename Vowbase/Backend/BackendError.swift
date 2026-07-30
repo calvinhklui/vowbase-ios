@@ -38,6 +38,24 @@ enum BackendError: Error, Equatable, Sendable {
     }
 }
 
+extension BackendError {
+    var message: String? {
+        switch self {
+        case let .authenticationRequired(message, _):
+            message
+        case let .forbidden(message, _),
+             let .validation(message, _),
+             let .conflict(message, _),
+             let .rateLimited(message, _),
+             let .temporarilyUnavailable(message, _),
+             let .unknown(message, _):
+            message
+        case .networkUnavailable, .invalidResponse, .cancelled:
+            nil
+        }
+    }
+}
+
 extension APIErrorEnvelope {
     var backendError: BackendError {
         BackendError(detail: error)

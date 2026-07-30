@@ -52,6 +52,13 @@ private enum QuickAddDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
+private struct SaveFailure: Identifiable {
+    let id = UUID()
+    let message: String
+    let retry: @MainActor () -> Void
+    let discard: @MainActor () -> Void
+}
+
 @MainActor
 private struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
@@ -76,6 +83,7 @@ private struct WeddingAppShell: View {
 
     var body: some View {
         @Bindable var navigation = navigation
+        @Bindable var store = store
 
         ZStack {
             VowbaseTheme.background.ignoresSafeArea()
@@ -101,21 +109,6 @@ private struct WeddingAppShell: View {
                     .tint(VowbaseTheme.rose)
                     .padding(24)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            } else if let errorMessage = store.errorMessage {
-                VStack(spacing: 12) {
-                    Text(errorMessage)
-                        .multilineTextAlignment(.center)
-                    Button("Try again") {
-                        Task { await store.load() }
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(VowbaseTheme.rose)
-                }
-                .font(.system(size: 16))
-                .foregroundStyle(VowbaseTheme.mutedInk)
-                .padding(24)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .padding(24)
             }
 
         }
@@ -159,6 +152,18 @@ private struct WeddingAppShell: View {
         .sheet(item: $taskEditor) { destination in
             TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
                 .presentationDetents([.large])
+        }
+        .alert(item: $store.saveFailure) { failure in
+            Alert(
+                title: Text("We couldn’t save that change"),
+                message: Text(failure.message),
+                primaryButton: .default(Text("Try again")) {
+                    Task { @MainActor in failure.retry() }
+                },
+                secondaryButton: .destructive(Text("Discard changes")) {
+                    Task { @MainActor in failure.discard() }
+                }
+            )
         }
         .animation(.snappy(duration: 0.28), value: navigation.selectedTab)
     }
@@ -602,6 +607,9 @@ private struct VenuesView: View {
                 .padding(.top, 10)
                 .padding(.bottom, 96)
             }
+            .refreshable {
+                await store.load()
+            }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
                 VenueDetailView(venue: venue, store: store)
@@ -827,7 +835,7 @@ private struct VenueDetailView: View {
                 }
                 Text("Notes")
                     .font(.title2.weight(.semibold))
-                Text(venue.notes?.nilIfBlank ?? "No notes added yet.")
+                Text(venue.ourNotes?.nilIfBlank ?? "No notes added yet.")
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
             .padding(16)
@@ -849,15 +857,21 @@ private struct VenueDetailView: View {
         }
         .alert("Delete \(venue.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
-                Task {
-                    if await store.deleteVenue(venue) {
-                        dismiss()
-                    }
-                }
+                deleteVenue()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the venue from your wedding workspace.")
+        }
+    }
+
+    private func deleteVenue() {
+        Task {
+            guard await store.deleteVenue(venue) else {
+                store.presentSaveFailure(retry: deleteVenue)
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -969,6 +983,9 @@ private struct GuestsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
                 .padding(.bottom, 96)
+            }
+            .refreshable {
+                await store.load()
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPGuest.self) { guest in
@@ -1112,15 +1129,21 @@ private struct GuestDetailView: View {
         }
         .alert("Delete \(guest.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
-                Task {
-                    if await store.deleteGuest(guest) {
-                        dismiss()
-                    }
-                }
+                deleteGuest()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the guest from your wedding workspace.")
+        }
+    }
+
+    private func deleteGuest() {
+        Task {
+            guard await store.deleteGuest(guest) else {
+                store.presentSaveFailure(retry: deleteGuest)
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -1204,23 +1227,26 @@ private struct AddVenueSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save venue") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.createVenue(
-                                name: name,
-                                location: location,
-                                status: status
-                            )
-                            isSaving = false
-                            guard didSave else { return }
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                            dismiss()
-                        }
+                        saveVenue()
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)
                 }
             }
             .onAppear { isNameFocused = true }
+        }
+    }
+
+    private func saveVenue() {
+        isSaving = true
+        Task {
+            let didSave = await store.createVenue(name: name, location: location, status: status)
+            isSaving = false
+            guard didSave else {
+                store.presentSaveFailure(retry: saveVenue, discard: { dismiss() })
+                return
+            }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
         }
     }
 }
@@ -1263,24 +1289,31 @@ private struct AddGuestSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save guest") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.createGuest(
-                                firstName: firstName,
-                                lastName: lastName,
-                                location: location,
-                                rsvp: rsvp
-                            )
-                            isSaving = false
-                            guard didSave else { return }
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                            dismiss()
-                        }
+                        saveGuest()
                     }
                     .disabled(firstName.trimmed.isEmpty || isSaving)
                 }
             }
             .onAppear { isFirstNameFocused = true }
+        }
+    }
+
+    private func saveGuest() {
+        isSaving = true
+        Task {
+            let didSave = await store.createGuest(
+                firstName: firstName,
+                lastName: lastName,
+                location: location,
+                rsvp: rsvp
+            )
+            isSaving = false
+            guard didSave else {
+                store.presentSaveFailure(retry: saveGuest, discard: { dismiss() })
+                return
+            }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
         }
     }
 }
@@ -1330,21 +1363,24 @@ private struct EditVenueSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.updateVenue(
-                                venue,
-                                name: name,
-                                location: location,
-                                status: status
-                            )
-                            isSaving = false
-                            if didSave { dismiss() }
-                        }
+                        saveVenue()
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)
                 }
             }
+        }
+    }
+
+    private func saveVenue() {
+        isSaving = true
+        Task {
+            let didSave = await store.updateVenue(venue, name: name, location: location, status: status)
+            isSaving = false
+            guard didSave else {
+                store.presentSaveFailure(retry: saveVenue, discard: { dismiss() })
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -1395,22 +1431,30 @@ private struct EditGuestSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.updateGuest(
-                                guest,
-                                firstName: firstName,
-                                lastName: lastName,
-                                location: location,
-                                rsvp: rsvp
-                            )
-                            isSaving = false
-                            if didSave { dismiss() }
-                        }
+                        saveGuest()
                     }
                     .disabled(firstName.trimmed.isEmpty || isSaving)
                 }
             }
+        }
+    }
+
+    private func saveGuest() {
+        isSaving = true
+        Task {
+            let didSave = await store.updateGuest(
+                guest,
+                firstName: firstName,
+                lastName: lastName,
+                location: location,
+                rsvp: rsvp
+            )
+            isSaving = false
+            guard didSave else {
+                store.presentSaveFailure(retry: saveGuest, discard: { dismiss() })
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -1550,7 +1594,7 @@ struct MVPVenue: Identifiable, Hashable {
     let latitude: Double?
     let longitude: Double?
     let photoURLs: [URL]
-    let notes: String?
+    let ourNotes: String?
 
     var photoURL: URL? { photoURLs.first }
 
@@ -1602,6 +1646,7 @@ final class VowbaseWorkspaceStore {
     var activeMembership: WeddingMembership?
     var isLoading = false
     var errorMessage: String?
+    fileprivate var saveFailure: SaveFailure?
 
     var canManageTasks: Bool {
         guard let role = activeMembership?.role else { return false }
@@ -1658,7 +1703,6 @@ final class VowbaseWorkspaceStore {
                 venueEstimateText: "$53.7k",
                 allInEstimateText: "$90k–$125k",
                 availableDatesText: "Weekends in September",
-                notes: nil,
                 ourNotes: nil,
                 summary: "An airy riverside venue for a joyful, relaxed celebration.",
                 latitude: 39.5,
@@ -1691,7 +1735,6 @@ final class VowbaseWorkspaceStore {
                 venueEstimateText: "$48k",
                 allInEstimateText: nil,
                 availableDatesText: "October weekends",
-                notes: nil,
                 ourNotes: nil,
                 summary: nil,
                 latitude: 39.6,
@@ -1724,7 +1767,6 @@ final class VowbaseWorkspaceStore {
                 venueEstimateText: "$39k",
                 allInEstimateText: nil,
                 availableDatesText: nil,
-                notes: nil,
                 ourNotes: nil,
                 summary: nil,
                 latitude: 39.4,
@@ -1793,6 +1835,7 @@ final class VowbaseWorkspaceStore {
                 wedding = nil
                 activeMembership = nil
                 errorMessage = "This account is not a member of a wedding workspace yet."
+                presentLoadFailure()
                 return
             }
 
@@ -1812,7 +1855,17 @@ final class VowbaseWorkspaceStore {
             return
         } catch {
             errorMessage = userMessage(for: error)
+            presentLoadFailure()
         }
+    }
+
+    func presentSaveFailure(
+        retry: @escaping @MainActor () -> Void,
+        discard: @escaping @MainActor () -> Void = {}
+    ) {
+        let message = errorMessage ?? "Something went wrong while saving your changes."
+        errorMessage = nil
+        saveFailure = SaveFailure(message: message, retry: retry, discard: discard)
     }
 
     func createVenue(name: String, location: String, status: VenueStatus) async -> Bool {
@@ -1836,7 +1889,7 @@ final class VowbaseWorkspaceStore {
                     capacityMax: nil,
                     priceEstimate: nil,
                     priceNotes: nil,
-                    notes: nil,
+                    ourNotes: nil,
                     latitude: location.latitude,
                     longitude: location.longitude,
                     photoURL: nil
@@ -1874,7 +1927,7 @@ final class VowbaseWorkspaceStore {
                     capacityMax: nil,
                     priceEstimate: nil,
                     priceNotes: nil,
-                    notes: nil,
+                    ourNotes: nil,
                     latitude: resolved.latitude,
                     longitude: resolved.longitude,
                     photoURL: nil,
@@ -1974,6 +2027,12 @@ final class VowbaseWorkspaceStore {
         return false
     }
 
+    private func presentLoadFailure() {
+        presentSaveFailure(retry: { [weak self] in
+            Task { await self?.load() }
+        })
+    }
+
     private func resolveVenuePhotoURLs(
         for venues: [Venue],
         repositories: RepositoryContainer
@@ -2022,15 +2081,17 @@ final class VowbaseWorkspaceStore {
     }
 
     private func userMessage(for error: Error) -> String {
+        if let message = (error as? BackendError)?.message?.nilIfBlank {
+            return message
+        }
+
         switch error as? BackendError {
-        case .forbidden:
-            "You don’t have permission to make that change."
         case .networkUnavailable:
-            "Vowbase couldn’t reach the server. Check your connection and try again."
+            return "Vowbase couldn’t reach the server. Check your connection and try again."
         case .authenticationRequired:
-            "Your session has ended. Please sign in again."
+            return "Your session has ended. Please sign in again."
         default:
-            "We couldn’t save that change. Please try again."
+            return "The server couldn’t complete that change. Please try again."
         }
     }
 }
@@ -2071,7 +2132,7 @@ private extension MVPVenue {
             uniquePhotoURLs.append(url)
         }
         self.photoURLs = uniquePhotoURLs
-        notes = venue.ourNotes?.nilIfBlank ?? venue.notes?.nilIfBlank
+        ourNotes = venue.ourNotes?.nilIfBlank
     }
 }
 
