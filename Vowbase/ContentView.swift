@@ -12,6 +12,7 @@ struct ContentView: View {
 
 struct VowbaseAuthenticatedContent: View {
     @State private var store: VowbaseWorkspaceStore
+    @State private var taskStore: TaskStore
     let onSignOut: () -> Void
 
     init(
@@ -20,6 +21,7 @@ struct VowbaseAuthenticatedContent: View {
     ) {
         self.onSignOut = onSignOut
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
+        _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
     }
 
 #if DEBUG
@@ -30,11 +32,13 @@ struct VowbaseAuthenticatedContent: View {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
+        let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
+        _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
     }
 #endif
 
     var body: some View {
-        WeddingAppShell(store: store, onSignOut: onSignOut)
+        WeddingAppShell(store: store, taskStore: taskStore, onSignOut: onSignOut)
             .task { await store.load() }
     }
 }
@@ -48,26 +52,38 @@ private enum QuickAddDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
+private struct SaveFailure: Identifiable {
+    let id = UUID()
+    let message: String
+    let retry: @MainActor () -> Void
+    let discard: @MainActor () -> Void
+}
+
 @MainActor
 private struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
+    let taskStore: TaskStore
     let onSignOut: () -> Void
     @State private var navigation: AppNavigationModel
     @State private var quickAdd: QuickAddDestination?
+    @State private var taskEditor: TaskEditorDestination?
     @State private var isQuickAddPresented = false
 
     init(
         store: VowbaseWorkspaceStore,
+        taskStore: TaskStore,
         initialTab: AppTab = .map,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
+        self.taskStore = taskStore
         self.onSignOut = onSignOut
         _navigation = State(initialValue: AppNavigationModel(selectedTab: initialTab))
     }
 
     var body: some View {
         @Bindable var navigation = navigation
+        @Bindable var store = store
 
         ZStack {
             VowbaseTheme.background.ignoresSafeArea()
@@ -83,6 +99,8 @@ private struct WeddingAppShell: View {
                     VenuesView(store: store, onSignOut: onSignOut)
                 case .guests:
                     GuestsView(store: store, onSignOut: onSignOut)
+                case .tasks:
+                    TasksView(store: store, taskStore: taskStore, onSignOut: onSignOut, editor: $taskEditor)
                 }
             }
 
@@ -91,21 +109,6 @@ private struct WeddingAppShell: View {
                     .tint(VowbaseTheme.rose)
                     .padding(24)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            } else if let errorMessage = store.errorMessage {
-                VStack(spacing: 12) {
-                    Text(errorMessage)
-                        .multilineTextAlignment(.center)
-                    Button("Try again") {
-                        Task { await store.load() }
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(VowbaseTheme.rose)
-                }
-                .font(.system(size: 16))
-                .foregroundStyle(VowbaseTheme.mutedInk)
-                .padding(24)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .padding(24)
             }
 
         }
@@ -130,7 +133,8 @@ private struct WeddingAppShell: View {
             QuickAddOverlay(
                 isPresented: $isQuickAddPresented,
                 onAddVenue: { quickAdd = .venue },
-                onAddGuest: { quickAdd = .guest }
+                onAddGuest: { quickAdd = .guest },
+                onAddTask: { taskEditor = .add }
             )
             .padding(.trailing, VowbaseControlMetric.screenInset)
             .padding(.bottom, VowbaseTabBar.fabBottomClearance)
@@ -144,6 +148,22 @@ private struct WeddingAppShell: View {
                 AddGuestSheet(store: store)
                     .presentationDetents([.medium, .large])
             }
+        }
+        .sheet(item: $taskEditor) { destination in
+            TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
+                .presentationDetents([.large])
+        }
+        .alert(item: $store.saveFailure) { failure in
+            Alert(
+                title: Text("We couldn’t save that change"),
+                message: Text(failure.message),
+                primaryButton: .default(Text("Try again")) {
+                    Task { @MainActor in failure.retry() }
+                },
+                secondaryButton: .destructive(Text("Discard changes")) {
+                    Task { @MainActor in failure.discard() }
+                }
+            )
         }
         .animation(.snappy(duration: 0.28), value: navigation.selectedTab)
     }
@@ -237,7 +257,7 @@ private struct VowbaseTabBarItem: View {
     }
 }
 
-private struct IdentityBar: View {
+struct IdentityBar: View {
     let weddingTitle: String
     let onSignOut: () -> Void
     @State private var isAccountMenuPresented = false
@@ -815,7 +835,7 @@ private struct VenueDetailView: View {
                 }
                 Text("Notes")
                     .font(.title2.weight(.semibold))
-                Text(venue.notes?.nilIfBlank ?? "No notes added yet.")
+                Text(venue.ourNotes?.nilIfBlank ?? "No notes added yet.")
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
             .padding(16)
@@ -837,15 +857,21 @@ private struct VenueDetailView: View {
         }
         .alert("Delete \(venue.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
-                Task {
-                    if await store.deleteVenue(venue) {
-                        dismiss()
-                    }
-                }
+                deleteVenue()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the venue from your wedding workspace.")
+        }
+    }
+
+    private func deleteVenue() {
+        Task {
+            guard await store.deleteVenue(venue) else {
+                store.presentSaveFailure(retry: deleteVenue)
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -1574,11 +1600,7 @@ private struct GuestDetailView: View {
         .animation(.snappy(duration: 0.22), value: undo?.id)
         .alert("Delete \(guest.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
-                Task {
-                    if await store.deleteGuest(guest) {
-                        dismiss()
-                    }
-                }
+                deleteGuest()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -1767,6 +1789,16 @@ private struct GuestDetailView: View {
         Task {
             try? await Task.sleep(for: .seconds(5))
             if undo?.id == entry.id { undo = nil }
+        }
+    }
+
+    private func deleteGuest() {
+        Task {
+            guard await store.deleteGuest(guest) else {
+                store.presentSaveFailure(retry: deleteGuest)
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -2194,23 +2226,26 @@ private struct AddVenueSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save venue") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.createVenue(
-                                name: name,
-                                location: location,
-                                status: status
-                            )
-                            isSaving = false
-                            guard didSave else { return }
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                            dismiss()
-                        }
+                        saveVenue()
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)
                 }
             }
             .onAppear { isNameFocused = true }
+        }
+    }
+
+    private func saveVenue() {
+        isSaving = true
+        Task {
+            let didSave = await store.createVenue(name: name, location: location, status: status)
+            isSaving = false
+            guard didSave else {
+                store.presentSaveFailure(retry: saveVenue, discard: { dismiss() })
+                return
+            }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
         }
     }
 }
@@ -2461,21 +2496,24 @@ private struct EditVenueSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        isSaving = true
-                        Task {
-                            let didSave = await store.updateVenue(
-                                venue,
-                                name: name,
-                                location: location,
-                                status: status
-                            )
-                            isSaving = false
-                            if didSave { dismiss() }
-                        }
+                        saveVenue()
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)
                 }
             }
+        }
+    }
+
+    private func saveVenue() {
+        isSaving = true
+        Task {
+            let didSave = await store.updateVenue(venue, name: name, location: location, status: status)
+            isSaving = false
+            guard didSave else {
+                store.presentSaveFailure(retry: saveVenue, discard: { dismiss() })
+                return
+            }
+            dismiss()
         }
     }
 }
@@ -3037,7 +3075,7 @@ private extension RSVPStatus {
     }
 }
 
-private struct MVPVenue: Identifiable, Hashable {
+struct MVPVenue: Identifiable, Hashable {
     let id: UUID
     let name: String
     let status: VenueStatus
@@ -3055,7 +3093,7 @@ private struct MVPVenue: Identifiable, Hashable {
     let latitude: Double?
     let longitude: Double?
     let photoURLs: [URL]
-    let notes: String?
+    let ourNotes: String?
 
     var photoURL: URL? { photoURLs.first }
 
@@ -3065,7 +3103,7 @@ private struct MVPVenue: Identifiable, Hashable {
     }
 }
 
-private struct GuestCluster: Identifiable {
+struct GuestCluster: Identifiable {
     let id: String
     let city: String
     let count: Int
@@ -3074,7 +3112,7 @@ private struct GuestCluster: Identifiable {
     var coordinate: CLLocationCoordinate2D { .init(latitude: latitude, longitude: longitude) }
 }
 
-private struct MVPGuest: Identifiable, Hashable {
+struct MVPGuest: Identifiable, Hashable {
     let id: UUID
     let firstName: String
     let lastName: String
@@ -3105,7 +3143,7 @@ private struct MVPGuest: Identifiable, Hashable {
 
 @MainActor
 @Observable
-private final class VowbaseWorkspaceStore {
+final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
     private var signedVenuePhotoURLs = [UUID: [URL]]()
@@ -3120,8 +3158,15 @@ private final class VowbaseWorkspaceStore {
     var selectedVenueID: UUID?
     var isGlobalMenuOpen = false
     var wedding: WeddingSummary?
+    var activeMembership: WeddingMembership?
     var isLoading = false
     var errorMessage: String?
+    fileprivate var saveFailure: SaveFailure?
+
+    var canManageTasks: Bool {
+        guard let role = activeMembership?.role else { return false }
+        return role == .owner || role == .partner || role == .planner
+    }
 
     /// Set when column definitions fail to load. Custom-field rows are hidden
     /// rather than shown broken, and the guest list stays usable.
@@ -3148,6 +3193,14 @@ private final class VowbaseWorkspaceStore {
             weddingDate: "2027-09-18",
             location: "Example City"
         )
+        activeMembership = WeddingMembership(
+            id: UUID(uuidString: "C1175B62-0CD8-43EC-9AC4-A3C2F65A2598")!,
+            weddingId: weddingID,
+            userId: UUID(uuidString: "3B4C76E4-E7A5-48A3-B351-439E9488273B")!,
+            role: .owner,
+            status: "active",
+            wedding: wedding!
+        )
         venueRecords = [
             Venue(
                 id: UUID(uuidString: "4B836FCF-0575-41F8-960C-3C69E70F1D84")!,
@@ -3172,7 +3225,6 @@ private final class VowbaseWorkspaceStore {
                 venueEstimateText: "$53.7k",
                 allInEstimateText: "$90k–$125k",
                 availableDatesText: "Weekends in September",
-                notes: nil,
                 ourNotes: nil,
                 summary: "An airy riverside venue for a joyful, relaxed celebration.",
                 latitude: 39.5,
@@ -3205,7 +3257,6 @@ private final class VowbaseWorkspaceStore {
                 venueEstimateText: "$48k",
                 allInEstimateText: nil,
                 availableDatesText: "October weekends",
-                notes: nil,
                 ourNotes: nil,
                 summary: nil,
                 latitude: 39.6,
@@ -3238,7 +3289,6 @@ private final class VowbaseWorkspaceStore {
                 venueEstimateText: "$39k",
                 allInEstimateText: nil,
                 availableDatesText: nil,
-                notes: nil,
                 ourNotes: nil,
                 summary: nil,
                 latitude: 39.4,
@@ -3348,11 +3398,14 @@ private final class VowbaseWorkspaceStore {
                 guestRecords = []
                 customColumnRecords = []
                 wedding = nil
+                activeMembership = nil
                 errorMessage = "This account is not a member of a wedding workspace yet."
+                presentLoadFailure()
                 return
             }
 
             wedding = membership.wedding
+            activeMembership = membership
             async let venues = repositories.venues.venues(weddingID: membership.weddingId)
             async let guests = repositories.guests.guests(weddingID: membership.weddingId)
             // Column definitions degrade on their own: losing them should hide
@@ -3377,7 +3430,17 @@ private final class VowbaseWorkspaceStore {
             return
         } catch {
             errorMessage = userMessage(for: error)
+            presentLoadFailure()
         }
+    }
+
+    func presentSaveFailure(
+        retry: @escaping @MainActor () -> Void,
+        discard: @escaping @MainActor () -> Void = {}
+    ) {
+        let message = errorMessage ?? "Something went wrong while saving your changes."
+        errorMessage = nil
+        saveFailure = SaveFailure(message: message, retry: retry, discard: discard)
     }
 
     func createVenue(name: String, location: String, status: VenueStatus) async -> Bool {
@@ -3401,7 +3464,7 @@ private final class VowbaseWorkspaceStore {
                     capacityMax: nil,
                     priceEstimate: nil,
                     priceNotes: nil,
-                    notes: nil,
+                    ourNotes: nil,
                     latitude: location.latitude,
                     longitude: location.longitude,
                     photoURL: nil
@@ -3439,7 +3502,7 @@ private final class VowbaseWorkspaceStore {
                     capacityMax: nil,
                     priceEstimate: nil,
                     priceNotes: nil,
-                    notes: nil,
+                    ourNotes: nil,
                     latitude: resolved.latitude,
                     longitude: resolved.longitude,
                     photoURL: nil,
@@ -3870,6 +3933,12 @@ private final class VowbaseWorkspaceStore {
         return false
     }
 
+    private func presentLoadFailure() {
+        presentSaveFailure(retry: { [weak self] in
+            Task { await self?.load() }
+        })
+    }
+
     private func resolveVenuePhotoURLs(
         for venues: [Venue],
         repositories: RepositoryContainer
@@ -3918,15 +3987,17 @@ private final class VowbaseWorkspaceStore {
     }
 
     private func userMessage(for error: Error) -> String {
+        if let message = (error as? BackendError)?.message?.nilIfBlank {
+            return message
+        }
+
         switch error as? BackendError {
-        case .forbidden:
-            "You don’t have permission to make that change."
         case .networkUnavailable:
-            "Vowbase couldn’t reach the server. Check your connection and try again."
+            return "Vowbase couldn’t reach the server. Check your connection and try again."
         case .authenticationRequired:
-            "Your session has ended. Please sign in again."
+            return "Your session has ended. Please sign in again."
         default:
-            "We couldn’t save that change. Please try again."
+            return "The server couldn’t complete that change. Please try again."
         }
     }
 }
@@ -3967,7 +4038,7 @@ private extension MVPVenue {
             uniquePhotoURLs.append(url)
         }
         self.photoURLs = uniquePhotoURLs
-        notes = venue.ourNotes?.nilIfBlank ?? venue.notes?.nilIfBlank
+        ourNotes = venue.ourNotes?.nilIfBlank
     }
 }
 
@@ -4029,11 +4100,11 @@ private enum VenuePriceFormatter {
 }
 
 #Preview("Venues") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(), initialTab: .venues)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialTab: .venues)
 }
 
 #Preview("Guests") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), initialTab: .guests)
+    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), initialTab: .guests)
 }
 
 #Preview("Guest detail") {

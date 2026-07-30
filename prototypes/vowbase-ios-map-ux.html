@@ -1,0 +1,1374 @@
+<title>Vowbase &#8212; Map command center mockup</title>
+
+<style>
+  /* &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+     TOKENS
+     Board palette: rose-biased neutrals so the greys read as
+     chosen against Vowbase's rose accent rather than inherited.
+     Screens inside the devices are always dark appearance &#8212;
+     they mirror the current build. See note in the header.
+     &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  :root {
+    --ground:      #F5F2F3;
+    --ground-2:    #FFFFFF;
+    --ink:         #1B171C;
+    --ink-2:       #574E59;
+    --ink-3:       #857A87;
+    --rule:        #E0D9DC;
+    --rule-strong: #CFC5C9;
+    --accent:      #A81E48;
+    --accent-soft: #F6E4EA;
+    --blue:        #14479F;
+    --shadow:      0 1px 2px rgba(27,23,28,.05), 0 12px 32px -12px rgba(27,23,28,.18);
+
+    --serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #131114;
+      --ground-2:    #1B181C;
+      --ink:         #EFEAEE;
+      --ink-2:       #B0A6B1;
+      --ink-3:       #7E7480;
+      --rule:        #2C272E;
+      --rule-strong: #3D363F;
+      --accent:      #FF6E9C;
+      --accent-soft: #2E1520;
+      --blue:        #7FA9FF;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 16px 40px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground:#F5F2F3; --ground-2:#FFFFFF; --ink:#1B171C; --ink-2:#574E59; --ink-3:#857A87;
+    --rule:#E0D9DC; --rule-strong:#CFC5C9; --accent:#A81E48; --accent-soft:#F6E4EA; --blue:#14479F;
+    --shadow: 0 1px 2px rgba(27,23,28,.05), 0 12px 32px -12px rgba(27,23,28,.18);
+  }
+  :root[data-theme="dark"] {
+    --ground:#131114; --ground-2:#1B181C; --ink:#EFEAEE; --ink-2:#B0A6B1; --ink-3:#7E7480;
+    --rule:#2C272E; --rule-strong:#3D363F; --accent:#FF6E9C; --accent-soft:#2E1520; --blue:#7FA9FF;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 40px -14px rgba(0,0,0,.7);
+  }
+
+  /* Device-internal palette &#8212; fixed dark appearance, never themed. */
+  .device {
+    --d-bg:      #0E0E11;
+    --d-ink:     #F4F1F3;
+    --d-ink-2:   #A5A0A8;
+    --d-ink-3:   #6F6A73;
+    --d-rose:    #FF6996;
+    --d-blue:    #6199FF;
+    --d-blush:   #3D1C26;
+    --d-glass:   rgba(38,36,41,.78);
+    --d-glass-2: rgba(28,27,31,.9);
+    --d-hair:    rgba(255,255,255,.13);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: clamp(32px, 6vw, 72px) clamp(18px, 4vw, 36px) 96px;
+  }
+
+  /* &#9472;&#9472; Masthead &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .masthead { display: flex; flex-direction: column; gap: 18px; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.06;
+    letter-spacing: -.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    max-width: 62ch;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    padding-top: 20px;
+    margin-top: 8px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .04em;
+    color: var(--ink-3);
+  }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  /* &#9472;&#9472; The one-line thesis &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .thesis {
+    margin: clamp(40px, 7vw, 64px) 0 0;
+    padding: 26px 30px;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+  }
+  .thesis p {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(19px, 2.6vw, 24px);
+    line-height: 1.38;
+    text-wrap: balance;
+  }
+  .thesis p + p {
+    margin-top: 10px;
+    font-family: var(--ui);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+
+  /* &#9472;&#9472; Screen sections &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .screens { display: flex; flex-direction: column; gap: clamp(56px, 9vw, 96px); margin-top: clamp(48px, 8vw, 80px); }
+
+  .plate {
+    display: grid;
+    grid-template-columns: 393px minmax(0, 1fr);
+    gap: clamp(28px, 4vw, 52px);
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .plate { grid-template-columns: minmax(0,1fr); justify-items: center; }
+    .notes { justify-self: stretch; }
+  }
+  @media (max-width: 430px) {
+    .device { transform: scale(.82); transform-origin: top center; }
+    .stage { height: 700px; }
+  }
+
+  .stage { position: relative; }
+
+  .notes { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+  .notes-head { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .notes-head .lens-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .notes-head h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 27px;
+    line-height: 1.16;
+    margin: 0;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+  }
+  .notes-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 14.5px; max-width: 46ch; }
+
+  .note {
+    display: grid;
+    grid-template-columns: 26px minmax(0,1fr);
+    gap: 12px;
+    padding: 11px 12px 11px 6px;
+    border-radius: 8px;
+    border-top: 1px solid var(--rule);
+    cursor: default;
+    transition: background .15s ease;
+  }
+  .note:last-child { border-bottom: 1px solid var(--rule); }
+  .note:hover, .note:focus-visible { background: var(--ground-2); outline: none; }
+  .note:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  .note .n {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 20px;
+    height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    margin-top: 2px;
+  }
+  .note h3 { margin: 0 0 2px; font-size: 14.5px; font-weight: 600; letter-spacing: -.005em; }
+  .note p { margin: 0; font-size: 13.5px; line-height: 1.52; color: var(--ink-2); }
+  .note code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* &#9472;&#9472; Device chrome &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .device {
+    position: relative;
+    width: 393px;
+    height: 852px;
+    border-radius: 54px;
+    padding: 5px;
+    background: linear-gradient(160deg, #4a464d, #191a1d 40%, #131316 70%, #3a373d);
+    box-shadow: var(--shadow);
+  }
+  .screen {
+    position: relative;
+    width: 383px;
+    height: 842px;
+    border-radius: 49px;
+    overflow: hidden;
+    background: var(--d-bg);
+    color: var(--d-ink);
+    font-family: var(--ui);
+  }
+  .mapcanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 54px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 32px 0;
+    font-size: 15px; font-weight: 600; color: #fff;
+    letter-spacing: .01em;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5);
+    z-index: 8;
+  }
+  .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 116px; height: 33px; border-radius: 20px; background: #000; z-index: 9;
+  }
+  .homebar {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 138px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.4); z-index: 12;
+  }
+
+  /* &#9472;&#9472; Context bar &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .ctxbar {
+    position: absolute; top: 58px; left: 14px; right: 14px; height: 52px;
+    display: flex; align-items: center; gap: 11px;
+    padding: 0 8px 0 8px;
+    background: var(--d-glass);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border: 1px solid var(--d-hair);
+    border-radius: 26px;
+    z-index: 6;
+  }
+  .monogram {
+    width: 36px; height: 36px; flex: none; border-radius: 50%;
+    background: var(--d-blush);
+    display: grid; place-items: center;
+    font-family: var(--serif); font-size: 13px; color: #F6C6D3;
+  }
+  .ctx-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctx-title span { color: var(--d-ink-2); font-weight: 400; }
+  .ctx-search { width: 36px; height: 36px; flex: none; display: grid; place-items: center; color: var(--d-ink-2); }
+
+  /* &#9472;&#9472; Map annotations &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .pin, .cluster { position: absolute; z-index: 4; }
+  .pin { transform: translate(-50%, -100%); display: flex; align-items: flex-end; gap: 5px; }
+  .pin .head {
+    width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background: var(--d-rose);
+    border: 2px solid rgba(255,255,255,.85);
+    box-shadow: 0 3px 8px rgba(0,0,0,.45);
+    display: grid; place-items: center;
+  }
+  .pin .head::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.95); }
+  .pin .tag {
+    margin-bottom: 4px;
+    background: rgba(24,23,27,.86);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,105,150,.45);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  }
+  .pin.selected .head { width: 32px; height: 32px; border-width: 3px; }
+  .pin.selected .head::after { width: 9px; height: 9px; }
+
+  .cluster { transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .cluster .bubble {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--d-blue);
+    border: 3px solid rgba(255,255,255,.5);
+    display: grid; place-items: center;
+    font-size: 16px; font-weight: 600; color: #fff;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  }
+  .cluster .badge {
+    background: rgba(24,23,27,.88);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border: 1px solid rgba(97,153,255,.5);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 11.5px; font-weight: 600; color: #BFD4FF;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .cluster .badge.fly { border-color: rgba(255,255,255,.24); color: var(--d-ink-2); }
+
+  /* Context layer: 70% scale, 55% opacity, no labels. Spec &#167;6.2 */
+  .ctx-layer { opacity: .55; }
+  .ctx-layer.pin .head { width: 18px; height: 18px; border-width: 1.5px; }
+  .ctx-layer.pin .head::after { width: 5px; height: 5px; }
+  .ctx-layer .bubble { width: 31px; height: 31px; font-size: 12px; border-width: 2px; }
+
+  /* &#9472;&#9472; Map controls + FAB &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .controls { position: absolute; right: 14px; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ctl {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: var(--d-glass);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border: 1px solid var(--d-hair);
+    display: grid; place-items: center; color: var(--d-ink);
+  }
+  .ctl + .ctl { margin-top: -4px; }
+  .fab {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--d-rose);
+    display: grid; place-items: center;
+    color: #2A0A15;
+    box-shadow: 0 8px 22px rgba(255,105,150,.34);
+    margin-top: 4px;
+  }
+
+  /* &#9472;&#9472; Console &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .console {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--d-glass-2);
+    -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
+    border-top: 1px solid var(--d-hair);
+    border-radius: 30px 30px 0 0;
+    z-index: 5;
+    display: flex; flex-direction: column;
+    padding-bottom: 96px; /* lens-rail clearance */
+  }
+  .grabber { width: 44px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.24); margin: 9px auto 0; flex: none; }
+
+  .console-head { padding: 12px 18px 0; flex: none; }
+  .ch-row { display: flex; align-items: baseline; gap: 10px; }
+  .ch-title { font-family: var(--serif); font-size: 24px; line-height: 1.2; letter-spacing: -.01em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch-trail { font-size: 13.5px; color: var(--d-ink-2); flex: none; font-variant-numeric: tabular-nums; }
+  .capsule { font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px; background: var(--d-blush); color: #FF8FB0; flex: none; }
+  .capsule.grey { background: rgba(255,255,255,.09); color: var(--d-ink-2); }
+  .capsule.blue { background: rgba(97,153,255,.17); color: #8FB6FF; }
+
+  /* Impact readout &#8212; the point of the screen. Spec &#167;8 */
+  .readout {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 9px; padding: 9px 12px;
+    background: rgba(255,105,150,.10);
+    border: 1px solid rgba(255,105,150,.24);
+    border-radius: 13px;
+    font-size: 13.5px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--d-rose); flex: none; }
+  .readout .sep { color: var(--d-ink-3); }
+  .readout .est { font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--d-ink-3); border: 1px solid rgba(255,255,255,.16); border-radius: 4px; padding: 1px 5px; }
+  .readout .chev { margin-left: auto; color: var(--d-ink-3); flex: none; }
+  .readout.task { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); }
+  .readout.task .dot { background: var(--d-ink-3); }
+
+  .subline { margin-top: 7px; font-size: 13.5px; color: var(--d-ink-2); font-variant-numeric: tabular-nums; }
+
+  /* Card rail */
+  .rail-scroll { display: flex; gap: 13px; padding: 14px 18px 0; overflow: hidden; flex: none; }
+  .rcard {
+    width: 268px; height: 132px; flex: none;
+    display: flex;
+    background: #1A191E;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .rcard.sel { border-color: var(--d-rose); border-width: 1.5px; }
+  .rcard .thumb { width: 104px; flex: none; position: relative; overflow: hidden; }
+  .rcard .thumb canvas { width: 100%; height: 100%; display: block; }
+  .rcard .body { flex: 1; min-width: 0; padding: 14px 14px 14px 15px; display: flex; flex-direction: column; gap: 8px; }
+  .rcard .nm { font-family: var(--serif); font-size: 17px; line-height: 1.2; letter-spacing: -.005em; }
+  .rcard .fact { margin-top: auto; font-size: 13px; font-weight: 500; color: var(--d-ink); display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .rcard .fact.dim { color: var(--d-ink-3); font-weight: 400; }
+  .rcard .avatar { width: 46px; height: 46px; flex: none; border-radius: 50%; background: var(--d-blush); display: grid; place-items: center; font-family: var(--serif); font-size: 17px; color: #F6C6D3; }
+  /* Guest card: the RSVP capsule shares the fact row so the name owns the
+     full width. Names are the one thing that must never truncate. */
+  .rcard.guest .body { padding-left: 15px; }
+  .rcard .ghead { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .rcard .gsub { font-size: 12.5px; color: var(--d-ink-2); margin-top: 1px; }
+  .rcard.guest .fact { justify-content: space-between; gap: 10px; }
+
+  /* Console list (half detent) */
+  .chips { display: flex; gap: 8px; padding: 13px 18px 3px; flex: none; overflow: hidden; }
+  .chip { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14); color: var(--d-ink-2); white-space: nowrap; }
+  .chip.on { background: var(--d-rose); border-color: transparent; color: #2A0A15; font-weight: 600; }
+
+  .list { padding: 6px 18px 0; overflow: hidden; }
+  .lrow { display: flex; align-items: center; gap: 13px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .lrow .lthumb { width: 62px; height: 46px; border-radius: 10px; overflow: hidden; flex: none; }
+  .lrow .lthumb canvas { width: 100%; height: 100%; display: block; }
+  .lrow .lbody { flex: 1; min-width: 0; }
+  .lrow .lnm { font-family: var(--serif); font-size: 17px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lrow .lsub { font-size: 12.5px; color: var(--d-ink-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  /* Overview modules */
+  .modules { padding: 12px 18px 0; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
+  .module { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08); border-radius: 17px; padding: 13px 15px; }
+  .module .eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; color: var(--d-ink-3); }
+  .module.count { display: flex; align-items: baseline; justify-content: space-between; padding: 15px; }
+  .module.count .date { font-family: var(--serif); font-size: 25px; letter-spacing: -.01em; }
+  .module.count .days { font-size: 14px; color: var(--d-ink-2); font-variant-numeric: tabular-nums; }
+  .task-row { display: flex; align-items: center; gap: 10px; padding: 9px 0 8px; font-size: 14px; }
+  .task-row + .task-row { border-top: 1px solid rgba(255,255,255,.07); }
+  .task-row .sev { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .task-row .sev.block { background: var(--d-rose); }
+  .task-row .sev.soon { background: #E0B15E; }
+  .task-row .sev.amb { background: transparent; border: 1.5px solid var(--d-ink-3); }
+  .task-row .chev { margin-left: auto; color: var(--d-ink-3); }
+  .task-row b { font-weight: 600; }
+  .module .mline { margin-top: 7px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .module .mline .mut { color: var(--d-ink-2); }
+  .bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin-top: 10px; background: rgba(255,255,255,.08); }
+  .bar i { display: block; height: 100%; }
+
+  /* &#9472;&#9472; Lens rail &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .lensrail {
+    position: absolute; left: 14px; right: 14px; bottom: 26px; height: 70px;
+    display: flex; gap: 4px; padding: 6px;
+    background: rgba(20,19,23,.72);
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+    border: 1px solid var(--d-hair);
+    border-radius: 35px;
+    z-index: 10;
+  }
+  .lens {
+    flex: 1; border-radius: 29px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: rgba(255,255,255,.66);
+  }
+  .lens .lbl { font-size: 11px; font-weight: 600; }
+  .lens.on { background: rgba(255,255,255,.16); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+
+  /* &#9472;&#9472; Callout dots on device &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .dot-cue {
+    position: absolute; z-index: 20;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    display: grid; place-items: center;
+    box-shadow: 0 0 0 3px var(--ground), 0 2px 8px rgba(0,0,0,.4);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .dot-cue.lit { transform: scale(1.32); box-shadow: 0 0 0 3px var(--ground), 0 0 0 8px color-mix(in srgb, var(--accent) 28%, transparent); }
+  @media (prefers-reduced-motion: reduce) {
+    .dot-cue, .note { transition: none; }
+    .dot-cue.lit { transform: none; }
+  }
+
+  /* &#9472;&#9472; Detail comparison &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .compare {
+    margin-top: clamp(56px, 9vw, 96px);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;
+  }
+  .cpanel { background: var(--ground-2); border: 1px solid var(--rule); border-radius: 4px; padding: 22px; }
+  .cpanel .tag {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 3px; display: inline-block; margin-bottom: 16px;
+  }
+  .cpanel .tag.now { background: var(--rule); color: var(--ink-2); }
+  .cpanel .tag.next { background: var(--accent); color: var(--ground-2); }
+  .cpanel .swatch { background: #0E0E11; border-radius: 14px; padding: 18px; display: flex; justify-content: center; overflow-x: auto; }
+  .cpanel .swatch > * { flex: none; }
+  .cpanel p { font-size: 13.5px; color: var(--ink-2); margin: 16px 0 0; }
+
+  /* the "before" card, rebuilt faithfully from the current build */
+  .oldcard { width: 268px; height: 148px; display: flex; background: #0B0B0D; border: 1px solid rgba(255,255,255,.14); border-radius: 22px; overflow: hidden; font-family: var(--ui); color: #F4F1F3; }
+  .oldcard .thumb { width: 100px; flex: none; }
+  .oldcard .thumb canvas { width: 100%; height: 100%; display: block; }
+  .oldcard .body { padding: 13px; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .oldcard .nm { font-family: var(--serif); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oldcard .cap { align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #3D1C26; color: #FF8FB0; }
+  .oldcard .sm { font-size: 12.5px; color: #A5A0A8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oldcard hr { border: 0; border-top: 1px solid rgba(255,255,255,.12); margin: 1px 0; width: 100%; }
+
+  /* &#9472;&#9472; States table &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .states { margin-top: clamp(48px, 8vw, 80px); }
+  .states h2 { font-family: var(--serif); font-weight: 400; font-size: 28px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .states > p { color: var(--ink-2); margin: 0 0 22px; max-width: 62ch; font-size: 15px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--ground-2); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500; background: var(--ground);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.readout-cell { font-weight: 500; }
+  td .muted { color: var(--ink-3); }
+
+  /* &#9472;&#9472; Colophon &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
+  .colophon {
+    margin-top: clamp(56px, 9vw, 88px); padding-top: 24px; border-top: 1px solid var(--rule);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 26px;
+  }
+  .colophon section h4 {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500; margin: 0 0 9px;
+  }
+  .colophon p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+  .chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tint { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-family: var(--mono); color: var(--ink-2); border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px 4px 5px; }
+  .tint i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">Vowbase iOS &#183; Map surface &#183; Proposal</div>
+    <h1>One canvas, many lenses</h1>
+    <p class="standfirst">
+      A mockup of the Map screen rebuilt as the app's single operating surface. The map stops
+      being a tab and becomes the substrate everything runs on; a lens aims it and fills the
+      console below. Venues and Guests ship first &#8212; vendors, lodging and day-of events land
+      later as lens conformances, not as new navigation.
+    </p>
+    <div class="meta">
+      <span><b>Companion to</b> vowbase-ios-map-command-center-ux-spec.md</span>
+      <span><b>Device</b> iPhone 16 Pro &#183; 393 &#215; 852 pt</span>
+      <span><b>Appearance</b> Dark, matching the current build</span>
+      <span><b>Type</b> New York &#183; SF Pro</span>
+    </div>
+  </header>
+
+  <div class="thesis">
+    <p>Today the tab bar says Map / Venues / Guests, and the layer chips say Venues / Guests. Two controls, one taxonomy.</p>
+    <p>The lens rail replaces both. A lens is a focus, not a filter: the active layer goes full-size and tappable, everything else stays on the map at 70% scale and 55% opacity. You never lose sight of the people while you are choosing the place.</p>
+  </div>
+
+  <div class="screens">
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; SCREEN 1 &#8212; VENUES LENS, PEEK &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <section class="plate" id="plate-1">
+      <div class="stage">
+        <div class="device">
+          <div class="screen">
+            <canvas class="mapcanvas" data-seed="7" width="766" height="1684"></canvas>
+            <div class="notch"></div>
+            <div class="statusbar"><span>11:55</span><span style="display:flex; align-items:center; gap:6px;"><svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7.5" width="3" height="3.5" rx="1"/><rect x="4.6" y="5" width="3" height="6" rx="1"/><rect x="9.2" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.8" y="0" width="3" height="11" rx="1" opacity=".38"/></svg><svg width="16" height="11" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M1.2 4.1a10 10 0 0 1 13.6 0"/><path d="M3.8 6.9a6.2 6.2 0 0 1 8.4 0"/><path d="M6.4 9.6a2.5 2.5 0 0 1 3.2 0"/></svg><span style="font-size:12.5px;">62</span><svg width="26" height="12" viewBox="0 0 26 12" fill="none" aria-hidden="true"><rect x=".8" y=".8" width="21" height="10.4" rx="3.2" stroke="currentColor" stroke-opacity=".45" stroke-width="1.1"/><rect x="2.4" y="2.4" width="11.0" height="7.2" rx="1.8" fill="currentColor"/><path d="M23.6 4.3v3.4a1.9 1.9 0 0 0 0-3.4Z" fill="currentColor" fill-opacity=".45"/></svg></span></div>
+
+            <div class="ctxbar">
+              <div class="monogram">A&amp;C</div>
+              <div class="ctx-title">Andey &amp; Calvin <span>&#183; Sep 18, 2027</span></div>
+              <div class="ctx-search">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.6" cy="8.6" r="6.1" stroke="currentColor" stroke-width="1.9"/><path d="M13.2 13.2 18 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <!-- context layer: guests, dimmed, no labels -->
+            <div class="cluster ctx-layer" style="left:250px; top:352px;"><div class="bubble">24</div></div>
+            <div class="cluster ctx-layer" style="left:150px; top:430px;"><div class="bubble">9</div></div>
+            <div class="cluster ctx-layer" style="left:296px; top:288px;"><div class="bubble">12</div></div>
+
+            <!-- focus layer: venues -->
+            <div class="pin" style="left:118px; top:330px;"><div class="head"></div></div>
+            <div class="pin" style="left:300px; top:410px;"><div class="head"></div></div>
+            <div class="pin selected" style="left:196px; top:392px;"><div class="head"></div><div class="tag">Riverside Pavilion</div></div>
+
+            <div class="controls" style="bottom:364px;">
+              <div class="ctl" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M2.5 7V3.5c0-.55.45-1 1-1H7M13 2.5h3.5c.55 0 1 .45 1 1V7M17.5 13v3.5c0 .55-.45 1-1 1H13M7 17.5H3.5c-.55 0-1-.45-1-1V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="ctl" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M10 1.5v3M10 15.5v3M18.5 10h-3M4.5 10h-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="fab" aria-hidden="true">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none"><path d="M12 4.5v15M4.5 12h15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <div class="console" style="height:352px;">
+              <div class="grabber"></div>
+              <div class="console-head">
+                <div class="ch-row">
+                  <div class="ch-title">Riverside Pavilion</div>
+                  <div class="capsule">Toured</div>
+                </div>
+                <div class="readout">
+                  <span class="dot"></span>
+                  <span>62% within 2h</span><span class="sep">&#183;</span>
+                  <span>14 fly</span><span class="sep">&#183;</span>
+                  <span>1h 50m</span>
+                  <span class="est">Est</span>
+                  <span class="chev">&#8250;</span>
+                </div>
+              </div>
+              <div class="rail-scroll">
+                <div class="rcard sel">
+                  <div class="thumb"><canvas data-photo="1" width="208" height="264"></canvas></div>
+                  <div class="body">
+                    <div class="nm">Riverside<br>Pavilion</div>
+                    <div class="fact">&#9992;&#65038; 1h 50m median</div>
+                  </div>
+                </div>
+                <div class="rcard">
+                  <div class="thumb"><canvas data-photo="2" width="208" height="264"></canvas></div>
+                  <div class="body">
+                    <div class="nm">Harbor Gallery</div>
+                    <div class="fact">&#9992;&#65038; 2h 20m median</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lensrail">
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.4" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>
+                <span class="lbl">Overview</span>
+              </div>
+              <div class="lens on">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6c-3.1 0-5.6 2.5-5.6 5.6 0 4 5 10.6 5.2 10.9a.5.5 0 0 0 .8 0c.2-.3 5.2-6.9 5.2-10.9 0-3.1-2.5-5.6-5.6-5.6Zm0 7.9a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6Z"/></svg>
+                <span class="lbl">Venues</span>
+              </div>
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="7" cy="6.6" r="3.3"/><circle cx="14.4" cy="7.6" r="2.6"/><path d="M1.6 16.2c0-2.7 2.4-4.6 5.4-4.6s5.4 1.9 5.4 4.6c0 .6-.4 1-1 1H2.6c-.6 0-1-.4-1-1Z"/><path d="M13.6 12.1c2.4.15 4.8 1.5 4.8 3.7 0 .8-.5 1.4-1.3 1.4h-3.3c.3-.4.4-.9.4-1.4 0-1.4-.3-2.7-.6-3.7Z"/></svg>
+                <span class="lbl">Guests</span>
+              </div>
+            </div>
+
+            <div class="homebar"></div>
+          </div>
+        </div>
+
+        <div class="dot-cue" data-cue="1-1" style="left:-11px; top:76px;">1</div>
+        <div class="dot-cue" data-cue="1-2" style="left:120px; top:412px;">2</div>
+        <div class="dot-cue" data-cue="1-3" style="left:150px; top:356px;">3</div>
+        <div class="dot-cue" data-cue="1-4" style="left:348px; top:442px;">4</div>
+        <div class="dot-cue" data-cue="1-5" style="left:-11px; top:568px;">5</div>
+        <div class="dot-cue" data-cue="1-6" style="left:-11px; top:656px;">6</div>
+        <div class="dot-cue" data-cue="1-7" style="left:-11px; top:786px;">7</div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-head">
+          <div class="lens-id">Lens 02 &#8212; Venues &#183; peek detent</div>
+          <h2>The map finally answers "so what?"</h2>
+          <p>A venue is selected. The console names it, states its consequence, and offers the shortlist as a rail. The map is still 50% of the screen.</p>
+        </div>
+
+        <div class="note" tabindex="0" data-note="1-1">
+          <div class="n">1</div>
+          <div><h3>Context bar, 52 pt</h3><p>Down from 80. The monogram shrinks to 36 pt inside a 44 pt target and the reclaimed space buys the wedding date and a search field. Past 365 days out it shows the date; inside a year it counts down.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="1-2">
+          <div class="n">2</div>
+          <div><h3>Context layer &#8212; guests stay visible</h3><p>70% scale, 55% opacity, no labels, not tappable, hidden from VoiceOver. Choosing Venues doesn't hide the people you're choosing for.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="1-3">
+          <div class="n">3</div>
+          <div><h3>Focus layer &#8212; full-size, labelled on selection</h3><p>Rose teardrop pins at 1.0 scale. Only the selected venue carries a name tag, so three pins never become three overlapping labels.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="1-4">
+          <div class="n">4</div>
+          <div><h3>Controls ride the sheet</h3><p>Fit, recenter and the quick-add button sit 12 pt above the console's top edge and travel with it. Nothing floats over a card any more &#8212; the current build's FAB overlaps the shortlist.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="1-5">
+          <div class="n">5</div>
+          <div><h3>The impact readout</h3><p>The single most valuable line on the screen, and absent today &#8212; <code>travel</code> is hardcoded to <code>"Unavailable"</code> while <code>travelTimes</code> sits unused in the API. Estimated results are labelled, never silently rounded. Tapping it jumps to Guests with this venue still selected.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="1-6">
+          <div class="n">6</div>
+          <div><h3>Two facts, not four</h3><p>The rail card drops location entirely &#8212; it's anchored to a pin you're already looking at. Name gets two lines. Nothing truncates.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="1-7">
+          <div class="n">7</div>
+          <div><h3>Lens rail replaces the tab bar <em>and</em> the layer chips</h3><p>Same glass capsule, same haptics, same sizing as the shipped tab bar &#8212; one new source of truth. Five slots maximum; a sixth lens moves the last slot to "More".</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; SCREEN 2 &#8212; GUESTS LENS &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <section class="plate" id="plate-2">
+      <div class="stage">
+        <div class="device">
+          <div class="screen">
+            <canvas class="mapcanvas" data-seed="7" width="766" height="1684"></canvas>
+            <div class="notch"></div>
+            <div class="statusbar"><span>11:56</span><span style="display:flex; align-items:center; gap:6px;"><svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7.5" width="3" height="3.5" rx="1"/><rect x="4.6" y="5" width="3" height="6" rx="1"/><rect x="9.2" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.8" y="0" width="3" height="11" rx="1" opacity=".38"/></svg><svg width="16" height="11" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M1.2 4.1a10 10 0 0 1 13.6 0"/><path d="M3.8 6.9a6.2 6.2 0 0 1 8.4 0"/><path d="M6.4 9.6a2.5 2.5 0 0 1 3.2 0"/></svg><span style="font-size:12.5px;">62</span><svg width="26" height="12" viewBox="0 0 26 12" fill="none" aria-hidden="true"><rect x=".8" y=".8" width="21" height="10.4" rx="3.2" stroke="currentColor" stroke-opacity=".45" stroke-width="1.1"/><rect x="2.4" y="2.4" width="11.0" height="7.2" rx="1.8" fill="currentColor"/><path d="M23.6 4.3v3.4a1.9 1.9 0 0 0 0-3.4Z" fill="currentColor" fill-opacity=".45"/></svg></span></div>
+
+            <div class="ctxbar">
+              <div class="monogram">A&amp;C</div>
+              <div class="ctx-title">Andey &amp; Calvin <span>&#183; Sep 18, 2027</span></div>
+              <div class="ctx-search">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.6" cy="8.6" r="6.1" stroke="currentColor" stroke-width="1.9"/><path d="M13.2 13.2 18 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <!-- context layer: venues dim, but the selected one stays legible -->
+            <div class="pin ctx-layer" style="left:118px; top:330px;"><div class="head"></div></div>
+            <div class="pin ctx-layer" style="left:300px; top:410px;"><div class="head"></div></div>
+            <div class="pin selected" style="left:196px; top:392px;"><div class="head"></div></div>
+
+            <!-- focus layer: guests, now badged with travel to the selected venue -->
+            <div class="cluster" style="left:252px; top:344px;"><div class="bubble">24</div><div class="badge">40m</div></div>
+            <div class="cluster" style="left:142px; top:436px;"><div class="bubble">9</div><div class="badge fly">&#9992;&#65038; Flight</div></div>
+            <div class="cluster" style="left:300px; top:276px;"><div class="bubble">12</div><div class="badge">2h 10m</div></div>
+
+            <div class="controls" style="bottom:364px;">
+              <div class="ctl" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M2.5 7V3.5c0-.55.45-1 1-1H7M13 2.5h3.5c.55 0 1 .45 1 1V7M17.5 13v3.5c0 .55-.45 1-1 1H13M7 17.5H3.5c-.55 0-1-.45-1-1V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="ctl" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M10 1.5v3M10 15.5v3M18.5 10h-3M4.5 10h-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="fab" style="box-shadow:0 8px 22px rgba(97,153,255,.34); background:var(--d-blue); color:#08183A;" aria-hidden="true">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none"><path d="M12 4.5v15M4.5 12h15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <div class="console" style="height:352px;">
+              <div class="grabber"></div>
+              <div class="console-head">
+                <div class="ch-row">
+                  <div class="ch-title">Guests</div>
+                  <div class="ch-trail">86 guests</div>
+                </div>
+                <div class="readout task">
+                  <span class="dot"></span>
+                  <span>Travel to Riverside Pavilion</span><span class="sep">&#183;</span>
+                  <span>18 not counted</span>
+                  <span class="chev">&#8250;</span>
+                </div>
+              </div>
+              <div class="rail-scroll">
+                <div class="rcard guest sel">
+                  <div class="body">
+                    <div class="ghead">
+                      <div class="avatar">AR</div>
+                      <div style="min-width:0;">
+                        <div class="nm">Avery Rowan</div>
+                        <div class="gsub">Cedar Circle</div>
+                      </div>
+                    </div>
+                    <div class="fact">Commack &#183; 2h 10m<span class="capsule blue">Accepted</span></div>
+                  </div>
+                </div>
+                <div class="rcard guest">
+                  <div class="body">
+                    <div class="ghead">
+                      <div class="avatar">MV</div>
+                      <div style="min-width:0;">
+                        <div class="nm">Mira Vale</div>
+                        <div class="gsub">Juniper Guild</div>
+                      </div>
+                    </div>
+                    <div class="fact dim">No location added<span class="capsule grey">Pending</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lensrail">
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.4" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>
+                <span class="lbl">Overview</span>
+              </div>
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6c-3.1 0-5.6 2.5-5.6 5.6 0 4 5 10.6 5.2 10.9a.5.5 0 0 0 .8 0c.2-.3 5.2-6.9 5.2-10.9 0-3.1-2.5-5.6-5.6-5.6Zm0 7.9a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6Z"/></svg>
+                <span class="lbl">Venues</span>
+              </div>
+              <div class="lens on">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="7" cy="6.6" r="3.3"/><circle cx="14.4" cy="7.6" r="2.6"/><path d="M1.6 16.2c0-2.7 2.4-4.6 5.4-4.6s5.4 1.9 5.4 4.6c0 .6-.4 1-1 1H2.6c-.6 0-1-.4-1-1Z"/><path d="M13.6 12.1c2.4.15 4.8 1.5 4.8 3.7 0 .8-.5 1.4-1.3 1.4h-3.3c.3-.4.4-.9.4-1.4 0-1.4-.3-2.7-.6-3.7Z"/></svg>
+                <span class="lbl">Guests</span>
+              </div>
+            </div>
+
+            <div class="homebar"></div>
+          </div>
+        </div>
+
+        <div class="dot-cue" data-cue="2-1" style="left:340px; top:258px;">1</div>
+        <div class="dot-cue" data-cue="2-2" style="left:150px; top:372px;">2</div>
+        <div class="dot-cue" data-cue="2-3" style="left:-11px; top:568px;">3</div>
+        <div class="dot-cue" data-cue="2-4" style="left:348px; top:442px;">4</div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-head">
+          <div class="lens-id">Lens 03 &#8212; Guests &#183; peek detent</div>
+          <h2>Same selection, flipped emphasis</h2>
+          <p>Tapping the impact readout lands here. The venue stays selected; the guests it affects come forward, each cluster carrying its travel cost.</p>
+        </div>
+
+        <div class="note" tabindex="0" data-note="2-1">
+          <div class="n">1</div>
+          <div><h3>Clusters badged with travel</h3><p>Drive times where a road route exists, a flight glyph where it doesn't. This is the "who does this hurt" view &#8212; the one thing a spreadsheet can't give you.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="2-2">
+          <div class="n">2</div>
+          <div><h3>The selected venue survives the lens change</h3><p>It drops to context opacity but keeps its selected ring, so the badges have a visible origin. Selection is global; the lens only decides who is loud.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="2-3">
+          <div class="n">3</div>
+          <div><h3>Dead ends become tasks</h3><p>"18 not counted" is a row that routes to the guests with no location. The current build's terminal <code>"Unavailable"</code> is never shown again &#8212; every failure state names its own fix.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="2-4">
+          <div class="n">4</div>
+          <div><h3>The quick-add button is lens-aware</h3><p>Tap adds the thing you're looking at &#8212; a guest here, a venue one lens over &#8212; and takes the lens tint so the action is legible before you press it. Long-press still opens the full panel.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; SCREEN 3 &#8212; OVERVIEW LENS &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <section class="plate" id="plate-3">
+      <div class="stage">
+        <div class="device">
+          <div class="screen">
+            <canvas class="mapcanvas" data-seed="7" width="766" height="1684"></canvas>
+            <div class="notch"></div>
+            <div class="statusbar"><span>11:57</span><span style="display:flex; align-items:center; gap:6px;"><svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7.5" width="3" height="3.5" rx="1"/><rect x="4.6" y="5" width="3" height="6" rx="1"/><rect x="9.2" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.8" y="0" width="3" height="11" rx="1" opacity=".38"/></svg><svg width="16" height="11" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M1.2 4.1a10 10 0 0 1 13.6 0"/><path d="M3.8 6.9a6.2 6.2 0 0 1 8.4 0"/><path d="M6.4 9.6a2.5 2.5 0 0 1 3.2 0"/></svg><span style="font-size:12.5px;">62</span><svg width="26" height="12" viewBox="0 0 26 12" fill="none" aria-hidden="true"><rect x=".8" y=".8" width="21" height="10.4" rx="3.2" stroke="currentColor" stroke-opacity=".45" stroke-width="1.1"/><rect x="2.4" y="2.4" width="11.0" height="7.2" rx="1.8" fill="currentColor"/><path d="M23.6 4.3v3.4a1.9 1.9 0 0 0 0-3.4Z" fill="currentColor" fill-opacity=".45"/></svg></span></div>
+
+            <div class="ctxbar">
+              <div class="monogram">A&amp;C</div>
+              <div class="ctx-title">Andey &amp; Calvin <span>&#183; Sep 18, 2027</span></div>
+              <div class="ctx-search">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.6" cy="8.6" r="6.1" stroke="currentColor" stroke-width="1.9"/><path d="M13.2 13.2 18 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <!-- Overview: every layer at equal weight, nothing selected -->
+            <div class="pin" style="left:112px; top:268px;"><div class="head"></div></div>
+            <div class="pin" style="left:284px; top:330px;"><div class="head"></div></div>
+            <div class="pin" style="left:190px; top:312px;"><div class="head"></div></div>
+            <div class="cluster" style="left:246px; top:268px;"><div class="bubble">24</div></div>
+            <div class="cluster" style="left:140px; top:352px;"><div class="bubble">9</div></div>
+            <div class="cluster" style="left:308px; top:212px;"><div class="bubble">12</div></div>
+
+            <div class="controls" style="bottom:488px;">
+              <div class="ctl" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M2.5 7V3.5c0-.55.45-1 1-1H7M13 2.5h3.5c.55 0 1 .45 1 1V7M17.5 13v3.5c0 .55-.45 1-1 1H13M7 17.5H3.5c-.55 0-1-.45-1-1V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="fab" aria-hidden="true">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none"><path d="M12 4.5v15M4.5 12h15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <div class="console" style="height:476px;">
+              <div class="grabber"></div>
+              <div class="modules">
+                <div class="module count">
+                  <div class="date">Sep 18, 2027</div>
+                  <div class="days">415 days</div>
+                </div>
+
+                <div class="module">
+                  <div class="eyebrow">Needs you</div>
+                  <div class="task-row">
+                    <span class="sev block"></span>
+                    <span><b>Pick a venue</b> &#8212; 3 toured, none held</span>
+                    <span class="chev">&#8250;</span>
+                  </div>
+                  <div class="task-row">
+                    <span class="sev block"></span>
+                    <span><b>18 guests</b> have no location</span>
+                    <span class="chev">&#8250;</span>
+                  </div>
+                  <div class="task-row">
+                    <span class="sev amb"></span>
+                    <span>24 RSVPs outstanding</span>
+                    <span class="chev">&#8250;</span>
+                  </div>
+                </div>
+
+                <div class="module">
+                  <div class="eyebrow">Reach &#183; leading venue</div>
+                  <div class="mline">Riverside Pavilion <span class="mut">&#183; 62% within 2h &#183; 14 fly</span></div>
+                  <div class="bar">
+                    <i style="width:62%; background:var(--d-rose);"></i>
+                    <i style="width:17%; background:rgba(255,105,150,.42);"></i>
+                    <i style="width:21%; background:rgba(255,255,255,.14);"></i>
+                  </div>
+                </div>
+
+                <div class="module">
+                  <div class="eyebrow">Guests</div>
+                  <div class="mline">86 invited <span class="mut">&#183; 41 accepted &#183; 24 pending &#183; 21 not invited</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lensrail">
+              <div class="lens on">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.4" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>
+                <span class="lbl">Overview</span>
+              </div>
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6c-3.1 0-5.6 2.5-5.6 5.6 0 4 5 10.6 5.2 10.9a.5.5 0 0 0 .8 0c.2-.3 5.2-6.9 5.2-10.9 0-3.1-2.5-5.6-5.6-5.6Zm0 7.9a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6Z"/></svg>
+                <span class="lbl">Venues</span>
+              </div>
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="7" cy="6.6" r="3.3"/><circle cx="14.4" cy="7.6" r="2.6"/><path d="M1.6 16.2c0-2.7 2.4-4.6 5.4-4.6s5.4 1.9 5.4 4.6c0 .6-.4 1-1 1H2.6c-.6 0-1-.4-1-1Z"/><path d="M13.6 12.1c2.4.15 4.8 1.5 4.8 3.7 0 .8-.5 1.4-1.3 1.4h-3.3c.3-.4.4-.9.4-1.4 0-1.4-.3-2.7-.6-3.7Z"/></svg>
+                <span class="lbl">Guests</span>
+              </div>
+            </div>
+
+            <div class="homebar"></div>
+          </div>
+        </div>
+
+        <div class="dot-cue" data-cue="3-1" style="left:-11px; top:250px;">1</div>
+        <div class="dot-cue" data-cue="3-2" style="left:-11px; top:414px;">2</div>
+        <div class="dot-cue" data-cue="3-3" style="left:-11px; top:502px;">3</div>
+        <div class="dot-cue" data-cue="3-4" style="left:-11px; top:632px;">4</div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-head">
+          <div class="lens-id">Lens 01 &#8212; Overview &#183; half detent</div>
+          <h2>Where the other domains come in</h2>
+          <p>Every layer at equal weight, nothing selected, the console stacked with modules. This is the extension point: a new domain ships one lens conformance and one module.</p>
+        </div>
+
+        <div class="note" tabindex="0" data-note="3-1">
+          <div class="n">1</div>
+          <div><h3>No focus layer, so no dimming</h3><p>Overview is the only lens with nothing demoted. The camera fits everything and the map reads as a whole plan rather than one question.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="3-2">
+          <div class="n">2</div>
+          <div><h3>Countdown, from data you already have</h3><p><code>WeddingSummary.weddingDate</code> is loaded and unused. Past a year out the module leads with the date; inside a year the day count takes the lead.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="3-3">
+          <div class="n">3</div>
+          <div><h3>"Needs you" is derived, not authored</h3><p>Five ordered rules over data already in memory &#8212; no backend work. Severity is a dot <em>and</em> a position, so urgency survives colour-blindness and greyscale.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="3-4">
+          <div class="n">4</div>
+          <div><h3>The module contract is the framework</h3><p>Each module declares <code>id</code>, <code>urgency</code>, <code>size</code>, <code>destination</code> and an empty state, then sorts itself. Budget burn, vendor payments due and day-of gaps slot in without touching the renderer.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; SCREEN 4 &#8212; HALF DETENT &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <section class="plate" id="plate-4">
+      <div class="stage">
+        <div class="device">
+          <div class="screen">
+            <canvas class="mapcanvas" data-seed="7" width="766" height="1684"></canvas>
+            <div class="notch"></div>
+            <div class="statusbar"><span>11:58</span><span style="display:flex; align-items:center; gap:6px;"><svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7.5" width="3" height="3.5" rx="1"/><rect x="4.6" y="5" width="3" height="6" rx="1"/><rect x="9.2" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.8" y="0" width="3" height="11" rx="1" opacity=".38"/></svg><svg width="16" height="11" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M1.2 4.1a10 10 0 0 1 13.6 0"/><path d="M3.8 6.9a6.2 6.2 0 0 1 8.4 0"/><path d="M6.4 9.6a2.5 2.5 0 0 1 3.2 0"/></svg><span style="font-size:12.5px;">61</span><svg width="26" height="12" viewBox="0 0 26 12" fill="none" aria-hidden="true"><rect x=".8" y=".8" width="21" height="10.4" rx="3.2" stroke="currentColor" stroke-opacity=".45" stroke-width="1.1"/><rect x="2.4" y="2.4" width="10.9" height="7.2" rx="1.8" fill="currentColor"/><path d="M23.6 4.3v3.4a1.9 1.9 0 0 0 0-3.4Z" fill="currentColor" fill-opacity=".45"/></svg></span></div>
+
+            <div class="ctxbar">
+              <div class="monogram">A&amp;C</div>
+              <div class="ctx-title">Andey &amp; Calvin <span>&#183; Sep 18, 2027</span></div>
+              <div class="ctx-search">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.6" cy="8.6" r="6.1" stroke="currentColor" stroke-width="1.9"/><path d="M13.2 13.2 18 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <div class="cluster ctx-layer" style="left:250px; top:262px;"><div class="bubble">24</div></div>
+            <div class="cluster ctx-layer" style="left:300px; top:206px;"><div class="bubble">12</div></div>
+            <div class="pin" style="left:118px; top:250px;"><div class="head"></div></div>
+            <div class="pin" style="left:300px; top:318px;"><div class="head"></div></div>
+            <div class="pin selected" style="left:196px; top:302px;"><div class="head"></div><div class="tag">Riverside Pavilion</div></div>
+
+            <div class="controls" style="bottom:438px;">
+              <div class="ctl" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M2.5 7V3.5c0-.55.45-1 1-1H7M13 2.5h3.5c.55 0 1 .45 1 1V7M17.5 13v3.5c0 .55-.45 1-1 1H13M7 17.5H3.5c-.55 0-1-.45-1-1V13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="fab" aria-hidden="true">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none"><path d="M12 4.5v15M4.5 12h15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <div class="console" style="height:426px;">
+              <div class="grabber"></div>
+              <div class="console-head">
+                <div class="ch-row">
+                  <div class="ch-title">Venues</div>
+                  <div class="ch-trail">10 venues</div>
+                </div>
+              </div>
+              <div class="chips">
+                <div class="chip on">All 10</div>
+                <div class="chip">Toured 3</div>
+                <div class="chip">Shortlisted 2</div>
+                <div class="chip">Compare</div>
+              </div>
+              <div class="list">
+                <div class="lrow">
+                  <div class="lthumb"><canvas data-photo="1" width="124" height="92"></canvas></div>
+                  <div class="lbody">
+                    <div class="lnm">Riverside Pavilion</div>
+                    <div class="lsub">Toured &#183; 150&#8211;350 &#183; $53.7k &#183; 1h 50m</div>
+                  </div>
+                  <span class="capsule">Toured</span>
+                </div>
+                <div class="lrow">
+                  <div class="lthumb"><canvas data-photo="2" width="124" height="92"></canvas></div>
+                  <div class="lbody">
+                    <div class="lnm">Harbor Gallery</div>
+                    <div class="lsub">Toured &#183; 120&#8211;300 &#183; $48k &#183; 2h 20m</div>
+                  </div>
+                  <span class="capsule">Toured</span>
+                </div>
+                <div class="lrow" style="border-bottom:0;">
+                  <div class="lthumb"><canvas data-photo="3" width="124" height="92"></canvas></div>
+                  <div class="lbody">
+                    <div class="lnm">Meadow House</div>
+                    <div class="lsub">Considering &#183; 100&#8211;220 &#183; $39k &#183; 3h 05m</div>
+                  </div>
+                  <span class="capsule grey">Considering</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lensrail">
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.4" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>
+                <span class="lbl">Overview</span>
+              </div>
+              <div class="lens on">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6c-3.1 0-5.6 2.5-5.6 5.6 0 4 5 10.6 5.2 10.9a.5.5 0 0 0 .8 0c.2-.3 5.2-6.9 5.2-10.9 0-3.1-2.5-5.6-5.6-5.6Zm0 7.9a2.3 2.3 0 1 1 0-4.6 2.3 2.3 0 0 1 0 4.6Z"/></svg>
+                <span class="lbl">Venues</span>
+              </div>
+              <div class="lens">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="7" cy="6.6" r="3.3"/><circle cx="14.4" cy="7.6" r="2.6"/><path d="M1.6 16.2c0-2.7 2.4-4.6 5.4-4.6s5.4 1.9 5.4 4.6c0 .6-.4 1-1 1H2.6c-.6 0-1-.4-1-1Z"/><path d="M13.6 12.1c2.4.15 4.8 1.5 4.8 3.7 0 .8-.5 1.4-1.3 1.4h-3.3c.3-.4.4-.9.4-1.4 0-1.4-.3-2.7-.6-3.7Z"/></svg>
+                <span class="lbl">Guests</span>
+              </div>
+            </div>
+
+            <div class="homebar"></div>
+          </div>
+        </div>
+
+        <div class="dot-cue" data-cue="4-1" style="left:-11px; top:450px;">1</div>
+        <div class="dot-cue" data-cue="4-2" style="left:150px; top:282px;">2</div>
+        <div class="dot-cue" data-cue="4-3" style="left:-11px; top:628px;">3</div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-head">
+          <div class="lens-id">Lens 02 &#8212; Venues &#183; half detent</div>
+          <h2>The Venues tab, absorbed</h2>
+          <p>Drag the console up and it becomes the list you already built &#8212; same rows, same filters, same compare mode. Reached by a gesture instead of a tab, with the map still holding your place.</p>
+        </div>
+
+        <div class="note" tabindex="0" data-note="4-1">
+          <div class="n">1</div>
+          <div><h3>No screen title</h3><p>The lens rail already says where you are. Deleting the eyebrow-plus-display-title block reclaims about 90 pt and puts two more venues above the fold.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="4-2">
+          <div class="n">2</div>
+          <div><h3>The selection never leaves the map</h3><p>Camera insets recompute from the live sheet height, so the selected venue stays framed as you drag. Dragging changes the detent and nothing else.</p></div>
+        </div>
+        <div class="note" tabindex="0" data-note="4-3">
+          <div class="n">3</div>
+          <div><h3>Tapping a row drops back to peek</h3><p>The list explains the map; the map explains the list. That reciprocal move is the core interaction of the whole surface, and it's the reason these stopped being separate screens.</p></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; CARD DETAIL &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+  <div class="compare">
+    <div class="cpanel">
+      <span class="tag now">Shipped today</span>
+      <div class="swatch">
+        <div class="oldcard">
+          <div class="thumb"><canvas data-photo="4" width="200" height="296"></canvas></div>
+          <div class="body">
+            <div class="nm">Celebrate at Snug&#8230;</div>
+            <span class="cap">Passed</span>
+            <div class="sm">&#9906; 1000, Richmon&#8230;</div>
+            <hr>
+            <div class="sm" style="color:#F4F1F3;">&#9992;&#65038; Unavailable m&#8230;</div>
+          </div>
+        </div>
+      </div>
+      <p>Four facts in 165 pt. Every string truncates, the location repeats the pin beside it, and the one fact that would justify a map says <em>Unavailable</em> &#8212; because it is hardcoded that way.</p>
+    </div>
+
+    <div class="cpanel">
+      <span class="tag next">Proposed</span>
+      <div class="swatch">
+        <div class="rcard sel" style="font-family:var(--ui); color:#F4F1F3; --d-ink-2:#A5A0A8; --d-ink-3:#6F6A73; --d-rose:#FF6996;">
+          <div class="thumb"><canvas data-photo="4" width="208" height="264"></canvas></div>
+          <div class="body">
+            <div class="nm">Snug Harbor</div>
+            <div class="fact">&#9992;&#65038; 1h 15m median</div>
+          </div>
+        </div>
+      </div>
+      <p>Two facts in 268 pt, and the second one is real. Name takes two lines, status moves to the console header where it isn't competing, and location is gone &#8212; you are looking at the pin.</p>
+    </div>
+  </div>
+
+  <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; UNAVAILABLE STATES &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+  <div class="states">
+    <h2>The readout never dead-ends</h2>
+    <p>Four ways the travel calculation can come up short, and what each one says instead of <em>Unavailable</em>. Every row is a tap target that opens the fix.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Condition</th><th scope="col">What the readout says</th><th scope="col">Where the tap goes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Venue has no coordinate</td>
+            <td class="readout-cell">Add this venue's location to see guest travel</td>
+            <td class="muted">Venue detail, location field focused</td>
+          </tr>
+          <tr>
+            <td>No guest has a coordinate</td>
+            <td class="readout-cell">No guest locations yet &#8212; add some to see travel</td>
+            <td class="muted">Guests lens, add flow</td>
+          </tr>
+          <tr>
+            <td>Some guests unlocated</td>
+            <td class="readout-cell">62% within 2h &#183; 18 guests not counted</td>
+            <td class="muted">Guests lens, filtered to unlocated</td>
+          </tr>
+          <tr>
+            <td>Request failed</td>
+            <td class="readout-cell">Guest travel unavailable &#183; Retry</td>
+            <td class="muted">Re-requests in place</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; COLOPHON &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+  <div class="colophon">
+    <section>
+      <h4>Lens tints</h4>
+      <div class="chips-row">
+        <span class="tint"><i style="background:#FF6996"></i>Venues</span>
+        <span class="tint"><i style="background:#6199FF"></i>Guests</span>
+        <span class="tint"><i style="background:#FFB347"></i>Vendors</span>
+        <span class="tint"><i style="background:#4ACCBF"></i>Lodging</span>
+        <span class="tint"><i style="background:#B899FF"></i>Events</span>
+      </div>
+      <p style="margin-top:12px;">Dark-appearance values. Colour never carries meaning alone &#8212; each lens also owns a silhouette: teardrop, circle, diamond, rounded square, time glyph.</p>
+    </section>
+    <section>
+      <h4>Type</h4>
+      <p><strong style="font-family:var(--serif); font-weight:400; font-size:16px;">New York</strong> for names and display, SF Pro for interface, tabular figures wherever durations and counts stack. Unchanged from <code style="font-family:var(--mono); font-size:12px;">VowbaseType</code>.</p>
+    </section>
+    <section>
+      <h4>Carried over unchanged</h4>
+      <p>City-coarse guest geography, the glass capsule rail treatment, quick-add haptics, and every venue and guest detail screen. This proposal touches the map surface only.</p>
+    </section>
+    <section>
+      <h4>Ship order</h4>
+      <p>Split <code style="font-family:var(--mono); font-size:12px;">ContentView.swift</code>, then the lens model alone &#8212; the screen barely changes but the structure turns additive. Console, context bar, readout, Overview follow.</p>
+    </section>
+  </div>
+
+</div>
+
+<script>
+  // &#9472;&#9472; Deterministic map painter &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+  // A plausible coastal road network, drawn at the desaturation
+  // the spec calls for (&#167;6.1) so brand tints are the only
+  // saturated things on the screen.
+  function rng(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function paintMap(cv) {
+    const ctx = cv.getContext("2d");
+    const W = cv.width, H = cv.height;
+    const r = rng(parseInt(cv.dataset.seed || "1", 10) * 7919);
+    const S = W / 383; // logical &#8594; backing scale
+
+    ctx.fillStyle = "#212329";
+    ctx.fillRect(0, 0, W, H);
+
+    // parkland
+    ctx.fillStyle = "#232A26";
+    for (let i = 0; i < 7; i++) {
+      const x = r() * W, y = r() * H, w = (40 + r() * 130) * S, h = (35 + r() * 110) * S;
+      ctx.beginPath();
+      ctx.ellipse(x, y, w, h, r() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // water &#8212; a bay opening to the lower right
+    ctx.fillStyle = "#161F2C";
+    ctx.beginPath();
+    ctx.moveTo(W, H * 0.30);
+    ctx.bezierCurveTo(W * 0.72, H * 0.40, W * 0.80, H * 0.52, W * 0.58, H * 0.60);
+    ctx.bezierCurveTo(W * 0.36, H * 0.68, W * 0.44, H * 0.82, W * 0.18, H * 0.90);
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#161F2C";
+    ctx.beginPath();
+    ctx.ellipse(W * 0.13, H * 0.20, 70 * S, 34 * S, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // street grid, jittered
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#2C2F36";
+    ctx.lineWidth = 1.1 * S;
+    for (let i = 0; i < 26; i++) {
+      const y = (i / 26) * H + (r() - 0.5) * 22 * S;
+      ctx.beginPath();
+      ctx.moveTo(-10, y);
+      let x = -10;
+      while (x < W) { x += (40 + r() * 70) * S; ctx.lineTo(x, y + (r() - 0.5) * 12 * S); }
+      ctx.stroke();
+    }
+    for (let i = 0; i < 15; i++) {
+      const x = (i / 15) * W + (r() - 0.5) * 24 * S;
+      ctx.beginPath();
+      ctx.moveTo(x, -10);
+      let y = -10;
+      while (y < H) { y += (60 + r() * 100) * S; ctx.lineTo(x + (r() - 0.5) * 14 * S, y); }
+      ctx.stroke();
+    }
+
+    // arterials
+    ctx.strokeStyle = "#393D46";
+    ctx.lineWidth = 2.6 * S;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      let x = r() * W * 0.4, y = r() * H;
+      ctx.moveTo(x, y);
+      for (let k = 0; k < 6; k++) {
+        x += (60 + r() * 110) * S;
+        y += (r() - 0.45) * 150 * S;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    // highway
+    ctx.strokeStyle = "#4A4F5A";
+    ctx.lineWidth = 4.2 * S;
+    ctx.beginPath();
+    ctx.moveTo(-10, H * 0.62);
+    ctx.bezierCurveTo(W * 0.3, H * 0.50, W * 0.42, H * 0.36, W + 10, H * 0.24);
+    ctx.stroke();
+
+    // place labels &#8212; orientation only, business POIs excluded
+    ctx.fillStyle = "#767B87";
+    ctx.textAlign = "center";
+    const labels = [
+      ["NEWARK", 0.17, 0.30], ["BROOKLYN", 0.63, 0.235],
+      ["COMMACK", 0.83, 0.155], ["TRENTON", 0.24, 0.50],
+      ["ATLANTIC", 0.72, 0.72]
+    ];
+    labels.forEach(([t, x, y]) => {
+      ctx.font = `500 ${9.5 * S}px -apple-system, system-ui, sans-serif`;
+      ctx.save();
+      ctx.translate(W * x, H * y);
+      ctx.globalAlpha = 0.85;
+      let spaced = t.split("").join(" ");
+      ctx.fillText(spaced, 0, 0);
+      ctx.restore();
+    });
+  }
+
+  // &#9472;&#9472; Venue photo stand-ins &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+  // Abstract architecture: an arched interior reduced to bands
+  // of light. Enough to read as a photograph at thumbnail size.
+  function paintPhoto(cv) {
+    const ctx = cv.getContext("2d");
+    const W = cv.width, H = cv.height;
+    const variant = parseInt(cv.dataset.photo || "1", 10);
+    const r = rng(variant * 104729);
+
+    const schemes = [
+      ["#3A2A1E", "#8A6740", "#D8B489"],
+      ["#1F2A33", "#3E6076", "#9EC2D6"],
+      ["#262A20", "#4E6440", "#AFC492"],
+      ["#302028", "#6A4152", "#C79BAA"]
+    ];
+    const [dark, mid, light] = schemes[(variant - 1) % 4];
+
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, mid);
+    g.addColorStop(1, dark);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // arched openings letting in light
+    const cols = 3;
+    for (let i = 0; i < cols; i++) {
+      const w = W / (cols + 0.6);
+      const x = w * 0.3 + i * w * 1.08;
+      const top = H * (0.26 + r() * 0.08);
+      const bot = H * 0.78;
+      const gg = ctx.createLinearGradient(0, top, 0, bot);
+      gg.addColorStop(0, light);
+      gg.addColorStop(1, mid);
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.moveTo(x, bot);
+      ctx.lineTo(x, top + w * 0.42);
+      ctx.arc(x + w * 0.36, top + w * 0.42, w * 0.36, Math.PI, 0);
+      ctx.lineTo(x + w * 0.72, bot);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // floor
+    ctx.fillStyle = dark;
+    ctx.fillRect(0, H * 0.78, W, H * 0.22);
+    ctx.fillStyle = "rgba(255,255,255,.06)";
+    ctx.fillRect(0, H * 0.78, W, H * 0.03);
+
+    // vignette
+    const v = ctx.createRadialGradient(W / 2, H * 0.45, W * 0.2, W / 2, H * 0.5, W * 0.95);
+    v.addColorStop(0, "rgba(0,0,0,0)");
+    v.addColorStop(1, "rgba(0,0,0,.5)");
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  document.querySelectorAll("canvas.mapcanvas").forEach(paintMap);
+  document.querySelectorAll("canvas[data-photo]").forEach(paintPhoto);
+
+  // &#9472;&#9472; Callout linking &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+  const cues = new Map();
+  document.querySelectorAll(".dot-cue").forEach(d => cues.set(d.dataset.cue, d));
+  document.querySelectorAll(".note").forEach(note => {
+    const dot = cues.get(note.dataset.note);
+    if (!dot) return;
+    const on = () => dot.classList.add("lit");
+    const off = () => dot.classList.remove("lit");
+    note.addEventListener("mouseenter", on);
+    note.addEventListener("mouseleave", off);
+    note.addEventListener("focus", on);
+    note.addEventListener("blur", off);
+  });
+</script>
