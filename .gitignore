@@ -12,3 +12,7 @@ Packages/
 .DS_Store
 
 Configuration/Local.xcconfig
+
+# Claude Code local state (shared config such as .claude/settings.json stays tracked)
+.claude/worktrees/
+.claude/settings.local.json
