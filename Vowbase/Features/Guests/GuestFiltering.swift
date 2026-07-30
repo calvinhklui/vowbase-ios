@@ -92,10 +92,11 @@ struct GuestFilterSet: Equatable, Sendable {
 
     var isEmpty: Bool { conditionCount == 0 }
 
-    /// Conditions shown as removable tokens. RSVP is excluded because the chip
-    /// row above the list already represents it.
+    /// Conditions shown as removable tokens, including RSVP now that it has
+    /// no dedicated chip row of its own.
     var conditionCount: Int {
-        locations.count
+        rsvpStatuses.count
+            + locations.count
             + (mappableOnly ? 1 : 0)
             + (email == .any ? 0 : 1)
             + (phone == .any ? 0 : 1)

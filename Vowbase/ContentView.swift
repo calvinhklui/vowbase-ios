@@ -896,7 +896,6 @@ private struct GuestsView: View {
                             .foregroundStyle(VowbaseTheme.mutedInk)
                     }
                     toolRow
-                    rsvpChips
                     if filters.conditionCount > 0 {
                         activeFilterTokens
                     }
@@ -1014,68 +1013,27 @@ private struct GuestsView: View {
         .accessibilityLabel("Sort and manage fields")
     }
 
-    /// Multi-select RSVP chips. `All` is a shortcut for no RSVP constraint, and
-    /// Declined appears once it has anyone in it.
-    private var rsvpChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                chip(
-                    title: "All \(records.count)",
-                    isOn: filters.rsvpStatuses.isEmpty
-                ) {
-                    filters.rsvpStatuses.removeAll()
-                }
-                ForEach(RSVPStatus.allCases, id: \.self) { status in
-                    let count = GuestQuery.count(records, rsvp: status)
-                    let isOn = filters.rsvpStatuses.contains(status)
-                    if status != .declined || count > 0 || isOn {
-                        chip(title: "\(status.title) \(count)", isOn: isOn) {
-                            if isOn {
-                                filters.rsvpStatuses.remove(status)
-                            } else {
-                                filters.rsvpStatuses.insert(status)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func chip(title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 16, weight: isOn ? .medium : .regular))
-                .foregroundStyle(isOn ? .white : VowbaseTheme.mutedInk)
-                .padding(.horizontal, 18)
-                .frame(minHeight: 44)
-                .background(isOn ? VowbaseTheme.rose : VowbaseTheme.background, in: Capsule())
-                .overlay(Capsule().stroke(isOn ? .clear : VowbaseTheme.border, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isOn ? [.isSelected] : [])
-    }
-
-    /// A filtered list should never look like the whole list. Every non-RSVP
-    /// condition is named here and removable in one tap.
+    /// A filtered list should never look like the whole list. Every active
+    /// condition — RSVP included, now that it has no dedicated chip row —
+    /// is named here and removable in one tap. One consistent capsule shape
+    /// and size for every active filter, not two different components.
     private var activeFilterTokens: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 ForEach(tokens, id: \.id) { token in
                     Button {
                         token.remove(&filters)
                     } label: {
                         HStack(spacing: 6) {
                             Text(token.title)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 16, weight: .medium))
                             Image(systemName: "xmark")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 11, weight: .bold))
                         }
-                        .foregroundStyle(VowbaseTheme.rose)
-                        .padding(.leading, 12)
-                        .padding(.trailing, 10)
-                        .padding(.vertical, 8)
-                        .background(VowbaseTheme.blush, in: Capsule())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 44)
+                        .background(VowbaseTheme.rose, in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Remove filter \(token.title)")
@@ -1083,7 +1041,7 @@ private struct GuestsView: View {
                 Button("Clear all") {
                     filters = GuestFilterSet()
                 }
-                .font(.system(size: 14))
+                .font(.system(size: 16, weight: .medium))
                 .tint(VowbaseTheme.mutedInk)
             }
         }
@@ -1124,7 +1082,7 @@ private struct GuestsView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 36)
-        } else if filters.conditionCount > 0 || !filters.rsvpStatuses.isEmpty {
+        } else if filters.conditionCount > 0 {
             VStack(spacing: 12) {
                 ContentUnavailableView(
                     "No guests match these filters",
@@ -1151,11 +1109,7 @@ private struct GuestsView: View {
     }
 
     private var filterSummary: String {
-        var parts = filters.rsvpStatuses
-            .sorted { RSVPStatus.allCases.firstIndex(of: $0) ?? 0 < RSVPStatus.allCases.firstIndex(of: $1) ?? 0 }
-            .map(\.title)
-        parts.append(contentsOf: tokens.map(\.title))
-        return "Active: " + parts.joined(separator: ", ")
+        "Active: " + tokens.map(\.title).joined(separator: ", ")
     }
 }
 
@@ -1175,6 +1129,13 @@ private struct GuestFilterToken: Identifiable {
     ) -> [GuestFilterToken] {
         var tokens = [GuestFilterToken]()
 
+        for status in RSVPStatus.allCases where filters.rsvpStatuses.contains(status) {
+            tokens.append(
+                GuestFilterToken(id: "rsvp-\(status.rawValue)", title: status.title) { set in
+                    set.rsvpStatuses.remove(status)
+                }
+            )
+        }
         for bucket in filters.locations.sorted(by: { $0.title < $1.title }) {
             tokens.append(
                 GuestFilterToken(id: "location-\(bucket.title)", title: bucket.title) { set in
@@ -1438,7 +1399,7 @@ private struct GuestFilterSheet: View {
             }
             .font(.system(size: 16))
             .tint(VowbaseTheme.rose)
-            .disabled(draft.isEmpty && draft.rsvpStatuses.isEmpty)
+            .disabled(draft.isEmpty)
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
@@ -1542,24 +1503,14 @@ private struct GuestRow: View {
                 .background(VowbaseTheme.blush, in: Circle())
             VStack(alignment: .leading, spacing: 5) {
                 Text(guest.name)
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold, design: .serif))
                     .foregroundStyle(VowbaseTheme.ink)
-                HStack(spacing: 6) {
-                    if let subtitle = guest.subtitle {
-                        Text(subtitle)
-                        Text("•")
-                    }
-                    Text(guest.location ?? "No location")
-                    // The pin means a map-safe city origin exists, not merely
-                    // that some address was typed.
-                    if guest.isMappable {
-                        Image(systemName: "mappin")
-                            .foregroundStyle(VowbaseTheme.guestBlue)
-                    }
+                if let subtitle = guest.subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 15))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .lineLimit(1)
                 }
-                .font(.system(size: 15))
-                .foregroundStyle(VowbaseTheme.mutedInk)
-                .lineLimit(1)
             }
             Spacer(minLength: 8)
             RSVPStatusCapsule(status: guest.rsvp)
@@ -1596,6 +1547,8 @@ private struct GuestDetailView: View {
                 metadataSection(record)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(VowbaseTheme.blush)
         .navigationTitle("Guest")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1651,6 +1604,7 @@ private struct GuestDetailView: View {
                             font: .system(size: 21, design: .serif),
                             saveState: store.saveState(.init(guestID: guest.id, field: .firstName)),
                             capitalization: .words,
+                            hugsContent: true,
                             commit: { await store.commitField(.firstName, for: guest.id, value: $0) }
                         )
                         GuestInlineField(
@@ -1659,8 +1613,10 @@ private struct GuestDetailView: View {
                             font: .system(size: 21, design: .serif),
                             saveState: store.saveState(.init(guestID: guest.id, field: .lastName)),
                             capitalization: .words,
+                            hugsContent: true,
                             commit: { await store.commitField(.lastName, for: guest.id, value: $0) }
                         )
+                        Spacer(minLength: 0)
                     }
                     RSVPStatusCapsule(status: record.rsvpStatus ?? .notInvited)
                 }
@@ -1850,6 +1806,18 @@ private struct GuestUndoToast: View {
 ///
 /// Commits on blur or return. A failed save leaves the typed value in place
 /// rather than reverting to what the server holds.
+/// Reports the natural width of whatever it's attached to, so a sibling can
+/// be resized to match. `TextField` alone won't hug its own text reliably
+/// when unconstrained — its ideal-size computation isn't as precise as
+/// `Text`'s — so measuring a hidden `Text` with the same string is the
+/// robust way to size a field to its content rather than to available space.
+private struct GuestInlineFieldWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 private struct GuestInlineField: View {
     let stored: String
     var placeholder: String = "Not added"
@@ -1858,10 +1826,16 @@ private struct GuestInlineField: View {
     let saveState: GuestFieldSaveState?
     var keyboard: UIKeyboardType = .default
     var capitalization: TextInputAutocapitalization = .sentences
+    /// When true, the field sizes itself to its own text instead of expanding
+    /// to fill the row — for adjacent short fields like First/Last name,
+    /// where a flexible TextField would otherwise claim roughly half the row
+    /// no matter how short the actual name is, leaving a wide gap between them.
+    var hugsContent: Bool = false
     let commit: (String) async -> Void
 
     @State private var draft = ""
     @State private var showsRequiredWarning = false
+    @State private var measuredWidth: CGFloat?
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -1875,7 +1849,31 @@ private struct GuestInlineField: View {
                     .autocorrectionDisabled(keyboard == .emailAddress)
                     .submitLabel(.done)
                     .onSubmit { isFocused = false }
-                GuestSaveIndicator(state: saveState)
+                    .background(alignment: .leading) {
+                        if hugsContent {
+                            Text(draft.isEmpty ? placeholder : draft)
+                                .font(font)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .hidden()
+                                .background(
+                                    GeometryReader { proxy in
+                                        Color.clear.preference(
+                                            key: GuestInlineFieldWidthKey.self,
+                                            value: proxy.size.width
+                                        )
+                                    }
+                                )
+                        }
+                    }
+                    .onPreferenceChange(GuestInlineFieldWidthKey.self) { width in
+                        guard hugsContent else { return }
+                        measuredWidth = width
+                    }
+                    .frame(width: hugsContent ? max(measuredWidth ?? 0, 16) + 6 : nil)
+                if saveState == .saving || saveState == .saved {
+                    GuestSaveIndicator(state: saveState)
+                }
             }
             .padding(.horizontal, isFocused ? 8 : 0)
             .padding(.vertical, isFocused ? 6 : 0)
@@ -2251,8 +2249,7 @@ private struct AddGuestSheet: View {
             Form {
                 essentialsSection
                 if showsMoreDetails {
-                    contactSection
-                    customFieldsSection
+                    moreDetailsSection
                 }
                 if let failureMessage {
                     Section {
@@ -2328,41 +2325,28 @@ private struct AddGuestSheet: View {
         }
     }
 
-    private var contactSection: some View {
-        Section("Contact") {
+    /// Contact and custom fields share one section rather than three separate
+    /// blocks of header/footer chrome — the disclosure button already explains
+    /// what "More details" reveals, so the fields don't need their own
+    /// sub-headings to be legible.
+    private var moreDetailsSection: some View {
+        Section {
             TextField("Email (optional)", text: $email)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.emailAddress)
                 .autocorrectionDisabled()
             TextField("Phone (optional)", text: $phone)
                 .keyboardType(.phonePad)
-        }
-    }
-
-    @ViewBuilder
-    private var customFieldsSection: some View {
-        let columns = store.visibleCustomColumns
-        if store.customFieldsUnavailable {
-            Section("Custom fields") {
+            ForEach(store.visibleCustomColumns) { column in
+                customField(column)
+            }
+        } header: {
+            Text("More details")
+        } footer: {
+            if store.customFieldsUnavailable {
                 Text("Custom fields couldn’t be loaded. You can still save this guest and fill them in later.")
-                    .font(.footnote)
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-        } else if columns.isEmpty {
-            Section("Custom fields") {
-                Text("No custom fields yet. Add them from Manage fields on the Guests tab.")
-                    .font(.footnote)
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-        } else {
-            Section {
-                ForEach(columns) { column in
-                    customField(column)
-                }
-            } header: {
-                Text("Custom fields")
-            } footer: {
-                Text("Fields follow the order set on Manage fields.")
+            } else if store.visibleCustomColumns.isEmpty {
+                Text("Add custom fields from Manage fields on the Guests tab.")
             }
         }
     }
@@ -2389,11 +2373,18 @@ private struct AddGuestSheet: View {
             }
 
         case .text, .number:
-            TextField(column.label, text: Binding(
-                get: { GuestCustomFields.displayText(customValues[column.key], kind: column.kind) ?? "" },
-                set: { customValues[column.key] = GuestCustomFields.encode($0, kind: column.kind) }
-            ))
-            .keyboardType(column.kind == .number ? .decimalPad : .default)
+            // A bare TextField loses its identity once filled in — its
+            // placeholder is the only label, and placeholders disappear on
+            // input. LabeledContent keeps the field's name pinned in place,
+            // matching how Group and Meal choice already read.
+            LabeledContent(column.label) {
+                TextField("", text: Binding(
+                    get: { GuestCustomFields.displayText(customValues[column.key], kind: column.kind) ?? "" },
+                    set: { customValues[column.key] = GuestCustomFields.encode($0, kind: column.kind) }
+                ))
+                .multilineTextAlignment(.trailing)
+                .keyboardType(column.kind == .number ? .decimalPad : .default)
+            }
         }
     }
 
@@ -2558,6 +2549,15 @@ private struct GuestFieldListView: View {
                     }
                     .onMove { source, destination in
                         Task { await store.reorderCustomColumns(from: source, to: destination) }
+                    }
+                    .onDelete { offsets in
+                        // Edit mode replaces swipe actions with its own delete
+                        // control, so this is the only path to Delete once
+                        // reordering is active. Route it through the same
+                        // confirmation rather than deleting immediately.
+                        if let index = offsets.first {
+                            pendingDeletion = columns[index]
+                        }
                     }
                 } header: {
                     Text("\(columns.count) field\(columns.count == 1 ? "" : "s")")

@@ -128,7 +128,7 @@ struct GuestFilteringTests {
         filters.email = .present
         // Both are pending and in-scope by location, but only Mira has email.
         #expect(roster.filter(filters.matches).map(\.firstName) == ["Mira"])
-        #expect(filters.conditionCount == 3)
+        #expect(filters.conditionCount == 4)
     }
 
     @Test("Contradictory conditions yield an empty result rather than an error")
