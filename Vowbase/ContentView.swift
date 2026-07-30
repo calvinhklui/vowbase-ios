@@ -3131,12 +3131,22 @@ private extension RSVPStatus {
     }
 }
 
+/// A gallery photo paired with its signed URL, keyed by the photo's own id so the UI
+/// can address, reorder, caption, or delete a specific photo rather than an opaque URL.
+private struct VenuePhotoDisplay: Identifiable, Hashable {
+    let photo: VenuePhoto
+    let url: URL?
+    var id: UUID { photo.id }
+}
+
 struct MVPVenue: Identifiable, Hashable {
     let id: UUID
     let name: String
     let status: VenueStatus
     let location: String
-    let capacity: String
+    let capacityMin: Int?
+    let capacityMax: Int?
+    let capacityTextOverride: String?
     let estimate: String
     let travel: String
     let allInEstimate: String
@@ -3148,8 +3158,22 @@ struct MVPVenue: Identifiable, Hashable {
     let contactPhone: String?
     let latitude: Double?
     let longitude: Double?
-    let photoURLs: [URL]
+    let coverPhotoURL: URL?
+    let photos: [VenuePhotoDisplay]
     let ourNotes: String?
+
+    var capacity: String {
+        capacityTextOverride?.nilIfBlank ?? VenueCapacityFormatter.string(minimum: capacityMin, maximum: capacityMax)
+    }
+
+    var photoURLs: [URL] {
+        var seen = Set<URL>()
+        var result = [URL]()
+        for url in ([coverPhotoURL] + photos.map(\.url)).compactMap({ $0 }) where seen.insert(url).inserted {
+            result.append(url)
+        }
+        return result
+    }
 
     var photoURL: URL? { photoURLs.first }
 
@@ -3202,7 +3226,9 @@ struct MVPGuest: Identifiable, Hashable {
 final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
-    private var signedVenuePhotoURLs = [UUID: [URL]]()
+    private var venueGalleries = [UUID: [VenuePhoto]]()
+    private var signedCoverPhotoURLs = [UUID: URL]()
+    private var signedGalleryPhotoURLs = [UUID: URL]()
     private var guestRecords = [Guest]()
     private var customColumnRecords = [GuestCustomColumn]()
 
@@ -3373,7 +3399,12 @@ final class VowbaseWorkspaceStore {
 
     var venues: [MVPVenue] {
         venueRecords.map { venue in
-            MVPVenue(venue, photoURLs: signedVenuePhotoURLs[venue.id] ?? [])
+            MVPVenue(
+                venue,
+                gallery: venueGalleries[venue.id] ?? [],
+                galleryPhotoURLs: signedGalleryPhotoURLs,
+                coverPhotoURL: signedCoverPhotoURLs[venue.id]
+            )
         }
     }
     var guests: [MVPGuest] {
@@ -3477,7 +3508,10 @@ final class VowbaseWorkspaceStore {
                 customFieldsUnavailable = true
             }
             let currentVenueIDs = Set(venueRecords.map(\.id))
-            signedVenuePhotoURLs = signedVenuePhotoURLs.filter { currentVenueIDs.contains($0.key) }
+            venueGalleries = venueGalleries.filter { currentVenueIDs.contains($0.key) }
+            signedCoverPhotoURLs = signedCoverPhotoURLs.filter { currentVenueIDs.contains($0.key) }
+            let currentPhotoIDs = Set(venueGalleries.values.flatMap { $0.map(\.id) })
+            signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { currentPhotoIDs.contains($0.key) }
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
@@ -3539,30 +3573,22 @@ final class VowbaseWorkspaceStore {
     func updateVenue(_ venue: MVPVenue, name: String, location: String, status: VenueStatus) async -> Bool {
         guard let repositories else { return unavailable() }
         do {
+            // Clearing the location field leaves the venue's location untouched rather than
+            // clearing it server-side — matches this legacy edit sheet's existing behavior.
+            // True clear-on-empty semantics arrive with inline editing (spec §4.6).
             let resolved = await resolvedLocation(for: location, repositories: repositories)
             let updated = try await repositories.venues.updateVenue(
                 id: venue.id,
                 patch: VenuePatch(
                     name: name.trimmed,
                     status: status,
-                    location: resolved.displayName,
-                    address: resolved.displayName,
-                    city: resolved.city,
-                    state: resolved.region,
-                    country: resolved.country,
-                    contactName: nil,
-                    contactEmail: nil,
-                    contactPhone: nil,
-                    website: nil,
-                    capacityMin: nil,
-                    capacityMax: nil,
-                    priceEstimate: nil,
-                    priceNotes: nil,
-                    ourNotes: nil,
-                    latitude: resolved.latitude,
-                    longitude: resolved.longitude,
-                    photoURL: nil,
-                    rawResearch: nil
+                    location: resolved.displayName.map(NullablePatch.value) ?? .unchanged,
+                    address: resolved.displayName.map(NullablePatch.value) ?? .unchanged,
+                    city: resolved.city.map(NullablePatch.value) ?? .unchanged,
+                    state: resolved.region.map(NullablePatch.value) ?? .unchanged,
+                    country: resolved.country.map(NullablePatch.value) ?? .unchanged,
+                    latitude: resolved.latitude.map(NullablePatch.value) ?? .unchanged,
+                    longitude: resolved.longitude.map(NullablePatch.value) ?? .unchanged
                 )
             )
             replace(updated, in: &venueRecords)
@@ -3578,7 +3604,10 @@ final class VowbaseWorkspaceStore {
         do {
             try await repositories.venues.deleteVenue(id: venue.id)
             venueRecords.removeAll { $0.id == venue.id }
-            signedVenuePhotoURLs[venue.id] = nil
+            let orphanedPhotoIDs = Set((venueGalleries[venue.id] ?? []).map(\.id))
+            venueGalleries[venue.id] = nil
+            signedCoverPhotoURLs[venue.id] = nil
+            signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { !orphanedPhotoIDs.contains($0.key) }
             if selectedVenueID == venue.id {
                 selectedVenueID = venueRecords.first?.id
             }
@@ -4004,16 +4033,21 @@ final class VowbaseWorkspaceStore {
             for venue in venues {
                 guard !Task.isCancelled else { return }
                 let gallery = (try? await repositories.venues.venuePhotos(venueID: venue.id)) ?? []
-                let references = [venue.photoURL] + gallery.map(\.url)
-                var urls = [URL]()
-                for reference in references {
+                guard !Task.isCancelled else { return }
+                self?.venueGalleries[venue.id] = gallery
+
+                if let coverURL = await resolver.resolve(venueID: venue.id, photoURL: venue.photoURL) {
                     guard !Task.isCancelled else { return }
-                    if let url = await resolver.resolve(venueID: venue.id, photoURL: reference), !urls.contains(url) {
-                        urls.append(url)
+                    self?.signedCoverPhotoURLs[venue.id] = coverURL
+                }
+
+                for photo in gallery {
+                    guard !Task.isCancelled else { return }
+                    if let url = await resolver.resolve(venueID: venue.id, photoURL: photo.url) {
+                        guard !Task.isCancelled else { return }
+                        self?.signedGalleryPhotoURLs[photo.id] = url
                     }
                 }
-                guard !Task.isCancelled else { return }
-                self?.signedVenuePhotoURLs[venue.id] = urls
             }
         }
     }
@@ -4072,12 +4106,19 @@ private struct ResolvedLocation {
 }
 
 private extension MVPVenue {
-    init(_ venue: Venue, photoURLs: [URL] = []) {
+    init(
+        _ venue: Venue,
+        gallery: [VenuePhoto] = [],
+        galleryPhotoURLs: [UUID: URL] = [:],
+        coverPhotoURL: URL? = nil
+    ) {
         id = venue.id
         name = venue.name
         status = venue.status
         location = venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? venue.address ?? "Location not added"
-        capacity = venue.capacityText?.nilIfBlank ?? VenueCapacityFormatter.string(minimum: venue.capacityMin, maximum: venue.capacityMax)
+        capacityMin = venue.capacityMin
+        capacityMax = venue.capacityMax
+        capacityTextOverride = venue.capacityText?.nilIfBlank
         estimate = venue.venueEstimateText?.nilIfBlank ?? venue.priceEstimate.map(VenuePriceFormatter.string) ?? "Not added"
         travel = "Unavailable"
         allInEstimate = venue.allInEstimateText?.nilIfBlank ?? "Not added"
@@ -4089,11 +4130,11 @@ private extension MVPVenue {
         contactPhone = venue.contactPhone?.nilIfBlank
         latitude = venue.latitude
         longitude = venue.longitude
-        var uniquePhotoURLs = [URL]()
-        for url in ([VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)] + photoURLs).compactMap({ $0 }) where !uniquePhotoURLs.contains(url) {
-            uniquePhotoURLs.append(url)
-        }
-        self.photoURLs = uniquePhotoURLs
+        // The store resolves the cover URL asynchronously; falling back to a direct parse
+        // here avoids a blank-image flash on the first render for plain https URLs, which
+        // is exactly what the async resolver would settle on anyway.
+        self.coverPhotoURL = coverPhotoURL ?? VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)
+        photos = gallery.map { VenuePhotoDisplay(photo: $0, url: galleryPhotoURLs[$0.id]) }
         ourNotes = venue.ourNotes?.nilIfBlank
     }
 }
