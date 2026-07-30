@@ -587,6 +587,9 @@ private struct VenuesView: View {
                 .padding(.top, 10)
                 .padding(.bottom, 96)
             }
+            .refreshable {
+                await store.load()
+            }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
                 VenueDetailView(venue: venue, store: store)
@@ -954,6 +957,9 @@ private struct GuestsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
                 .padding(.bottom, 96)
+            }
+            .refreshable {
+                await store.load()
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPGuest.self) { guest in
