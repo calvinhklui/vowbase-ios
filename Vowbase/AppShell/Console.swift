@@ -257,21 +257,20 @@ private struct VenueRailCard: View {
     var body: some View {
         HStack(spacing: 0) {
             VowbaseVenueImage(url: venue.coverPhotoURL)
-                .frame(width: 104, height: 132)
-            VStack(alignment: .leading, spacing: 8) {
+                .frame(width: 88, height: 104)
+            VStack(alignment: .leading, spacing: 6) {
                 Text(venue.name)
-                    .font(.system(size: 17, weight: .regular, design: .serif))
-                    .lineLimit(2)
+                    .font(.system(size: 16, weight: .regular, design: .serif))
+                    .lineLimit(1)
                 StatusCapsule(status: venue.status)
-                Spacer(minLength: 0)
                 Label("\(venue.travel) median guest travel", systemImage: "airplane")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(VowbaseTheme.mutedInk)
-                    .lineLimit(2)
+                    .lineLimit(1)
             }
-            .padding(14)
+            .padding(12)
         }
-        .frame(width: 268, height: 132)
+        .frame(width: 260, height: 104)
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
@@ -320,7 +319,7 @@ private struct GuestRailCard: View {
                 .font(.system(size: 17, weight: .regular, design: .serif))
                 .frame(width: 46, height: 46)
                 .background(VowbaseTheme.blush, in: Circle())
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(guest.name)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(VowbaseTheme.ink)
@@ -331,11 +330,14 @@ private struct GuestRailCard: View {
                         .foregroundStyle(VowbaseTheme.mutedInk)
                         .lineLimit(1)
                 }
-                RSVPStatusCapsule(status: guest.rsvp)
             }
         }
         .padding(14)
-        .frame(width: 240, height: 96)
+        // Width is intentionally unset — a fixed width stretched every card
+        // to the same size regardless of name length, which centered short
+        // content (avatar included) inside the leftover space instead of
+        // letting it sit flush against the leading edge.
+        .frame(height: 78)
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)

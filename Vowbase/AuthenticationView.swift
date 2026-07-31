@@ -215,7 +215,6 @@ private struct AuthenticationLoadingView: View {
 
 private struct AuthenticationSignInView: View {
     @Bindable var coordinator: AuthenticationCoordinator
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -259,7 +258,7 @@ private struct AuthenticationSignInView: View {
                     } onCompletion: { result in
                         coordinator.completeAppleSignIn(result)
                     }
-                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                    .signInWithAppleButtonStyle(.white)
                     .frame(height: 54)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .disabled(coordinator.isSigningIn || coordinator.operation == .signOut)
