@@ -83,6 +83,13 @@ struct WeddingAppShell: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
             }
+            // Recomputes the impact readout whenever the selected venue
+            // changes. `.task(id:)` cancels the previous run automatically,
+            // so switching venues mid-request can't let a stale response
+            // land after a fresher one already has.
+            .task(id: store.selectedVenueID) {
+                await store.refreshTravelImpact()
+            }
             .overlay(alignment: .bottomTrailing) {
                 // At peek, the console is short enough that the FAB reads as
                 // part of the canvas floating just above it. Past peek it
@@ -262,7 +269,7 @@ struct WeddingAppShell: View {
         switch navigation.selectedLens {
         case .overview, .venues:
             if let venue = store.venues.first(where: { $0.id == store.selectedVenueID }) {
-                ConsoleHeader(selectedVenue: venue)
+                VenueImpactHeader(venue: venue, impact: store.travelImpact, onTapReadout: handleImpactRowTap)
             } else {
                 ConsoleHeader(venues: store.venues)
             }
@@ -270,6 +277,26 @@ struct WeddingAppShell: View {
             ConsoleHeader(guests: store.allGuestRecords)
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
+        }
+    }
+
+    /// Routes the impact readout's tap per spec §8/§8.1 — each unavailable
+    /// reason has its own fix; a real number goes to "who does this hurt."
+    private func handleImpactRowTap() {
+        switch store.travelImpact {
+        case .unavailable(.venueMissingCoordinate):
+            navigation.selectedLens = .venues
+        case .unavailable(.noMappableGuests):
+            navigation.selectedLens = .guests
+            quickAdd = .guest
+        case .unavailable(.requestFailed):
+            Task { await store.refreshTravelImpact() }
+        case .ready:
+            // The venue stays selected and its clusters stay badged — the
+            // canvas doesn't change, only which lens's console is showing.
+            navigation.selectedLens = .guests
+        case .idle, .loading:
+            break
         }
     }
 

@@ -55,6 +55,7 @@
 		D1E2F3A4B5C6000000000001 /* AppDependenciesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */; };
 		D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000012 /* AppDependencies.swift */; };
 		D1E2F3A4B5C6000000000003 /* AuthCallbackHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */; };
+		D894BD97D21922174D371587 /* TravelImpactCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70FDED37A580F42DA21A7DD /* TravelImpactCalculatorTests.swift */; };
 		DAA3B4C5D6E7000000000002 /* AppNavigationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000012 /* AppNavigationModel.swift */; };
 		DAA3B4C5D6E7000000000003 /* VowbaseTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000013 /* VowbaseTheme.swift */; };
 		DAA3B4C5D6E7000000000004 /* VowbaseTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA3B4C5D6E7000000000014 /* VowbaseTypography.swift */; };
@@ -84,6 +85,7 @@
 		F4A3B4C5D6E7000000000004 /* GuestRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000014 /* GuestRepositoryTests.swift */; };
 		F4A3B4C5D6E7000000000005 /* GuestFieldEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */; };
 		F4A3B4C5D6E7000000000006 /* GuestFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000016 /* GuestFiltering.swift */; };
+		F550BDE0716D5EACD85D6E04 /* TravelImpact.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC398DB5E62D163C9CDC02E5 /* TravelImpact.swift */; };
 		F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */; };
 		F5A3B4C5D6E7000000000003 /* ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */; };
 		F5A3B4C5D6E7000000000004 /* ScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */; };
@@ -167,6 +169,7 @@
 		A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestFilteringTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60000000000D2 /* Vowbase.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vowbase.entitlements; sourceTree = "<group>"; };
+		A70FDED37A580F42DA21A7DD /* TravelImpactCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TravelImpactCalculatorTests.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProvider.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000012 /* AuthServicing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServicing.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000013 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -254,6 +257,7 @@
 		FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapWorkflowRepositoryTests.swift; sourceTree = "<group>"; };
 		FAA3B4C5D6E7000000000015 /* geocode-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "geocode-response.json"; sourceTree = "<group>"; };
 		FAA3B4C5D6E7000000000016 /* travel-times-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "travel-times-response.json"; sourceTree = "<group>"; };
+		FC398DB5E62D163C9CDC02E5 /* TravelImpact.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TravelImpact.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -376,6 +380,7 @@
 				A1B2C3D4E5F6000000000014 /* VowbaseTests.swift */,
 				A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */,
 				A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */,
+				A70FDED37A580F42DA21A7DD /* TravelImpactCalculatorTests.swift */,
 			);
 			path = VowbaseTests;
 			sourceTree = "<group>";
@@ -439,6 +444,7 @@
 				5B4D7ACA064013D3983E8B3E /* PlanLens.swift */,
 				BC1DE56310FF20746FAB1859 /* Console.swift */,
 				3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */,
+				FC398DB5E62D163C9CDC02E5 /* TravelImpact.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -733,6 +739,7 @@
 				AE0CF3EF8770A8484E394B73 /* PlanLens.swift in Sources */,
 				60461EB0D6EA1C3EE95A8470 /* Console.swift in Sources */,
 				9F5B0231F3DF27AE3CFDE6E7 /* ContextBar.swift in Sources */,
+				F550BDE0716D5EACD85D6E04 /* TravelImpact.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -762,6 +769,7 @@
 				FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */,
 				BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */,
 				BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */,
+				D894BD97D21922174D371587 /* TravelImpactCalculatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

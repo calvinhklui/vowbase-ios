@@ -171,6 +171,13 @@ final class VowbaseWorkspaceStore {
     var errorMessage: String?
     var saveFailure: SaveFailure?
 
+    /// The console header's impact readout for `selectedVenueID` — spec §8.
+    /// Reactively recomputed by `refreshTravelImpact()`, called from a
+    /// `.task(id: selectedVenueID)` in the view layer so a selection change
+    /// cancels any in-flight request for the venue you've since moved away
+    /// from rather than racing it.
+    var travelImpact: TravelImpactState = .idle
+
     var canManageTasks: Bool {
         guard let role = activeMembership?.role else { return false }
         return role == .owner || role == .partner || role == .planner
@@ -329,9 +336,24 @@ final class VowbaseWorkspaceStore {
                 venue,
                 gallery: venueGalleries[venue.id] ?? [],
                 galleryPhotoURLs: signedGalleryPhotoURLs,
-                coverPhotoURL: signedCoverPhotoURLs[venue.id]
+                coverPhotoURL: signedCoverPhotoURLs[venue.id],
+                travelText: travelText(for: venue.id)
             )
         }
+    }
+
+    /// The plain-duration value venue cards and the comparison sheet show
+    /// alongside their own "guest travel" caption. Only ever real for the
+    /// selected, resolved venue — computing this for every listed venue
+    /// would mean one `travelTimes` request per row, which spec §8 never
+    /// asks for. "Not calculated" instead of "Unavailable": this venue just
+    /// hasn't been checked, which is a different fact from a request having
+    /// failed.
+    private func travelText(for venueID: UUID) -> String {
+        guard venueID == selectedVenueID, case let .ready(readout) = travelImpact else {
+            return "Not calculated"
+        }
+        return TravelDurationFormatter.string(fromSeconds: readout.medianDurationSeconds)
     }
     var guests: [MVPGuest] {
         let columns = customColumnRecords
@@ -473,6 +495,55 @@ final class VowbaseWorkspaceStore {
         } catch {
             errorMessage = userMessage(for: error)
             return false
+        }
+    }
+
+    /// Recomputes `travelImpact` for `selectedVenueID` against the current
+    /// guest clusters. Safe to call repeatedly — it always reflects current
+    /// selection, so both the reactive `.task(id: selectedVenueID)` and a
+    /// manual "Retry" tap can call the same method.
+    func refreshTravelImpact() async {
+        guard let repositories else {
+            travelImpact = .idle
+            return
+        }
+        guard let venueID = selectedVenueID, let venue = venueRecords.first(where: { $0.id == venueID }) else {
+            travelImpact = .idle
+            return
+        }
+        guard let latitude = venue.latitude, let longitude = venue.longitude else {
+            travelImpact = .unavailable(.venueMissingCoordinate)
+            return
+        }
+        let currentClusters = clusters
+        guard !currentClusters.isEmpty else {
+            travelImpact = .unavailable(.noMappableGuests)
+            return
+        }
+
+        travelImpact = .loading
+        do {
+            let destinations = currentClusters.map {
+                TravelDestination(id: $0.id, latitude: $0.latitude, longitude: $0.longitude)
+            }
+            let results = try await repositories.maps.travelTimes(
+                weddingID: venue.weddingID,
+                origin: Coordinate(latitude: latitude, longitude: longitude),
+                destinations: destinations
+            )
+            guard !Task.isCancelled, venueID == selectedVenueID else { return }
+            travelImpact = .ready(
+                TravelImpactCalculator.readout(
+                    clusters: currentClusters,
+                    totalGuestCount: guestRecords.count,
+                    travelTimes: results
+                )
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled, venueID == selectedVenueID else { return }
+            travelImpact = .unavailable(.requestFailed)
         }
     }
 
@@ -1048,7 +1119,8 @@ private extension MVPVenue {
         _ venue: Venue,
         gallery: [VenuePhoto] = [],
         galleryPhotoURLs: [UUID: URL] = [:],
-        coverPhotoURL: URL? = nil
+        coverPhotoURL: URL? = nil,
+        travelText: String = "Not calculated"
     ) {
         id = venue.id
         name = venue.name
@@ -1059,7 +1131,7 @@ private extension MVPVenue {
         capacityTextOverride = venue.capacityText?.nilIfBlank
         estimate = venue.venueEstimateText?.nilIfBlank ?? venue.priceEstimate.map(VenuePriceFormatter.string) ?? "Not added"
         venueEstimateTextRaw = venue.venueEstimateText?.nilIfBlank
-        travel = "Unavailable"
+        travel = travelText
         allInEstimate = venue.allInEstimateText?.nilIfBlank ?? "Not added"
         availableDates = venue.availableDatesText?.nilIfBlank ?? "Not added"
         summary = venue.summary?.nilIfBlank

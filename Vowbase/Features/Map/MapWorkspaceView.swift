@@ -43,15 +43,32 @@ struct MapWorkspaceView: View {
             }
 
             ForEach(store.clusters) { cluster in
+                let badge = travelBadge(for: cluster)
                 Annotation("\(cluster.count) guests in \(cluster.city)", coordinate: cluster.coordinate) {
-                    GuestClusterAnnotation(cluster: cluster)
-                        .accessibilityLabel("\(cluster.count) guests in \(cluster.city)")
+                    GuestClusterAnnotation(cluster: cluster, badge: badge)
+                        .accessibilityLabel(accessibilityLabel(for: cluster, badge: badge))
                 }
             }
         }
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
         .safeAreaPadding(.bottom, consoleInset)
+    }
+
+    /// Only ever real for the selected venue's own readout — spec §8: "cluster
+    /// badges show on the canvas only when the readout is showing a real
+    /// number." No venue selected, no `.ready` state, no badges.
+    private func travelBadge(for cluster: GuestCluster) -> String? {
+        guard case let .ready(readout) = store.travelImpact,
+              let travelTime = readout.durationsByClusterID[cluster.id] else { return nil }
+        return travelTime.travelMode == .flight
+            ? "✈︎ Flight"
+            : TravelDurationFormatter.string(fromSeconds: travelTime.durationSeconds)
+    }
+
+    private func accessibilityLabel(for cluster: GuestCluster, badge: String?) -> String {
+        guard let badge else { return "\(cluster.count) guests in \(cluster.city)" }
+        return "\(cluster.count) guests in \(cluster.city), \(badge) to selected venue"
     }
 }
 
@@ -81,14 +98,26 @@ private struct VenueMapAnnotation: View {
 
 private struct GuestClusterAnnotation: View {
     let cluster: GuestCluster
+    let badge: String?
 
     var body: some View {
-        Text("\(cluster.count)")
-            .font(.system(size: 17, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white)
-            .frame(width: 48, height: 48)
-            .background(VowbaseTheme.guestBlue, in: Circle())
-            .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 4))
-            .shadow(color: VowbaseTheme.guestBlue.opacity(0.36), radius: 8, y: 3)
+        VStack(spacing: 4) {
+            Text("\(cluster.count)")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 48, height: 48)
+                .background(VowbaseTheme.guestBlue, in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 4))
+                .shadow(color: VowbaseTheme.guestBlue.opacity(0.36), radius: 8, y: 3)
+
+            if let badge {
+                Text(badge)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.black.opacity(0.55), in: Capsule())
+            }
+        }
     }
 }

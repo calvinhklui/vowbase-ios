@@ -88,14 +88,6 @@ extension ConsoleHeader {
         subline = parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// A venue selected: the object, then its secondary line. The impact
-    /// readout replaces `subline` once Phase 4 wires `travelTimes`.
-    init(selectedVenue venue: MVPVenue) {
-        title = venue.name
-        trailing = venue.status.title
-        subline = venue.location
-    }
-
     /// No selection: the Guests lens's own state at a glance.
     init(guests: [Guest]) {
         title = "Guests"
@@ -114,6 +106,114 @@ extension ConsoleHeader {
         title = "Tasks"
         trailing = "\(openTaskCount) open"
         subline = dueSoonCount > 0 ? "\(dueSoonCount) due this week" : nil
+    }
+}
+
+// MARK: - Venue impact header (selected venue)
+
+/// The header for a selected venue: name and status on the first line, the
+/// impact readout (spec §8) on the second — replacing `ConsoleHeader`'s
+/// plain-string subline, since this row needs its own tap target and a
+/// per-state layout, not just a different string.
+struct VenueImpactHeader: View {
+    let venue: MVPVenue
+    let impact: TravelImpactState
+    let onTapReadout: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(venue.name)
+                    .font(.system(size: 22, weight: .regular, design: .serif))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(venue.status.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            VenueImpactRow(state: impact, onTap: onTapReadout)
+        }
+    }
+}
+
+/// The readout row itself, spec §8 and §8.1. Every non-idle, non-loading
+/// state is a tap target: a real number routes to the guests it describes,
+/// an unavailable one routes to its own fix.
+struct VenueImpactRow: View {
+    let state: TravelImpactState
+    let onTap: () -> Void
+
+    var body: some View {
+        switch state {
+        case .idle:
+            EmptyView()
+        case .loading:
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.mini)
+                Text("Calculating guest travel…")
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            .font(.system(size: 14))
+        case let .unavailable(reason):
+            Button(action: onTap) {
+                HStack(spacing: 6) {
+                    Text(reason.message)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    if reason == .requestFailed {
+                        Text("Retry")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(VowbaseTheme.rose)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 14))
+        case let .ready(readout):
+            Button(action: onTap) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(VowbaseTheme.rose)
+                        .frame(width: 7, height: 7)
+                    Text(readout.summaryText)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .lineLimit(1)
+                    if readout.isEstimated {
+                        Text("Est.")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(VowbaseTheme.border.opacity(0.6), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 14))
+        }
+    }
+}
+
+private extension TravelUnavailableReason {
+    var message: String {
+        switch self {
+        case .venueMissingCoordinate:
+            "Add this venue's location to see guest travel"
+        case .noMappableGuests:
+            "No guest locations yet — add some to see travel"
+        case .requestFailed:
+            "Guest travel unavailable"
+        }
     }
 }
 
