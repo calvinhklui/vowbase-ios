@@ -4595,6 +4595,7 @@ private enum VenuePriceFormatter {
     }
 }
 
+#if DEBUG
 #Preview("Map") {
     ContentView()
 }
@@ -4609,7 +4610,7 @@ private enum VenuePriceFormatter {
 
 #Preview("Guest detail") {
     let store = VowbaseWorkspaceStore(testingWorkspace: true)
-    return NavigationStack {
+    NavigationStack {
         if let guest = store.guests.first {
             GuestDetailView(guest: guest, store: store)
         }
@@ -4624,7 +4625,7 @@ private enum VenuePriceFormatter {
 
 #Preview("Filters") {
     @Previewable @State var filters = GuestFilterSet()
-    return GuestFilterSheet(
+    GuestFilterSheet(
         store: VowbaseWorkspaceStore(testingWorkspace: true),
         searchText: "",
         filters: $filters
@@ -4638,3 +4639,4 @@ private enum VenuePriceFormatter {
 #Preview("Add guest") {
     AddGuestSheet(store: VowbaseWorkspaceStore(testingWorkspace: true))
 }
+#endif
