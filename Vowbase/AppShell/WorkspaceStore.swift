@@ -65,6 +65,20 @@ enum WeddingCountdownFormatter {
         let startOfWedding = calendar.startOfDay(for: date)
         return calendar.dateComponents([.day], from: startOfToday, to: startOfWedding).day
     }
+
+    /// The Countdown module's secondary line — always relative, never the
+    /// absolute date the module already shows on its primary line. Past a
+    /// year out, `countdownText` falls back to that same absolute date
+    /// (right for the context bar's single either/or line, wrong here where
+    /// it just repeats what's already on screen).
+    static func countdownPhrase(for weddingDateString: String?) -> String? {
+        guard let weddingDateString, let date = date(from: weddingDateString) else { return nil }
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInTomorrow(date) { return "Tomorrow" }
+        guard let days = daysUntilWedding(weddingDateString) else { return nil }
+        return days >= 0 ? "In \(days) days" : "\(-days) days ago"
+    }
 }
 
 struct VenuePhotoDisplay: Identifiable, Hashable {

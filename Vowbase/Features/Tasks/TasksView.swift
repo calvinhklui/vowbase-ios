@@ -73,7 +73,6 @@ struct TasksView: View {
                 .padding(.top, 10)
             }
             .vowbaseScrollClearance()
-            .background(VowbaseTheme.background)
             .navigationBarHidden(true)
             .refreshable {
                 if let weddingID = store.wedding?.id { await taskStore.load(weddingID: weddingID) }

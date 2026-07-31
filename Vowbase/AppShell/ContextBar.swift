@@ -11,7 +11,6 @@ struct ContextBar: View {
     let onSignOut: () -> Void
 
     @State private var isAccountMenuPresented = false
-    @State private var isSettingDate = false
     @State private var isSearching = false
     @State private var searchQuery = ""
     @FocusState private var isSearchFieldFocused: Bool
@@ -43,9 +42,6 @@ struct ContextBar: View {
         } message: {
             Text("You can sign back in with Apple or Google at any time.")
         }
-        .sheet(isPresented: $isSettingDate) {
-            SetWeddingDateSheet(store: store)
-        }
         .animation(.snappy(duration: 0.22), value: isSearching)
     }
 
@@ -66,53 +62,13 @@ struct ContextBar: View {
         .accessibilityHint("Opens account actions")
     }
 
-    @ViewBuilder
+    // The date used to live here too, as either a countdown or an "Add your
+    // date" button — moved out now that the Overview lens's Countdown
+    // module (spec §11.2) is the one place that fact lives, and dropping it
+    // gives the couple's own name the room it needs not to truncate.
     private var titleLine: some View {
-        // The two branches get different accessibility treatment, not just
-        // different content: with a countdown, the whole line is one static
-        // phrase worth combining ("Andey & Calvin, Sep 18, 2027"). With no
-        // date, the second half is a real button — combining it away would
-        // read it to VoiceOver as text, not something to activate.
-        //
-        // The date/button segment is deliberately a smaller, secondary
-        // weight — not the name's serif detailTitle size. At equal size, a
-        // date like "Sep 18, 2027" claims as much fixed width as the name
-        // (it can't shrink; `.fixedSize()` is what keeps it from being cut
-        // off mid-date), which crowded the name into truncating hard on
-        // real device widths.
-        if let countdown = WeddingCountdownFormatter.countdownText(for: store.wedding?.weddingDate) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                coupleNamesText
-                Text("·")
-                    .font(.system(size: 14))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                Text(countdown)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .layoutPriority(1)
-            }
-            .accessibilityElement(children: .combine)
-        } else {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                coupleNamesText
-                Text("·")
-                    .font(.system(size: 14))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                Button("Add your date") { isSettingDate = true }
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
-                    .fixedSize()
-                    .layoutPriority(1)
-                    .foregroundStyle(VowbaseTheme.rose)
-            }
-        }
-    }
-
-    private var coupleNamesText: some View {
         Text(store.weddingTitle)
-            .font(VowbaseType.detailTitle)
+            .font(.system(size: 17, weight: .regular, design: .serif))
             .foregroundStyle(VowbaseTheme.ink)
             .lineLimit(1)
     }

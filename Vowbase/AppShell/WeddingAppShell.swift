@@ -16,8 +16,10 @@ private enum QuickAddDestination: String, Identifiable {
 ///
 /// Two things worth knowing about how this maps onto SwiftUI's real API
 /// surface, both flagged in the spec rather than silently skipped:
-/// - Overview's peek shows just the Countdown module; past peek it's the
-///   full module stack (§11) — Countdown, Needs You, Reach, Guests.
+/// - Overview shows its full module stack (§11) — Countdown, Needs You,
+///   Reach, Guests — at every detent, scrolling within whatever height the
+///   current detent gives it rather than swapping in a separate peek-only
+///   view.
 /// - A `.sheet` always renders above everything in the view it's presented
 ///   from, so the lens rail lives *inside* the console's own content (pinned
 ///   to its bottom) rather than as an overlay on the canvas — otherwise the
@@ -206,7 +208,7 @@ struct WeddingAppShell: View {
                     .fill(VowbaseTheme.mutedInk.opacity(0.5))
                     .frame(width: 44, height: 5)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 16)
+                    .padding(.top, 22)
 
                 consoleHeader
                     .padding(.horizontal, 16)
@@ -312,29 +314,26 @@ struct WeddingAppShell: View {
     private var consoleContent: some View {
         switch navigation.selectedLens {
         case .overview:
-            if currentDetent == .peek {
-                // A single glance while the map stays the focus — the
-                // couple's own countdown is the one fact worth surfacing
-                // small. Everything else needs room to breathe (spec §11).
-                CountdownModule(store: store)
-                    .padding(.horizontal, 16)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        CountdownModule(store: store)
-                        NeedsYouModule(
-                            store: store,
-                            taskStore: taskStore,
-                            onSelectTask: { task in taskEditor = .edit(task.id) },
-                            onSelectNudge: { nudge in navigation.selectedLens = nudge.destination },
-                            onPromoteNudge: { nudge in taskEditor = .add(prefillTitle: nudge.message) }
-                        )
-                        ReachModule(store: store, onTapReadout: handleImpactRowTap)
-                        GuestsModule(store: store, onAddGuest: { quickAdd = .guest })
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+            // The full stack at every detent, not just a peek teaser — at
+            // `.peek` this shows Countdown plus however much of Needs You
+            // fits before the sheet's edge, scrollable for the rest, rather
+            // than reserving peek's height for Countdown alone and leaving
+            // the remainder empty.
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    CountdownModule(store: store)
+                    NeedsYouModule(
+                        store: store,
+                        taskStore: taskStore,
+                        onSelectTask: { task in taskEditor = .edit(task.id) },
+                        onSelectNudge: { nudge in navigation.selectedLens = nudge.destination },
+                        onPromoteNudge: { nudge in taskEditor = .add(prefillTitle: nudge.message) }
+                    )
+                    ReachModule(store: store, onTapReadout: handleImpactRowTap)
+                    GuestsModule(store: store, onAddGuest: { quickAdd = .guest })
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
         case .venues:
             if currentDetent == .peek {

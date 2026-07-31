@@ -229,7 +229,7 @@ struct CountdownModule: View {
                         .font(.system(size: 20, weight: .regular, design: .serif))
                         .foregroundStyle(VowbaseTheme.ink)
                     Spacer(minLength: 8)
-                    if let countdown = WeddingCountdownFormatter.countdownText(for: weddingDate) {
+                    if let countdown = WeddingCountdownFormatter.countdownPhrase(for: weddingDate) {
                         Text(countdown)
                             .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(VowbaseTheme.mutedInk)
