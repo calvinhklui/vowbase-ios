@@ -199,11 +199,16 @@ struct WeddingAppShell: View {
     private var consoleSheet: some View {
         VStack(alignment: .leading, spacing: 14) {
             if isConsoleAtRoot {
+                // `VowbaseTheme.border` reads as a hairline separator, not a
+                // grab handle — too faint at this size against the console's
+                // own material. `mutedInk` at partial opacity stays adaptive
+                // across light/dark and Increased Contrast while actually
+                // being visible.
                 Capsule()
-                    .fill(VowbaseTheme.border)
+                    .fill(VowbaseTheme.mutedInk.opacity(0.5))
                     .frame(width: 44, height: 5)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 9)
+                    .padding(.top, 16)
 
                 consoleHeader
                     .padding(.horizontal, 16)

@@ -73,29 +73,40 @@ struct ContextBar: View {
         // phrase worth combining ("Andey & Calvin, Sep 18, 2027"). With no
         // date, the second half is a real button — combining it away would
         // read it to VoiceOver as text, not something to activate.
+        //
+        // The date/button segment is deliberately a smaller, secondary
+        // weight — not the name's serif detailTitle size. At equal size, a
+        // date like "Sep 18, 2027" claims as much fixed width as the name
+        // (it can't shrink; `.fixedSize()` is what keeps it from being cut
+        // off mid-date), which crowded the name into truncating hard on
+        // real device widths.
         if let countdown = WeddingCountdownFormatter.countdownText(for: store.wedding?.weddingDate) {
-            HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 coupleNamesText
-                Text("·").foregroundStyle(VowbaseTheme.mutedInk)
+                Text("·")
+                    .font(.system(size: 14))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
                 Text(countdown)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(VowbaseTheme.mutedInk)
                     .lineLimit(1)
                     .fixedSize()
                     .layoutPriority(1)
             }
-            .font(VowbaseType.detailTitle)
             .accessibilityElement(children: .combine)
         } else {
-            HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 coupleNamesText
-                Text("·").foregroundStyle(VowbaseTheme.mutedInk)
+                Text("·")
+                    .font(.system(size: 14))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
                 Button("Add your date") { isSettingDate = true }
+                    .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                     .fixedSize()
                     .layoutPriority(1)
                     .foregroundStyle(VowbaseTheme.rose)
             }
-            .font(VowbaseType.detailTitle)
         }
     }
 
