@@ -82,7 +82,12 @@ struct TaskEditorSheet: View {
     }
 
     private func configure() {
-        guard let task else { return }
+        guard let task else {
+            if case let .add(prefillTitle) = destination, let prefillTitle {
+                title = prefillTitle
+            }
+            return
+        }
         title = task.title
         notes = task.description ?? ""
         status = task.effectiveStatus

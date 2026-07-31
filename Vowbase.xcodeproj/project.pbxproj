@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0D3111EF4928E8BDDB72D9AD /* AddVenueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF5D34ADBBD2CB63EEA023B /* AddVenueSheet.swift */; };
 		15E1A7A14A9B72A0EBC4C436 /* WeddingAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FA400629A2175E9C6330F2E /* WeddingAppShell.swift */; };
+		1C1EF97AAAC7DE5812FEB26E /* OverviewModules.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2BBE9D568572B6A4352ED3E /* OverviewModules.swift */; };
 		3E232CC83018715C003E5C26 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CC73018715C003E5C26 /* Assets.xcassets */; };
 		3E232CCC30187209003E5C26 /* VowbaseIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3E232CCB30187209003E5C26 /* VowbaseIcon.icon */; };
 		4F580EC44260F8700430B2B8 /* GuestFieldAdmin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */; };
@@ -185,6 +186,7 @@
 		C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClient.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLProtocolStub.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClientTests.swift; sourceTree = "<group>"; };
+		C2BBE9D568572B6A4352ED3E /* OverviewModules.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OverviewModules.swift; sourceTree = "<group>"; };
 		D1E2F3A4B5C6000000000011 /* AppDependenciesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependenciesTests.swift; sourceTree = "<group>"; };
 		D1E2F3A4B5C6000000000012 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
 		D1E2F3A4B5C6000000000013 /* AuthCallbackHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCallbackHandler.swift; sourceTree = "<group>"; };
@@ -445,6 +447,7 @@
 				BC1DE56310FF20746FAB1859 /* Console.swift */,
 				3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */,
 				FC398DB5E62D163C9CDC02E5 /* TravelImpact.swift */,
+				C2BBE9D568572B6A4352ED3E /* OverviewModules.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -740,6 +743,7 @@
 				60461EB0D6EA1C3EE95A8470 /* Console.swift in Sources */,
 				9F5B0231F3DF27AE3CFDE6E7 /* ContextBar.swift in Sources */,
 				F550BDE0716D5EACD85D6E04 /* TravelImpact.swift in Sources */,
+				1C1EF97AAAC7DE5812FEB26E /* OverviewModules.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

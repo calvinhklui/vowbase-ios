@@ -173,7 +173,7 @@ struct ContextBar: View {
 /// Save button, not a wedding-settings screen — nothing else about the
 /// wedding record is editable from the app yet, and this phase doesn't ask
 /// for that.
-private struct SetWeddingDateSheet: View {
+struct SetWeddingDateSheet: View {
     let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
     @State private var date = Date()

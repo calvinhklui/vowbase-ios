@@ -16,8 +16,8 @@ private enum QuickAddDestination: String, Identifiable {
 ///
 /// Two things worth knowing about how this maps onto SwiftUI's real API
 /// surface, both flagged in the spec rather than silently skipped:
-/// - Overview's console only ever offers `.peek` — its module stack (§11) is
-///   Phase 5. Until then it shows the same venue rail Venues shows at peek.
+/// - Overview's peek shows just the Countdown module; past peek it's the
+///   full module stack (§11) — Countdown, Needs You, Reach, Guests.
 /// - A `.sheet` always renders above everything in the view it's presented
 ///   from, so the lens rail lives *inside* the console's own content (pinned
 ///   to its bottom) rather than as an overlay on the canvas — otherwise the
@@ -100,7 +100,7 @@ struct WeddingAppShell: View {
                         isPresented: $isQuickAddPresented,
                         onAddVenue: { quickAdd = .venue },
                         onAddGuest: { quickAdd = .guest },
-                        onAddTask: { taskEditor = .add }
+                        onAddTask: { taskEditor = .add() }
                     )
                     .padding(.trailing, VowbaseControlMetric.screenInset)
                     .padding(.bottom, consoleHeight + 12)
@@ -165,9 +165,7 @@ struct WeddingAppShell: View {
 
     private func availableDetents(for lens: PlanLens) -> Set<PresentationDetent> {
         switch lens {
-        case .overview:
-            [ConsoleDetent.peek.presentationDetent]
-        case .venues, .guests:
+        case .overview, .venues, .guests:
             Set(ConsoleDetent.allCases.map(\.presentationDetent))
         case .tasks:
             [ConsoleDetent.half.presentationDetent, ConsoleDetent.full.presentationDetent]
@@ -223,7 +221,7 @@ struct WeddingAppShell: View {
                     isPresented: $isQuickAddPresented,
                     onAddVenue: { quickAdd = .venue },
                     onAddGuest: { quickAdd = .guest },
-                    onAddTask: { taskEditor = .add }
+                    onAddTask: { taskEditor = .add() }
                 )
                 .padding(.trailing, VowbaseControlMetric.screenInset)
                 .padding(.bottom, 12)
@@ -272,7 +270,12 @@ struct WeddingAppShell: View {
     @ViewBuilder
     private var consoleHeader: some View {
         switch navigation.selectedLens {
-        case .overview, .venues:
+        case .overview:
+            // The module stack supplies its own titles — Countdown reads as
+            // the header at peek, and stacking a second one above the other
+            // three modules at half/full would just waste vertical space.
+            EmptyView()
+        case .venues:
             if let venue = store.venues.first(where: { $0.id == store.selectedVenueID }) {
                 VenueImpactHeader(venue: venue, impact: store.travelImpact, onTapReadout: handleImpactRowTap)
             } else {
@@ -309,7 +312,30 @@ struct WeddingAppShell: View {
     private var consoleContent: some View {
         switch navigation.selectedLens {
         case .overview:
-            VenueRailContent(store: store)
+            if currentDetent == .peek {
+                // A single glance while the map stays the focus — the
+                // couple's own countdown is the one fact worth surfacing
+                // small. Everything else needs room to breathe (spec §11).
+                CountdownModule(store: store)
+                    .padding(.horizontal, 16)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        CountdownModule(store: store)
+                        NeedsYouModule(
+                            store: store,
+                            taskStore: taskStore,
+                            onSelectTask: { task in taskEditor = .edit(task.id) },
+                            onSelectNudge: { nudge in navigation.selectedLens = nudge.destination },
+                            onPromoteNudge: { nudge in taskEditor = .add(prefillTitle: nudge.message) }
+                        )
+                        ReachModule(store: store, onTapReadout: handleImpactRowTap)
+                        GuestsModule(store: store, onAddGuest: { quickAdd = .guest })
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                }
+            }
         case .venues:
             if currentDetent == .peek {
                 VenueRailContent(store: store)

@@ -1,12 +1,15 @@
 import SwiftUI
 
 enum TaskEditorDestination: Identifiable {
-    case add
+    /// `prefillTitle` is how the Overview lens's "Needs you" module promotes
+    /// a nudge into a real task (spec §11.3) — the editor opens already
+    /// titled, ready for a due date and owner.
+    case add(prefillTitle: String? = nil)
     case edit(UUID)
 
     var id: String {
         switch self {
-        case .add: "add"
+        case .add(let prefillTitle): "add-\(prefillTitle ?? "blank")"
         case .edit(let id): "edit-\(id.uuidString)"
         }
     }
@@ -55,7 +58,7 @@ struct TasksView: View {
                         Text(emptyMessage)
                     } actions: {
                         if store.canManageTasks {
-                            Button("Add Task") { editor = .add }
+                            Button("Add Task") { editor = .add() }
                                 .buttonStyle(.borderedProminent)
                                 .tint(VowbaseTheme.rose)
                         }

@@ -54,6 +54,17 @@ enum WeddingCountdownFormatter {
         }
         return displayFormatter.string(from: date)
     }
+
+    /// Raw day count, unlike `countdownText` which switches to an absolute
+    /// date past a year out — the Needs You "RSVPs outstanding" rule (spec
+    /// §11.3) needs the number itself to compare against its 120-day window.
+    static func daysUntilWedding(_ weddingDateString: String?) -> Int? {
+        guard let weddingDateString, let date = date(from: weddingDateString) else { return nil }
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfWedding = calendar.startOfDay(for: date)
+        return calendar.dateComponents([.day], from: startOfToday, to: startOfWedding).day
+    }
 }
 
 struct VenuePhotoDisplay: Identifiable, Hashable {
