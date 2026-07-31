@@ -408,6 +408,8 @@ private struct LensRailItem: View {
     WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialLens: .venues)
 }
 
+#if DEBUG
 #Preview("Guests") {
     WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), initialLens: .guests)
 }
+#endif

@@ -607,11 +607,13 @@ private extension String {
     var nilIfBlank: String? { trimmed.isEmpty ? nil : trimmed }
 }
 
+#if DEBUG
 #Preview("Guest detail") {
     let store = VowbaseWorkspaceStore(testingWorkspace: true)
-    return NavigationStack {
+    NavigationStack {
         if let guest = store.guests.first {
             GuestDetailView(guest: guest, store: store)
         }
     }
 }
+#endif

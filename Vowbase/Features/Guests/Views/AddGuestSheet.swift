@@ -207,6 +207,8 @@ private extension String {
     var nilIfBlank: String? { trimmed.isEmpty ? nil : trimmed }
 }
 
+#if DEBUG
 #Preview("Add guest") {
     AddGuestSheet(store: VowbaseWorkspaceStore(testingWorkspace: true))
 }
+#endif

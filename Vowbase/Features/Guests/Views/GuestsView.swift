@@ -650,11 +650,13 @@ private struct GuestRow: View {
     }
 }
 
+#if DEBUG
 #Preview("Filters") {
     @Previewable @State var filters = GuestFilterSet()
-    return GuestFilterSheet(
+    GuestFilterSheet(
         store: VowbaseWorkspaceStore(testingWorkspace: true),
         searchText: "",
         filters: $filters
     )
 }
+#endif

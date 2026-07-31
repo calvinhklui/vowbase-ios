@@ -442,8 +442,10 @@ private extension String {
     var nilIfBlank: String? { trimmed.isEmpty ? nil : trimmed }
 }
 
+#if DEBUG
 #Preview("Manage fields") {
     NavigationStack {
         GuestFieldListView(store: VowbaseWorkspaceStore(testingWorkspace: true))
     }
 }
+#endif
