@@ -40,7 +40,7 @@ struct GuestDetailView: View {
                     }
                     Button("Delete guest", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis")
                 }
             }
         }

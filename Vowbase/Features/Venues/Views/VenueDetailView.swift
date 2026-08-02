@@ -7,7 +7,7 @@ import UIKit
 private enum VenueEditableField: Hashable {
     case name, status, location
     case capacityMin, capacityMax
-    case estimate, allInEstimate, availableDates
+    case estimate, allInEstimate, availableDates, notes
     case website, contactName, contactEmail, contactPhone
 }
 
@@ -111,10 +111,34 @@ struct VenueDetailView: View {
                         .stroke(VowbaseTheme.border, lineWidth: 1)
                 }
 
-                Text("Notes")
-                    .font(.title2.weight(.semibold))
-                Text(currentVenue.ourNotes?.nilIfBlank ?? "No notes added yet.")
-                    .foregroundStyle(VowbaseTheme.mutedInk)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Notes")
+                        .font(.title2.weight(.semibold))
+                    if editingField == .notes {
+                        TextField("Add notes", text: $draftText, axis: .vertical)
+                            .focused($focusedField, equals: .notes)
+                            .onAppear { focusedField = .notes }
+                            .font(.body)
+                            .foregroundStyle(VowbaseTheme.ink)
+                            .textInputAutocapitalization(.sentences)
+                            .lineLimit(3...8)
+                    } else {
+                        let value = displayValue(for: .notes)
+                        Button {
+                            beginEditingSimple(.notes)
+                        } label: {
+                            Text(value.isEmpty ? "Add notes" : value)
+                                .foregroundStyle(
+                                    flashingFields.contains(.notes) ? VowbaseTheme.rose :
+                                        value.isEmpty ? VowbaseTheme.mutedInk : VowbaseTheme.ink
+                                )
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    errorCaption(.notes)
+                }
             }
             .padding(16)
         }
@@ -132,7 +156,7 @@ struct VenueDetailView: View {
                 Menu {
                     Button("Delete venue", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis")
                 }
             }
         }
@@ -382,6 +406,7 @@ struct VenueDetailView: View {
         case .estimate: currentVenue.venueEstimateTextRaw ?? ""
         case .allInEstimate: currentVenue.allInEstimate == "Not added" ? "" : currentVenue.allInEstimate
         case .availableDates: currentVenue.availableDates == "Not added" ? "" : currentVenue.availableDates
+        case .notes: currentVenue.ourNotes ?? ""
         case .website: currentVenue.website ?? ""
         case .contactName: currentVenue.contactName ?? ""
         case .contactEmail: currentVenue.contactEmail ?? ""
@@ -462,6 +487,8 @@ struct VenueDetailView: View {
             return VenuePatch(contactEmail: trimmed.isEmpty ? .null : .value(trimmed))
         case .contactPhone:
             return VenuePatch(contactPhone: trimmed.isEmpty ? .null : .value(trimmed))
+        case .notes:
+            return VenuePatch(ourNotes: trimmed.isEmpty ? .null : .value(trimmed))
         case .status, .location, .capacityMin, .capacityMax:
             return nil
         }
