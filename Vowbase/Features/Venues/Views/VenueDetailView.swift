@@ -122,7 +122,8 @@ struct VenueDetailView: View {
                             .font(.body)
                             .foregroundStyle(VowbaseTheme.ink)
                             .textInputAutocapitalization(.sentences)
-                            .lineLimit(3...8)
+                            .lineLimit(1...)
+                            .fixedSize(horizontal: false, vertical: true)
                     } else {
                         let value = displayValue(for: .notes)
                         Button {
@@ -166,6 +167,7 @@ struct VenueDetailView: View {
                         focusedField = nil
                     }
                     .fontWeight(.semibold)
+                    .padding(.bottom, 8)
                 }
             }
         }
