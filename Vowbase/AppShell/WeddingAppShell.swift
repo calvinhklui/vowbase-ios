@@ -40,6 +40,7 @@ struct WeddingAppShell: View {
     @State private var quickAdd: QuickAddDestination?
     @State private var taskEditor: TaskEditorDestination?
     @State private var isQuickAddPresented = false
+    @State private var isVenueNoteEditing = false
 
     /// Each lens remembers its own detent for the session — spec §7.1.
     @State private var lensDetents: [PlanLens: ConsoleDetent] = [
@@ -97,7 +98,7 @@ struct WeddingAppShell: View {
                 // part of the canvas floating just above it. Past peek it
                 // moves inside `consoleSheet` itself, or the console would
                 // cover it.
-                if currentDetent == .peek {
+                if currentDetent == .peek && !isVenueNoteEditing {
                     QuickAddOverlay(
                         isPresented: $isQuickAddPresented,
                         onAddVenue: { quickAdd = .venue },
@@ -218,7 +219,7 @@ struct WeddingAppShell: View {
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .bottomTrailing) {
-            if currentDetent != .peek {
+            if currentDetent != .peek && !isVenueNoteEditing {
                 QuickAddOverlay(
                     isPresented: $isQuickAddPresented,
                     onAddVenue: { quickAdd = .venue },
@@ -230,7 +231,9 @@ struct WeddingAppShell: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            LensRail(selection: selectedLensBinding)
+            if !isVenueNoteEditing {
+                LensRail(selection: selectedLensBinding)
+            }
         }
         .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
         .presentationDragIndicator(.hidden)
@@ -343,6 +346,7 @@ struct WeddingAppShell: View {
                     store: store,
                     onAddVenue: { quickAdd = .venue },
                     onReturnToMap: { navigation.selectedLens = .overview },
+                    isNoteEditing: $isVenueNoteEditing,
                     path: venuesPathBinding
                 )
             }

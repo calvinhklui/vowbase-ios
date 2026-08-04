@@ -14,6 +14,7 @@ private enum VenueEditableField: Hashable {
 struct VenueDetailView: View {
     let venue: MVPVenue
     let store: VowbaseWorkspaceStore
+    @Binding var isNoteEditing: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingDeletion = false
 
@@ -142,13 +143,13 @@ struct VenueDetailView: View {
             }
             .padding(16)
         }
-        .scrollDismissesKeyboard(.immediately)
+        .scrollDismissesKeyboard(.never)
         .safeAreaInset(edge: .top, spacing: 0) {
             if !savingFields.isEmpty {
                 Rectangle().fill(VowbaseTheme.rose).frame(height: 2)
             }
         }
-        .vowbaseScrollClearance()
+        .vowbaseScrollClearance(includesQuickAdd: editingField != .notes)
         .navigationTitle(currentVenue.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -157,6 +158,14 @@ struct VenueDetailView: View {
                     Button("Delete venue", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
                     Image(systemName: "ellipsis")
+                }
+            }
+            ToolbarItem(placement: .keyboard) {
+                if editingField == .notes {
+                    Button("Save") {
+                        focusedField = nil
+                    }
+                    .fontWeight(.semibold)
                 }
             }
         }
@@ -181,9 +190,13 @@ struct VenueDetailView: View {
             editingField = nil
             dispatchCommit(oldValue)
         }
+        .onChange(of: editingField) { _, newValue in
+            isNoteEditing = newValue == .notes
+        }
         .onDisappear {
             focusedField = nil
             editingField = nil
+            isNoteEditing = false
             locationSearchTask?.cancel()
         }
     }

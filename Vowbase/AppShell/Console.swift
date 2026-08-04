@@ -93,7 +93,7 @@ extension ConsoleHeader {
         title = "Guests"
         trailing = "\(guests.count) guest\(guests.count == 1 ? "" : "s")"
         let counts = Dictionary(grouping: guests, by: { $0.rsvpStatus ?? .notInvited }).mapValues(\.count)
-        let ordered: [RSVPStatus] = [.accepted, .pending, .declined, .notInvited]
+        let ordered: [RSVPStatus] = [.accepted, .maybe, .pending, .declined, .notInvited]
         let parts = ordered.compactMap { status -> String? in
             guard let count = counts[status], count > 0 else { return nil }
             return "\(count) \(status.title.lowercased())"

@@ -22,6 +22,7 @@ struct GuestDetailView: View {
             if let record {
                 header(record)
                 rsvpSection(record)
+                plusGuestsSection(record)
                 contactSection(record)
                 locationSection(record)
                 customFieldsSection(record)
@@ -145,6 +146,33 @@ struct GuestDetailView: View {
         Section("Contact") {
             inlineRow(.email, stored: record.email ?? "", keyboard: .emailAddress)
             inlineRow(.phone, stored: record.phone ?? "", keyboard: .phonePad)
+        }
+    }
+
+    @ViewBuilder
+    private func plusGuestsSection(_ record: Guest) -> some View {
+        if let host = store.plusHost(for: record) {
+            Section("Guest group") {
+                LabeledContent("Plus guest of", value: [host.firstName, host.lastName].compactMap { $0 }.joined(separator: " "))
+            }
+        } else if record.plusLimit > 0 {
+            let linked = store.plusGuests(for: record.id)
+            Section {
+                LabeledContent("Places", value: "\(linked.count) of \(record.plusLimit) named")
+                ForEach(linked) { plus in
+                    NavigationLink(value: GuestsRoute.detail(plus.id)) {
+                        Text([plus.firstName, plus.lastName].compactMap { $0 }.joined(separator: " "))
+                    }
+                }
+                if linked.count < record.plusLimit {
+                    Text("\(record.plusLimit - linked.count) open place\(record.plusLimit - linked.count == 1 ? "" : "s")")
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            } header: {
+                Text("Additional guests")
+            } footer: {
+                Text("Each named plus is a regular guest linked to this invitation.")
+            }
         }
     }
 

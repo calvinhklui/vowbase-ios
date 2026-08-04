@@ -279,8 +279,9 @@ enum GuestQuery {
         switch status {
         case .notInvited: 0
         case .pending: 1
-        case .accepted: 2
-        case .declined: 3
+        case .maybe: 2
+        case .accepted: 3
+        case .declined: 4
         }
     }
 }

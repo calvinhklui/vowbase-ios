@@ -13,6 +13,7 @@ struct VenuesView: View {
     let store: VowbaseWorkspaceStore
     let onAddVenue: () -> Void
     let onReturnToMap: () -> Void
+    @Binding var isNoteEditing: Bool
     /// Owned by `WeddingAppShell`, not this view — the shell needs to know
     /// when this stack has drilled past its root so it can hide the
     /// console's own header and grabber for the pushed detail screen.
@@ -99,7 +100,7 @@ struct VenuesView: View {
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
-                VenueDetailView(venue: venue, store: store)
+                VenueDetailView(venue: venue, store: store, isNoteEditing: $isNoteEditing)
             }
             .sheet(isPresented: $showsFilter) {
                 VenueFilterSheet(selection: $statusFilter)

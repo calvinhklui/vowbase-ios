@@ -401,6 +401,14 @@ final class VowbaseWorkspaceStore {
         guestRecords.first { $0.id == id }
     }
 
+    func plusGuests(for guestID: UUID) -> [Guest] {
+        guestRecords.filter { $0.plusOfGuestID == guestID }
+    }
+
+    func plusHost(for guest: Guest) -> Guest? {
+        guest.plusOfGuestID.flatMap(guestRecord(id:))
+    }
+
     /// Raw records, for the counts the filter sheet shows before applying.
     var allGuestRecords: [Guest] { guestRecords }
 
@@ -664,6 +672,7 @@ final class VowbaseWorkspaceStore {
         rsvp: RSVPStatus,
         email: String = "",
         phone: String = "",
+        plusGuests: [GuestPlusDraft] = [],
         customFields: [String: JSONValue] = [:]
     ) async -> Guest? {
         guard let repositories, let weddingID = wedding?.id else {
@@ -678,6 +687,7 @@ final class VowbaseWorkspaceStore {
                     lastName: lastName.nilIfBlank,
                     email: email.nilIfBlank,
                     phone: phone.nilIfBlank,
+                    plusLimit: plusGuests.count,
                     address: resolved.displayName,
                     customFields: .object(customFields),
                     rsvpStatus: rsvp,
@@ -690,6 +700,18 @@ final class VowbaseWorkspaceStore {
                 weddingID: weddingID
             )
             guestRecords.insert(guest, at: 0)
+            for plus in plusGuests where !plus.firstName.trimmed.isEmpty {
+                let plusGuest = try await repositories.guests.createGuest(
+                    GuestDraft(
+                        firstName: plus.firstName.trimmed,
+                        lastName: plus.lastName.nilIfBlank,
+                        plusOfGuestID: guest.id,
+                        rsvpStatus: .notInvited
+                    ),
+                    weddingID: weddingID
+                )
+                guestRecords.insert(plusGuest, at: 0)
+            }
             errorMessage = nil
             return guest
         } catch {

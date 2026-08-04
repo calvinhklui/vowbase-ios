@@ -3,6 +3,7 @@ import Foundation
 enum RSVPStatus: String, Codable, Equatable, Sendable {
     case notInvited = "not_invited"
     case pending
+    case maybe
     case accepted
     case declined
 }
@@ -21,6 +22,8 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
     let lastName: String?
     let email: String?
     let phone: String?
+    let plusLimit: Int
+    let plusOfGuestID: UUID?
     let address: String?
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
@@ -32,6 +35,46 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
     let geocodeStatus: String?
     let createdAt: Date
 
+    init(
+        id: UUID,
+        weddingID: UUID,
+        firstName: String,
+        lastName: String? = nil,
+        email: String? = nil,
+        phone: String? = nil,
+        plusLimit: Int = 0,
+        plusOfGuestID: UUID? = nil,
+        address: String? = nil,
+        customFields: JSONValue = .object([:]),
+        rsvpStatus: RSVPStatus? = nil,
+        rsvpDate: Date? = nil,
+        originLabel: String? = nil,
+        originLatitude: Double? = nil,
+        originLongitude: Double? = nil,
+        originPrecision: String? = nil,
+        geocodeStatus: String? = nil,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.weddingID = weddingID
+        self.firstName = firstName
+        self.lastName = lastName
+        self.email = email
+        self.phone = phone
+        self.plusLimit = plusLimit
+        self.plusOfGuestID = plusOfGuestID
+        self.address = address
+        self.customFields = customFields
+        self.rsvpStatus = rsvpStatus
+        self.rsvpDate = rsvpDate
+        self.originLabel = originLabel
+        self.originLatitude = originLatitude
+        self.originLongitude = originLongitude
+        self.originPrecision = originPrecision
+        self.geocodeStatus = geocodeStatus
+        self.createdAt = createdAt
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id
         case weddingID = "wedding_id"
@@ -39,6 +82,8 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         case lastName = "last_name"
         case email
         case phone
+        case plusLimit = "plus_limit"
+        case plusOfGuestID = "plus_of_guest_id"
         case address
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
@@ -57,6 +102,8 @@ struct GuestDraft: Codable, Equatable, Sendable {
     let lastName: String?
     let email: String?
     let phone: String?
+    let plusLimit: Int
+    let plusOfGuestID: UUID?
     let address: String?
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
@@ -71,6 +118,8 @@ struct GuestDraft: Codable, Equatable, Sendable {
         lastName: String? = nil,
         email: String? = nil,
         phone: String? = nil,
+        plusLimit: Int = 0,
+        plusOfGuestID: UUID? = nil,
         address: String? = nil,
         customFields: JSONValue = .object([:]),
         rsvpStatus: RSVPStatus? = nil,
@@ -84,6 +133,8 @@ struct GuestDraft: Codable, Equatable, Sendable {
         self.lastName = lastName
         self.email = email
         self.phone = phone
+        self.plusLimit = plusLimit
+        self.plusOfGuestID = plusOfGuestID
         self.address = address
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
@@ -99,6 +150,8 @@ struct GuestDraft: Codable, Equatable, Sendable {
         case lastName = "last_name"
         case email
         case phone
+        case plusLimit = "plus_limit"
+        case plusOfGuestID = "plus_of_guest_id"
         case address
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
@@ -108,6 +161,11 @@ struct GuestDraft: Codable, Equatable, Sendable {
         case originPrecision = "origin_precision"
         case geocodeStatus = "geocode_status"
     }
+}
+
+struct GuestPlusDraft: Equatable, Sendable {
+    let firstName: String
+    let lastName: String
 }
 
 enum NullablePatch<Value: Encodable & Equatable & Sendable>: Equatable, Sendable {
@@ -121,6 +179,8 @@ struct GuestPatch: Encodable, Equatable, Sendable {
     let lastName: NullablePatch<String>
     let email: NullablePatch<String>
     let phone: NullablePatch<String>
+    let plusLimit: Int?
+    let plusOfGuestID: NullablePatch<UUID>
     let address: NullablePatch<String>
     let customFields: JSONValue?
     let rsvpStatus: NullablePatch<RSVPStatus>
@@ -135,6 +195,8 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         lastName: NullablePatch<String> = .unchanged,
         email: NullablePatch<String> = .unchanged,
         phone: NullablePatch<String> = .unchanged,
+        plusLimit: Int? = nil,
+        plusOfGuestID: NullablePatch<UUID> = .unchanged,
         address: NullablePatch<String> = .unchanged,
         customFields: JSONValue? = nil,
         rsvpStatus: NullablePatch<RSVPStatus> = .unchanged,
@@ -148,6 +210,8 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         self.lastName = lastName
         self.email = email
         self.phone = phone
+        self.plusLimit = plusLimit
+        self.plusOfGuestID = plusOfGuestID
         self.address = address
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
@@ -163,6 +227,8 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         case lastName = "last_name"
         case email
         case phone
+        case plusLimit = "plus_limit"
+        case plusOfGuestID = "plus_of_guest_id"
         case address
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
@@ -178,6 +244,8 @@ struct GuestPatch: Encodable, Equatable, Sendable {
             && lastName == .unchanged
             && email == .unchanged
             && phone == .unchanged
+            && plusLimit == nil
+            && plusOfGuestID == .unchanged
             && address == .unchanged
             && customFields == nil
             && rsvpStatus == .unchanged
@@ -194,6 +262,8 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         try encode(lastName, forKey: .lastName, into: &container)
         try encode(email, forKey: .email, into: &container)
         try encode(phone, forKey: .phone, into: &container)
+        try container.encodeIfPresent(plusLimit, forKey: .plusLimit)
+        try encode(plusOfGuestID, forKey: .plusOfGuestID, into: &container)
         try encode(address, forKey: .address, into: &container)
         try container.encodeIfPresent(customFields, forKey: .customFields)
         try encode(rsvpStatus, forKey: .rsvpStatus, into: &container)
@@ -357,12 +427,13 @@ struct RSVPDraft: Codable, Equatable, Sendable {
 extension RSVPStatus: Hashable {}
 
 extension RSVPStatus {
-    static var allCases: [RSVPStatus] { [.notInvited, .pending, .accepted, .declined] }
+    static var allCases: [RSVPStatus] { [.notInvited, .pending, .maybe, .accepted, .declined] }
 
     var title: String {
         switch self {
         case .notInvited: "Not invited"
         case .pending: "Pending"
+        case .maybe: "Maybe"
         case .accepted: "Accepted"
         case .declined: "Declined"
         }

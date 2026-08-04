@@ -19,6 +19,8 @@ struct AddGuestSheet: View {
     @State private var email = ""
     @State private var phone = ""
     @State private var rsvp: RSVPStatus = .notInvited
+    @State private var plusLimit = 0
+    @State private var plusGuests = [PlusGuestEntry]()
     @State private var customValues = [String: JSONValue]()
     @State private var isSaving = false
     @State private var failureMessage: String?
@@ -85,6 +87,31 @@ struct AddGuestSheet: View {
             }
             TextField("Address or location (optional)", text: $location)
                 .textInputAutocapitalization(.words)
+            Picker("Additional guests", selection: $plusLimit) {
+                Text("None").tag(0)
+                ForEach(1...10, id: \.self) { count in
+                    Text("\(count)").tag(count)
+                }
+            }
+            .onChange(of: plusLimit) { _, count in
+                if count < plusGuests.count {
+                    plusGuests.removeLast(plusGuests.count - count)
+                } else {
+                    plusGuests.append(contentsOf: (plusGuests.count..<count).map { _ in PlusGuestEntry() })
+                }
+            }
+            ForEach($plusGuests) { $plus in
+                LabeledContent("Plus guest") {
+                    VStack(alignment: .trailing, spacing: 6) {
+                        TextField("First name", text: $plus.firstName)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.words)
+                        TextField("Last name", text: $plus.lastName)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.words)
+                    }
+                }
+            }
 
             Button {
                 withAnimation(.snappy(duration: 0.2)) {
@@ -187,6 +214,7 @@ struct AddGuestSheet: View {
                 rsvp: rsvp,
                 email: email,
                 phone: phone,
+                plusGuests: plusGuests.map { GuestPlusDraft(firstName: $0.firstName, lastName: $0.lastName) },
                 customFields: customValues
             )
             isSaving = false
@@ -200,6 +228,12 @@ struct AddGuestSheet: View {
             dismiss()
         }
     }
+}
+
+private struct PlusGuestEntry: Identifiable {
+    let id = UUID()
+    var firstName = ""
+    var lastName = ""
 }
 
 private extension String {
