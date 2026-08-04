@@ -160,8 +160,10 @@ struct GuestDetailView: View {
             Section {
                 LabeledContent("Places", value: "\(linked.count) of \(record.plusLimit) named")
                 ForEach(linked) { plus in
-                    NavigationLink(value: GuestsRoute.detail(plus.id)) {
-                        Text([plus.firstName, plus.lastName].compactMap { $0 }.joined(separator: " "))
+                    if let destination = store.guests.first(where: { $0.id == plus.id }) {
+                        NavigationLink(value: destination) {
+                            Text([plus.firstName, plus.lastName].compactMap { $0 }.joined(separator: " "))
+                        }
                     }
                 }
                 if linked.count < record.plusLimit {

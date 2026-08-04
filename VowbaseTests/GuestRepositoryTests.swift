@@ -21,6 +21,8 @@ struct GuestRepositoryTests {
         #expect(guest.email == nil)
         #expect(guest.customFields == .object(["party_size": .number(2), "needs_car": .bool(true)]))
         #expect(guest.rsvpStatus == .notInvited)
+        #expect(guest.plusLimit == 2)
+        #expect(guest.plusOfGuestID == nil)
         #expect(column.kind == .select)
         #expect(column.options == .array([.string("Family"), .string("Friends")]))
         #expect(rsvp.status == .pending)
@@ -110,6 +112,8 @@ struct GuestRepositoryTests {
             lastName: .value("Morgan"),
             email: .null,
             phone: .value("+1 555 0100"),
+            plusLimit: 4,
+            plusOfGuestID: .value(guestID),
             address: .null,
             rsvpStatus: .value(.accepted),
             originLabel: .null,
@@ -121,6 +125,8 @@ struct GuestRepositoryTests {
         #expect(values["last_name"] as? String == "Morgan")
         #expect(values["email"] is NSNull)
         #expect(values["phone"] as? String == "+1 555 0100")
+        #expect(values["plus_limit"] as? Int == 4)
+        #expect(UUID(uuidString: values["plus_of_guest_id"] as? String ?? "") == guestID)
         #expect(values["address"] is NSNull)
         #expect(values["rsvp_status"] as? String == "accepted")
         #expect(values["origin_label"] is NSNull)
@@ -304,7 +310,7 @@ struct GuestRepositoryTests {
 
     private var guestData: Data {
         Data("""
-        {"id":"\(guestID.uuidString)","wedding_id":"\(weddingID.uuidString)","first_name":"Avery","last_name":null,"email":null,"phone":null,"address":null,"custom_fields":{"party_size":2,"needs_car":true},"rsvp_status":"not_invited","rsvp_date":null,"origin_label":null,"origin_latitude":null,"origin_longitude":null,"origin_precision":null,"geocode_status":null,"created_at":"2026-07-25T12:00:00Z"}
+        {"id":"\(guestID.uuidString)","wedding_id":"\(weddingID.uuidString)","first_name":"Avery","last_name":null,"email":null,"phone":null,"plus_limit":2,"plus_of_guest_id":null,"address":null,"custom_fields":{"party_size":2,"needs_car":true},"rsvp_status":"not_invited","rsvp_date":null,"origin_label":null,"origin_latitude":null,"origin_longitude":null,"origin_precision":null,"geocode_status":null,"created_at":"2026-07-25T12:00:00Z"}
         """.utf8)
     }
 
@@ -350,7 +356,7 @@ struct GuestRepositoryTests {
 }
 
 private enum GuestColumns {
-    static let guests = "id,wedding_id,first_name,last_name,email,phone,address,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
+    static let guests = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
     static let customColumns = "id,wedding_id,key,label,kind,options,position,hidden,created_at,updated_at"
     static let rsvps = "id,wedding_id,guest_id,event_id,status,meal_choice,notes,updated_at"
 }
