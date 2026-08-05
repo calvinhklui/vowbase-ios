@@ -73,7 +73,7 @@ struct WeddingAppShell: View {
             ZStack(alignment: .top) {
                 VowbaseTheme.background.ignoresSafeArea()
 
-                MapWorkspaceView(store: store, consoleInset: consoleHeight)
+                MapWorkspaceView(store: store, lens: navigation.selectedLens, consoleInset: consoleHeight)
 
                 ContextBar(store: store, onSignOut: onSignOut)
                     .padding(.horizontal, 16)
@@ -93,6 +93,24 @@ struct WeddingAppShell: View {
             .task(id: store.selectedVenueID) {
                 await store.refreshTravelImpact()
             }
+            // The scrim is applied *before* the FAB overlay so it layers
+            // underneath it. Applied after, it covered the expanded panel and
+            // swallowed every tap — the menu appeared to work, dismissed on
+            // selection, and silently never ran the action.
+            .overlay {
+                if isQuickAddPresented {
+                    Color.black.opacity(0.22)
+                        .ignoresSafeArea()
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
+                                isQuickAddPresented = false
+                            }
+                        }
+                        .accessibilityHidden(true)
+                        .transition(.opacity)
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 // At peek, the console is short enough that the FAB reads as
                 // part of the canvas floating just above it. Past peek it
@@ -109,37 +127,9 @@ struct WeddingAppShell: View {
                     .padding(.bottom, consoleHeight + 12)
                 }
             }
-            .overlay {
-                if isQuickAddPresented {
-                    Color.black.opacity(0.22)
-                        .ignoresSafeArea()
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
-                                isQuickAddPresented = false
-                            }
-                        }
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                }
-            }
             .sheet(isPresented: .constant(true)) {
                 consoleSheet
             }
-        }
-        .sheet(item: $quickAdd) { destination in
-            switch destination {
-            case .venue:
-                AddVenueSheet(store: store)
-                    .presentationDetents([.medium, .large])
-            case .guest:
-                AddGuestSheet(store: store)
-                    .presentationDetents([.medium, .large])
-            }
-        }
-        .sheet(item: $taskEditor) { destination in
-            TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
-                .presentationDetents([.large])
         }
         .alert(item: $store.saveFailure) { failure in
             Alert(
@@ -239,6 +229,26 @@ struct WeddingAppShell: View {
         .presentationDragIndicator(.hidden)
         .presentationBackgroundInteraction(.enabled)
         .interactiveDismissDisabled(true)
+        // Creation sheets present from *inside* the console, not from the
+        // shell around it. The console is itself a permanently-presented
+        // sheet, so a second sheet attached to the shell has no free
+        // presentation context and UIKit silently drops it — which is what
+        // made every Quick Add action a no-op. Presenting from the console
+        // stacks the new sheet on top of it instead.
+        .sheet(item: $quickAdd) { destination in
+            switch destination {
+            case .venue:
+                AddVenueSheet(store: store)
+                    .presentationDetents([.medium, .large])
+            case .guest:
+                AddGuestSheet(store: store)
+                    .presentationDetents([.medium, .large])
+            }
+        }
+        .sheet(item: $taskEditor) { destination in
+            TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
+                .presentationDetents([.large])
+        }
     }
 
     /// Whether the active lens's console is showing its own root content

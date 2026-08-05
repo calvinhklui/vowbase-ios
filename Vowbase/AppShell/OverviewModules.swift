@@ -222,29 +222,37 @@ struct CountdownModule: View {
 
     var body: some View {
         OverviewModuleCard(title: "COUNTDOWN") {
-            if let weddingDate = store.wedding?.weddingDate,
-               let date = WeddingCountdownFormatter.date(from: weddingDate) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(date.formatted(.dateTime.month(.abbreviated).day().year()))
-                        .font(.system(size: 20, weight: .regular, design: .serif))
-                        .foregroundStyle(VowbaseTheme.ink)
-                    Spacer(minLength: 8)
-                    if let countdown = WeddingCountdownFormatter.countdownPhrase(for: weddingDate) {
-                        Text(countdown)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(VowbaseTheme.mutedInk)
+            // The whole card is the control, in both states. When only the
+            // empty state was tappable the date became uneditable the moment
+            // it was set — this is the app's one and only route to changing
+            // it, since there's no wedding-settings screen yet.
+            Button {
+                isSettingDate = true
+            } label: {
+                if let weddingDate = store.wedding?.weddingDate,
+                   let date = WeddingCountdownFormatter.date(from: weddingDate) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(date.formatted(.dateTime.month(.abbreviated).day().year()))
+                            .font(.system(size: 20, weight: .regular, design: .serif))
+                            .foregroundStyle(VowbaseTheme.ink)
+                        Spacer(minLength: 8)
+                        if let countdown = WeddingCountdownFormatter.countdownPhrase(for: weddingDate) {
+                            Text(countdown)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(VowbaseTheme.mutedInk)
+                        }
                     }
-                }
-            } else {
-                Button {
-                    isSettingDate = true
-                } label: {
+                    .contentShape(Rectangle())
+                } else {
                     Text("Add your wedding date")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(VowbaseTheme.rose)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Changes your wedding date")
         }
         .sheet(isPresented: $isSettingDate) {
             SetWeddingDateSheet(store: store)
@@ -314,10 +322,18 @@ struct ReachModule: View {
         store.venues.first { $0.id == store.selectedVenueID }
     }
 
-    var hasContent: Bool { leadingVenue != nil }
+    /// `.idle` renders nothing at all, so a card in that state would be a
+    /// title and a venue name above dead space — which reads as a failure
+    /// rather than as "nothing to say yet". The module hides instead, the
+    /// same rule Needs You follows.
+    var hasContent: Bool {
+        guard leadingVenue != nil else { return false }
+        if case .idle = store.travelImpact { return false }
+        return true
+    }
 
     var body: some View {
-        if let venue = leadingVenue {
+        if let venue = leadingVenue, hasContent {
             OverviewModuleCard(title: "REACH") {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(venue.name)

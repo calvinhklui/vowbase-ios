@@ -18,6 +18,7 @@
 		6D218D18BD8DBDF535E03113 /* StatusCapsules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DA820279E3B32E4187F265 /* StatusCapsules.swift */; };
 		6DAB94EA72FE5E2A600F3611 /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730B95063539CAED2656EDE9 /* WorkspaceStore.swift */; };
 		782C2CE444A0084D1EA792F2 /* VowbaseVenueImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00C6542E2737CDCD45AAED91 /* VowbaseVenueImage.swift */; };
+		837D0EAC1299058281457445 /* MapCameraFittingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72560A894289C3DF6F4B28F7 /* MapCameraFittingTests.swift */; };
 		8884FC7BABA2033C29CF6C84 /* GuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6B825321A83F896EC030FF7 /* GuestsView.swift */; };
 		9F5B0231F3DF27AE3CFDE6E7 /* ContextBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */; };
 		A1B2C3D4E5F6000000000001 /* VowbaseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */; };
@@ -147,6 +148,7 @@
 		57DA820279E3B32E4187F265 /* StatusCapsules.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatusCapsules.swift; path = Components/StatusCapsules.swift; sourceTree = "<group>"; };
 		5B4D7ACA064013D3983E8B3E /* PlanLens.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlanLens.swift; sourceTree = "<group>"; };
 		6FA400629A2175E9C6330F2E /* WeddingAppShell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeddingAppShell.swift; sourceTree = "<group>"; };
+		72560A894289C3DF6F4B28F7 /* MapCameraFittingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapCameraFittingTests.swift; sourceTree = "<group>"; };
 		730B95063539CAED2656EDE9 /* WorkspaceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
 		7996C3888797713DA2463A22 /* AddGuestSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddGuestSheet.swift; path = Features/Guests/Views/AddGuestSheet.swift; sourceTree = "<group>"; };
 		7FF5D34ADBBD2CB63EEA023B /* AddVenueSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddVenueSheet.swift; path = Features/Venues/Views/AddVenueSheet.swift; sourceTree = "<group>"; };
@@ -383,6 +385,7 @@
 				A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */,
 				A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */,
 				A70FDED37A580F42DA21A7DD /* TravelImpactCalculatorTests.swift */,
+				72560A894289C3DF6F4B28F7 /* MapCameraFittingTests.swift */,
 			);
 			path = VowbaseTests;
 			sourceTree = "<group>";
@@ -774,6 +777,7 @@
 				BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */,
 				BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */,
 				D894BD97D21922174D371587 /* TravelImpactCalculatorTests.swift in Sources */,
+				837D0EAC1299058281457445 /* MapCameraFittingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

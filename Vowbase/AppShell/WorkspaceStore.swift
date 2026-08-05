@@ -99,7 +99,11 @@ struct MVPVenue: Identifiable, Hashable {
     /// The raw `venue_est_text` value, independent of `estimate`'s `priceEstimate` display
     /// fallback — inline editing reads/writes this, never the derived display string.
     let venueEstimateTextRaw: String?
-    let travel: String
+    /// `nil` when this venue's guest travel hasn't been computed — a real
+    /// absence, so each surface can decide whether to omit the stat or show a
+    /// placeholder, rather than every one of them rendering the same sentence
+    /// and truncating it.
+    let travel: String?
     let allInEstimate: String
     let availableDates: String
     let summary: String?
@@ -371,12 +375,11 @@ final class VowbaseWorkspaceStore {
     /// alongside their own "guest travel" caption. Only ever real for the
     /// selected, resolved venue — computing this for every listed venue
     /// would mean one `travelTimes` request per row, which spec §8 never
-    /// asks for. "Not calculated" instead of "Unavailable": this venue just
-    /// hasn't been checked, which is a different fact from a request having
-    /// failed.
-    private func travelText(for venueID: UUID) -> String {
+    /// asks for. `nil` means "not checked yet", which is a different fact
+    /// from a request having failed.
+    private func travelText(for venueID: UUID) -> String? {
         guard venueID == selectedVenueID, case let .ready(readout) = travelImpact else {
-            return "Not calculated"
+            return nil
         }
         return TravelDurationFormatter.string(fromSeconds: readout.medianDurationSeconds)
     }
@@ -1167,7 +1170,7 @@ private extension MVPVenue {
         gallery: [VenuePhoto] = [],
         galleryPhotoURLs: [UUID: URL] = [:],
         coverPhotoURL: URL? = nil,
-        travelText: String = "Not calculated"
+        travelText: String? = nil
     ) {
         id = venue.id
         name = venue.name

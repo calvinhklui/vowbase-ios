@@ -125,16 +125,21 @@ struct ContextBar: View {
     }
 }
 
-/// The minimum viable route for "Add your date": a single `DatePicker` and a
-/// Save button, not a wedding-settings screen — nothing else about the
-/// wedding record is editable from the app yet, and this phase doesn't ask
-/// for that.
+/// The only route to the wedding date, in both directions: a single
+/// `DatePicker` and a Save button, not a wedding-settings screen — nothing
+/// else about the wedding record is editable from the app yet.
 struct SetWeddingDateSheet: View {
     let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
     @State private var date = Date()
     @State private var isSaving = false
     @State private var failureMessage: String?
+
+    /// Editing an existing date should open *on* that date, not on today —
+    /// otherwise changing a date by one day means navigating back to it.
+    private var existingDate: Date? {
+        store.wedding?.weddingDate.flatMap(WeddingCountdownFormatter.date(from:))
+    }
 
     var body: some View {
         NavigationStack {
@@ -151,7 +156,8 @@ struct SetWeddingDateSheet: View {
                     }
                 }
             }
-            .navigationTitle("Add your date")
+            .onAppear { if let existingDate { date = existingDate } }
+            .navigationTitle(existingDate == nil ? "Add your date" : "Your date")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

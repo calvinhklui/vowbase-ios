@@ -9,19 +9,28 @@ import SwiftUI
 /// active console's resolved height (spec §6.4), applied as safe-area padding
 /// so the map's own centering keeps the selected pin clear of the sheet.
 ///
+/// The camera is derived, never fixed: it re-frames whenever the lens, the
+/// selection, or the underlying data changes, so each lens gets the frame its
+/// own content deserves (see `focusCoordinates`). It previously held one
+/// hardcoded region, which meant a wedding outside that region rendered a map
+/// with every pin off-screen.
+///
 /// Every lens still renders at full weight regardless of selection — §6.2's
 /// focus/context dimming (70% scale, 55% opacity for non-focused layers) is
-/// not built yet. That's real remaining canvas work, not a Phase 2 goal.
+/// not built yet. That's real remaining canvas work.
 @MainActor
 struct MapWorkspaceView: View {
     let store: VowbaseWorkspaceStore
+    let lens: PlanLens
     let consoleInset: CGFloat
-    @State private var position = MapCameraPosition.region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 40.2, longitude: -74.4),
-            span: MKCoordinateSpan(latitudeDelta: 11.5, longitudeDelta: 13.0)
-        )
-    )
+
+    /// Roughly a few kilometres across — the floor so a single pin lands on a
+    /// readable neighbourhood rather than a maximum-zoom rooftop.
+    private static let minimumSpan: CLLocationDegrees = 0.08
+    /// Breathing room around the fitted bounds so pins never sit flush to an edge.
+    private static let spanPadding: CLLocationDegrees = 1.6
+
+    @State private var position: MapCameraPosition = .automatic
 
     var body: some View {
         Map(position: $position) {
@@ -50,9 +59,102 @@ struct MapWorkspaceView: View {
                 }
             }
         }
+        // Points of interest are pure noise here — every restaurant and shop
+        // competes with the couple's own pins, and the console's glass sits
+        // directly on top of it.
+        .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
         .safeAreaPadding(.bottom, consoleInset)
+        // A canvas-optional lens (Tasks, spec §2.1) contributes nothing to the
+        // map, so the live map behind it is noise. Frosting it keeps the sense
+        // of place without competing with the console's content.
+        .overlay {
+            if lens.isCanvasOptional {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: lens.isCanvasOptional)
+        .onAppear { updateCamera(animated: false) }
+        .onChange(of: cameraKey) { updateCamera(animated: true) }
+    }
+
+    // MARK: Camera
+
+    /// Everything the frame depends on, collapsed into one value so a single
+    /// `onChange` covers lens switches, selection changes, and the moment the
+    /// data finishes loading.
+    private var cameraKey: String {
+        [
+            lens.rawValue,
+            store.selectedVenueID?.uuidString ?? "none",
+            String(store.venues.count),
+            String(store.clusters.count),
+        ].joined(separator: "|")
+    }
+
+    private var selectedVenueCoordinate: CLLocationCoordinate2D? {
+        store.venues.first { $0.id == store.selectedVenueID }?.coordinate
+    }
+
+    /// What each lens wants in frame.
+    ///
+    /// Venues zooms to the venue you're inspecting; Guests frames where people
+    /// are travelling from; Overview holds both at once, because the whole
+    /// point of that lens is the relationship between them.
+    private var focusCoordinates: [CLLocationCoordinate2D] {
+        let venueCoordinates = store.venues.compactMap(\.coordinate)
+        let clusterCoordinates = store.clusters.map(\.coordinate)
+
+        switch lens {
+        case .venues:
+            if let selectedVenueCoordinate { return [selectedVenueCoordinate] }
+            return venueCoordinates
+        case .guests:
+            return clusterCoordinates.isEmpty ? venueCoordinates : clusterCoordinates
+        case .overview, .tasks:
+            if let selectedVenueCoordinate { return [selectedVenueCoordinate] + clusterCoordinates }
+            return venueCoordinates + clusterCoordinates
+        }
+    }
+
+    private func updateCamera(animated: Bool) {
+        guard let region = Self.region(fitting: focusCoordinates) else { return }
+        if animated {
+            withAnimation(.easeInOut(duration: 0.55)) { position = .region(region) }
+        } else {
+            position = .region(region)
+        }
+    }
+
+    /// `nil` when there's nothing to frame — the caller leaves the camera
+    /// where it is rather than snapping to an arbitrary default.
+    static func region(fitting coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
+        guard let first = coordinates.first else { return nil }
+
+        var minLatitude = first.latitude, maxLatitude = first.latitude
+        var minLongitude = first.longitude, maxLongitude = first.longitude
+        for coordinate in coordinates.dropFirst() {
+            minLatitude = min(minLatitude, coordinate.latitude)
+            maxLatitude = max(maxLatitude, coordinate.latitude)
+            minLongitude = min(minLongitude, coordinate.longitude)
+            maxLongitude = max(maxLongitude, coordinate.longitude)
+        }
+
+        return MKCoordinateRegion(
+            center: CLLocationCoordinate2D(
+                latitude: (minLatitude + maxLatitude) / 2,
+                longitude: (minLongitude + maxLongitude) / 2
+            ),
+            span: MKCoordinateSpan(
+                latitudeDelta: max((maxLatitude - minLatitude) * spanPadding, minimumSpan),
+                longitudeDelta: max((maxLongitude - minLongitude) * spanPadding, minimumSpan)
+            )
+        )
     }
 
     /// Only ever real for the selected venue's own readout — spec §8: "cluster

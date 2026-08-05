@@ -142,7 +142,9 @@ private struct VenueComparisonSheet: View {
                             StatusCapsule(status: venue.status)
                             LabeledContent("Capacity", value: venue.capacity)
                             LabeledContent("Estimate", value: venue.estimate)
-                            LabeledContent("Guest travel", value: venue.travel)
+                            // A comparison table keeps its row even when empty,
+                            // so the columns stay aligned across venues.
+                            LabeledContent("Guest travel", value: venue.travel ?? "—")
                         }
                         .padding(.vertical, VowbaseSpace.small)
                     }
@@ -207,7 +209,12 @@ private struct VenueCard: View {
                 HStack(spacing: 0) {
                     VenueFact(icon: "person.2", value: venue.capacity, caption: "guests")
                     VenueFact(icon: "dollarsign.circle", value: venue.estimate, caption: "venue est.")
-                    VenueFact(icon: "airplane", value: venue.travel, caption: "guest travel")
+                    // Only the selected venue has a real figure — the rest
+                    // simply don't show the stat rather than each claiming
+                    // "Not calculated" in a space too narrow to say it.
+                    if let travel = venue.travel {
+                        VenueFact(icon: "airplane", value: travel, caption: "guest travel")
+                    }
                 }
             }
             .padding(18)

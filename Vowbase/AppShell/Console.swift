@@ -263,10 +263,12 @@ private struct VenueRailCard: View {
                     .font(.system(size: 16, weight: .regular, design: .serif))
                     .lineLimit(1)
                 StatusCapsule(status: venue.status)
-                Label("\(venue.travel) median guest travel", systemImage: "airplane")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                    .lineLimit(1)
+                if let travel = venue.travel {
+                    Label("\(travel) median guest travel", systemImage: "airplane")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .lineLimit(1)
+                }
             }
             .padding(12)
         }
