@@ -15,9 +15,24 @@ enum ConsoleDetent: CaseIterable {
     case half
     case full
 
+    /// Peek has to fit everything the console stacks at rest, or its content
+    /// runs underneath the lens rail — which is what made the rail look like
+    /// it was covering every lens. The arithmetic, top to bottom:
+    ///
+    ///     27  grabber (22 pt of clearance + a 5 pt capsule)
+    ///     14  stack spacing
+    ///     50  header — two lines for a selected venue and its impact row
+    ///     14  stack spacing
+    ///    104  the tallest rail card
+    ///      8  breathing room
+    ///     86  lens rail (70 pt tall, 16 pt of padding)
+    ///
+    /// Anything added to the console's resting stack has to be paid for here.
+    static let peekHeight: CGFloat = 303
+
     var presentationDetent: PresentationDetent {
         switch self {
-        case .peek: .height(256)
+        case .peek: .height(Self.peekHeight)
         case .half: .fraction(0.5)
         // Deliberately not .large: that system detent reserves a visible
         // gap at the top as an affordance. There's nothing under the
@@ -31,7 +46,7 @@ enum ConsoleDetent: CaseIterable {
     /// measured against — `.half`/`.full` are screen fractions.
     func pointHeight(in screenHeight: CGFloat) -> CGFloat {
         switch self {
-        case .peek: 256
+        case .peek: Self.peekHeight
         case .half: screenHeight * 0.5
         case .full: screenHeight
         }
