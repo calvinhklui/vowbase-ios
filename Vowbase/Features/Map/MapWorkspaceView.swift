@@ -53,7 +53,7 @@ struct MapWorkspaceView: View {
 
             ForEach(store.clusters) { cluster in
                 let badge = travelBadge(for: cluster)
-                Annotation("\(cluster.count) guests in \(cluster.city)", coordinate: cluster.coordinate) {
+                Annotation(Self.clusterTitle(for: cluster), coordinate: cluster.coordinate) {
                     GuestClusterAnnotation(cluster: cluster, badge: badge)
                         .accessibilityLabel(accessibilityLabel(for: cluster, badge: badge))
                 }
@@ -168,9 +168,16 @@ struct MapWorkspaceView: View {
             : TravelDurationFormatter.string(fromSeconds: travelTime.durationSeconds)
     }
 
+    /// The label under each cluster pin. A single guest reads "1 guest in
+    /// Northvale", not "1 guests" — it's the most prominent text on the
+    /// canvas, and a wedding with one guest per city is entirely normal.
+    static func clusterTitle(for cluster: GuestCluster) -> String {
+        "\(cluster.count) \(cluster.count == 1 ? "guest" : "guests") in \(cluster.city)"
+    }
+
     private func accessibilityLabel(for cluster: GuestCluster, badge: String?) -> String {
-        guard let badge else { return "\(cluster.count) guests in \(cluster.city)" }
-        return "\(cluster.count) guests in \(cluster.city), \(badge) to selected venue"
+        guard let badge else { return Self.clusterTitle(for: cluster) }
+        return "\(Self.clusterTitle(for: cluster)), \(badge) to selected venue"
     }
 }
 

@@ -63,6 +63,17 @@ struct MapCameraFittingTests {
         #expect(abs(region.span.longitudeDelta - 0.08) < 0.0001)
     }
 
+    @Test("Cluster titles pluralise on the count")
+    func clusterTitlePluralises() {
+        let alone = GuestCluster(id: "northvale", city: "Northvale", count: 1, latitude: 0, longitude: 0)
+        let several = GuestCluster(id: "lumen", city: "Lumen Bay", count: 4, latitude: 0, longitude: 0)
+
+        // Read straight off the canvas, so "1 guests in Northvale" was the
+        // most visible copy error in the app.
+        #expect(MapWorkspaceView.clusterTitle(for: alone) == "1 guest in Northvale")
+        #expect(MapWorkspaceView.clusterTitle(for: several) == "4 guests in Lumen Bay")
+    }
+
     @Test("Order of the coordinates doesn't change the frame")
     func orderIndependent() throws {
         let forward = try #require(MapWorkspaceView.region(fitting: [

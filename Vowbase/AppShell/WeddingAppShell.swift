@@ -195,11 +195,27 @@ struct WeddingAppShell: View {
                 // own material. `mutedInk` at partial opacity stays adaptive
                 // across light/dark and Increased Contrast while actually
                 // being visible.
-                Capsule()
-                    .fill(VowbaseTheme.mutedInk.opacity(0.5))
-                    .frame(width: 44, height: 5)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 22)
+                ZStack(alignment: .top) {
+                    Capsule()
+                        .fill(VowbaseTheme.mutedInk.opacity(0.5))
+                        .frame(width: 44, height: 5)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 22)
+
+                    // Past peek the console fills too much of the screen for a
+                    // floating button to sit anywhere harmless — it landed on
+                    // the Tasks filter control and on venue detail's stats. A
+                    // menu anchored here can't collide with content, and being
+                    // a plain `Menu` it also sheds the custom scrim whose
+                    // z-order was swallowing the FAB's taps.
+                    if currentDetent != .peek && !isVenueNoteEditing {
+                        HStack {
+                            Spacer(minLength: 0)
+                            consoleAddMenu
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                }
 
                 consoleHeader
                     .padding(.horizontal, 16)
@@ -208,18 +224,6 @@ struct WeddingAppShell: View {
             consoleContent
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .overlay(alignment: .bottomTrailing) {
-            if currentDetent != .peek && !isVenueNoteEditing {
-                QuickAddOverlay(
-                    isPresented: $isQuickAddPresented,
-                    onAddVenue: { quickAdd = .venue },
-                    onAddGuest: { quickAdd = .guest },
-                    onAddTask: { taskEditor = .add() }
-                )
-                .padding(.trailing, VowbaseControlMetric.screenInset)
-                .padding(.bottom, 12)
-            }
-        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isVenueNoteEditing {
                 LensRail(selection: selectedLensBinding)
@@ -249,6 +253,39 @@ struct WeddingAppShell: View {
             TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
                 .presentationDetents([.large])
         }
+    }
+
+    /// Quick Add past the peek detent. Rendered inside the grabber row, which
+    /// only exists while the console is at its own root — so a pushed venue or
+    /// guest detail gets no add button at all, which is right: creating a new
+    /// venue isn't a thing you do from inside one.
+    private var consoleAddMenu: some View {
+        Menu {
+            Button {
+                quickAdd = .venue
+            } label: {
+                Label("Add Venue", systemImage: "mappin.and.ellipse")
+            }
+            Button {
+                quickAdd = .guest
+            } label: {
+                Label("Add Guest", systemImage: "person.badge.plus")
+            }
+            Button {
+                taskEditor = .add()
+            } label: {
+                Label("Add Task", systemImage: "checkmark.circle.badge.plus")
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(VowbaseTheme.rose, in: Circle())
+                .contentShape(Circle())
+        }
+        .accessibilityLabel("Quick add")
+        .accessibilityHint("Shows actions to add a venue, guest, or task")
     }
 
     /// Whether the active lens's console is showing its own root content
@@ -394,21 +431,31 @@ private struct LensRail: View {
     @Binding var selection: PlanLens
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// The tint used to be black at 54% regardless of scheme, which read as a
+    /// heavy charcoal slab sitting on the console's white surface in light
+    /// mode. Each scheme now gets a tint that deepens its own ground rather
+    /// than inverting it.
+    private var railTint: Color {
+        colorScheme == .dark ? Color.black.opacity(0.54) : Color.white.opacity(0.60)
+    }
+
+    private var railStroke: Color {
+        colorScheme == .dark ? .white.opacity(0.18) : VowbaseTheme.ink.opacity(0.08)
+    }
 
     var body: some View {
         Group {
             if #available(iOS 26, *) {
                 railContent
-                    .glassEffect(
-                        .regular.tint(Color.black.opacity(0.54)),
-                        in: Capsule()
-                    )
+                    .glassEffect(.regular.tint(railTint), in: Capsule())
             } else {
                 railContent
                     .background(.ultraThinMaterial, in: Capsule())
                     .overlay {
                         Capsule()
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
+                            .stroke(railStroke, lineWidth: 1)
                     }
                     .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
             }
@@ -448,6 +495,22 @@ private struct LensRailItem: View {
     let lens: PlanLens
     let isSelected: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Labels were hardcoded white, which only worked because the rail forced
+    /// a dark tint underneath. With an adaptive rail they have to follow the
+    /// scheme too, or light mode renders white-on-white.
+    private var foreground: Color {
+        if colorScheme == .dark {
+            return isSelected ? .white : .white.opacity(0.72)
+        }
+        return isSelected ? VowbaseTheme.ink : VowbaseTheme.mutedInk
+    }
+
+    private var selectionFill: Color {
+        colorScheme == .dark ? .white.opacity(0.16) : VowbaseTheme.ink.opacity(0.07)
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: lens.systemImage)
@@ -457,16 +520,16 @@ private struct LensRailItem: View {
             Text(lens.title)
                 .font(.system(size: 11, weight: .semibold))
         }
-        .foregroundStyle(isSelected ? .white : .white.opacity(0.72))
+        .foregroundStyle(foreground)
         .frame(maxWidth: .infinity)
         .frame(height: 58)
         .background {
             if isSelected {
                 Capsule()
-                    .fill(.white.opacity(0.16))
+                    .fill(selectionFill)
                     .overlay {
                         Capsule()
-                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                            .stroke(colorScheme == .dark ? .white.opacity(0.16) : VowbaseTheme.ink.opacity(0.06), lineWidth: 1)
                     }
             }
         }
