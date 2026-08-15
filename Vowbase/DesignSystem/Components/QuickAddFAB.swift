@@ -29,6 +29,35 @@ struct QuickAddFAB: View {
     }
 }
 
+/// A lens-specific FAB that opens its creation flow immediately.
+///
+/// Overview uses `QuickAddOverlay` because it is the one place where the FAB
+/// represents multiple creation choices. The other lenses use this control so
+/// their action and accessibility semantics stay explicit.
+struct DirectAddFAB: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            QuickAddHaptics.impact()
+            action()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.system(size: 22, weight: .semibold))
+                .frame(width: VowbaseControlMetric.fabDiameter, height: VowbaseControlMetric.fabDiameter)
+                .foregroundStyle(.white)
+                .background(VowbaseTheme.rose, in: Circle())
+                .contentShape(Circle())
+                .shadow(color: VowbaseTheme.rose.opacity(0.32), radius: 14, y: 7)
+        }
+        .buttonStyle(QuickAddPressStyle())
+        .accessibilityLabel(title)
+        .accessibilityHint("Opens the \(title.lowercased()) form")
+    }
+}
+
 /// High-confidence actions shown above `QuickAddFAB`.
 ///
 /// The actions dismiss the panel before invoking their closures, allowing the

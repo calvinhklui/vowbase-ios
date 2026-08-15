@@ -98,7 +98,7 @@ struct WeddingAppShell: View {
             // swallowed every tap — the menu appeared to work, dismissed on
             // selection, and silently never ran the action.
             .overlay {
-                if isQuickAddPresented {
+                if navigation.selectedLens == .overview && isQuickAddPresented {
                     Color.black.opacity(0.22)
                         .ignoresSafeArea()
                         .contentShape(Rectangle())
@@ -117,14 +117,9 @@ struct WeddingAppShell: View {
                 // moves inside `consoleSheet` itself, or the console would
                 // cover it.
                 if currentDetent == .peek && !isVenueNoteEditing {
-                    QuickAddOverlay(
-                        isPresented: $isQuickAddPresented,
-                        onAddVenue: { quickAdd = .venue },
-                        onAddGuest: { quickAdd = .guest },
-                        onAddTask: { taskEditor = .add() }
-                    )
-                    .padding(.trailing, VowbaseControlMetric.screenInset)
-                    .padding(.bottom, consoleHeight + 12)
+                    activeLensFAB
+                        .padding(.trailing, VowbaseControlMetric.screenInset)
+                        .padding(.bottom, consoleHeight + 12)
                 }
             }
             .sheet(isPresented: .constant(true)) {
@@ -144,6 +139,9 @@ struct WeddingAppShell: View {
             )
         }
         .animation(.snappy(duration: 0.28), value: navigation.selectedLens)
+        .onChange(of: navigation.selectedLens) {
+            isQuickAddPresented = false
+        }
     }
 
     // MARK: Console
@@ -214,7 +212,7 @@ struct WeddingAppShell: View {
             }
         }
         .overlay {
-            if showsConsoleQuickAdd && isQuickAddPresented {
+            if showsConsoleFAB && navigation.selectedLens == .overview && isQuickAddPresented {
                 Color.black.opacity(0.22)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
@@ -228,15 +226,10 @@ struct WeddingAppShell: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            if showsConsoleQuickAdd {
-                QuickAddOverlay(
-                    isPresented: $isQuickAddPresented,
-                    onAddVenue: { quickAdd = .venue },
-                    onAddGuest: { quickAdd = .guest },
-                    onAddTask: { taskEditor = .add() }
-                )
-                .padding(.trailing, VowbaseControlMetric.screenInset)
-                .padding(.bottom, LensRail.occupiedHeight + VowbaseSpace.medium)
+            if showsConsoleFAB {
+                activeLensFAB
+                    .padding(.trailing, VowbaseControlMetric.screenInset)
+                    .padding(.bottom, LensRail.occupiedHeight + VowbaseSpace.medium)
             }
         }
         .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
@@ -267,8 +260,35 @@ struct WeddingAppShell: View {
 
     /// Past peek, keep the same full-size FAB inside the console and above the
     /// lens rail. Pushed venue/guest details and venue-note editing suppress it.
-    private var showsConsoleQuickAdd: Bool {
+    private var showsConsoleFAB: Bool {
         currentDetent != .peek && isConsoleAtRoot && !isVenueNoteEditing
+    }
+
+    /// Overview keeps the multi-action quick-add menu. Each focused lens uses
+    /// the same floating placement but routes directly to its matching form.
+    @ViewBuilder
+    private var activeLensFAB: some View {
+        switch navigation.selectedLens {
+        case .overview:
+            QuickAddOverlay(
+                isPresented: $isQuickAddPresented,
+                onAddVenue: { quickAdd = .venue },
+                onAddGuest: { quickAdd = .guest },
+                onAddTask: { taskEditor = .add() }
+            )
+        case .venues:
+            DirectAddFAB(title: "Add Venue", systemImage: "mappin.and.ellipse") {
+                quickAdd = .venue
+            }
+        case .guests:
+            DirectAddFAB(title: "Add Guest", systemImage: "person.badge.plus") {
+                quickAdd = .guest
+            }
+        case .tasks:
+            DirectAddFAB(title: "Add Task", systemImage: "checkmark.circle.badge.plus") {
+                taskEditor = .add()
+            }
+        }
     }
 
     /// Whether the active lens's console is showing its own root content
