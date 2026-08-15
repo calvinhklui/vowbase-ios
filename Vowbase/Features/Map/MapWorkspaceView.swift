@@ -1,6 +1,7 @@
 import CoreLocation
 import MapKit
 import SwiftUI
+import UIKit
 
 // MARK: - Map
 
@@ -23,6 +24,9 @@ struct MapWorkspaceView: View {
     let store: VowbaseWorkspaceStore
     let lens: PlanLens
     let consoleInset: CGFloat
+    let selectedGuestID: UUID?
+    let onSelectVenue: (MVPVenue) -> Void
+    let onClearFocus: () -> Void
 
     /// Roughly a few kilometres across — the floor so a single pin lands on a
     /// readable neighbourhood rather than a maximum-zoom rooftop.
@@ -37,9 +41,7 @@ struct MapWorkspaceView: View {
             ForEach(store.venues) { venue in
                 if let coordinate = venue.coordinate {
                     Annotation(venue.name, coordinate: coordinate, anchor: .bottom) {
-                        Button {
-                            store.selectedVenueID = venue.id
-                        } label: {
+                        Button { onSelectVenue(venue) } label: {
                             VenueMapAnnotation(
                                 venue: venue,
                                 selected: store.selectedVenueID == venue.id
@@ -58,6 +60,9 @@ struct MapWorkspaceView: View {
                         .accessibilityLabel(accessibilityLabel(for: cluster, badge: badge))
                 }
             }
+        }
+        .background {
+            MapBackgroundTapObserver(bottomExclusion: consoleInset, onTap: onClearFocus)
         }
         // Points of interest are pure noise here — every restaurant and shop
         // competes with the couple's own pins, and the console's glass sits
@@ -92,6 +97,7 @@ struct MapWorkspaceView: View {
         [
             lens.rawValue,
             store.selectedVenueID?.uuidString ?? "none",
+            selectedGuestID?.uuidString ?? "none",
             String(store.venues.count),
             String(store.clusters.count),
         ].joined(separator: "|")
@@ -99,6 +105,15 @@ struct MapWorkspaceView: View {
 
     private var selectedVenueCoordinate: CLLocationCoordinate2D? {
         store.venues.first { $0.id == store.selectedVenueID }?.coordinate
+    }
+
+    private var selectedGuestCoordinate: CLLocationCoordinate2D? {
+        guard let selectedGuestID,
+              let guest = store.guestRecord(id: selectedGuestID),
+              guest.originPrecision == "city",
+              let latitude = guest.originLatitude,
+              let longitude = guest.originLongitude else { return nil }
+        return .init(latitude: latitude, longitude: longitude)
     }
 
     /// What each lens wants in frame.
@@ -115,6 +130,7 @@ struct MapWorkspaceView: View {
             if let selectedVenueCoordinate { return [selectedVenueCoordinate] }
             return venueCoordinates
         case .guests:
+            if let selectedGuestCoordinate { return [selectedGuestCoordinate] }
             return clusterCoordinates.isEmpty ? venueCoordinates : clusterCoordinates
         case .overview, .tasks:
             if let selectedVenueCoordinate { return [selectedVenueCoordinate] + clusterCoordinates }
@@ -178,6 +194,108 @@ struct MapWorkspaceView: View {
     private func accessibilityLabel(for cluster: GuestCluster, badge: String?) -> String {
         guard let badge else { return Self.clusterTitle(for: cluster) }
         return "\(Self.clusterTitle(for: cluster)), \(badge) to selected venue"
+    }
+}
+
+/// SwiftUI's `Map` does not report a basemap tap or clear custom selection.
+/// This observer installs a non-cancelling recognizer on the underlying
+/// `MKMapView`, ignores annotation views, and leaves MapKit's own gestures intact.
+private struct MapBackgroundTapObserver: UIViewRepresentable {
+    let bottomExclusion: CGFloat
+    let onTap: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(bottomExclusion: bottomExclusion, onTap: onTap)
+    }
+
+    func makeUIView(context: Context) -> AttachmentView {
+        let view = AttachmentView()
+        view.isUserInteractionEnabled = false
+        view.onWindowChange = { [weak coordinator = context.coordinator] window in
+            coordinator?.attach(to: window)
+        }
+        return view
+    }
+
+    func updateUIView(_ view: AttachmentView, context: Context) {
+        context.coordinator.bottomExclusion = bottomExclusion
+        context.coordinator.onTap = onTap
+        context.coordinator.attach(to: view.window)
+    }
+
+    static func dismantleUIView(_ view: AttachmentView, coordinator: Coordinator) {
+        coordinator.detach()
+    }
+
+    final class AttachmentView: UIView {
+        var onWindowChange: ((UIWindow?) -> Void)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onWindowChange?(window)
+        }
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var bottomExclusion: CGFloat
+        var onTap: () -> Void
+        private weak var mapView: MKMapView?
+        private var recognizer: UITapGestureRecognizer?
+
+        init(bottomExclusion: CGFloat, onTap: @escaping () -> Void) {
+            self.bottomExclusion = bottomExclusion
+            self.onTap = onTap
+        }
+
+        func attach(to window: UIWindow?) {
+            guard let window, let mapView = findMap(in: window), self.mapView !== mapView else { return }
+            detach()
+            let recognizer = UITapGestureRecognizer(target: self, action: #selector(didTapMap(_:)))
+            recognizer.cancelsTouchesInView = false
+            recognizer.delegate = self
+            mapView.addGestureRecognizer(recognizer)
+            self.mapView = mapView
+            self.recognizer = recognizer
+        }
+
+        func detach() {
+            if let recognizer { mapView?.removeGestureRecognizer(recognizer) }
+            recognizer = nil
+            mapView = nil
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            true
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            guard let mapView,
+                  touch.location(in: mapView).y < mapView.bounds.maxY - bottomExclusion else { return false }
+            var touchedView: UIView? = touch.view
+            while let view = touchedView, view !== mapView {
+                if view is MKAnnotationView { return false }
+                touchedView = view.superview
+            }
+            return true
+        }
+
+        @objc private func didTapMap(_ recognizer: UITapGestureRecognizer) {
+            guard recognizer.state == .ended,
+                  let mapView,
+                  recognizer.location(in: mapView).y < mapView.bounds.maxY - bottomExclusion else { return }
+            onTap()
+        }
+
+        private func findMap(in view: UIView) -> MKMapView? {
+            if let map = view as? MKMapView { return map }
+            for subview in view.subviews {
+                if let map = findMap(in: subview) { return map }
+            }
+            return nil
+        }
     }
 }
 

@@ -64,6 +64,9 @@ final class AppNavigationModel {
     /// can consume it after it has appeared following a lens change.
     var focusedVenueID: UUID?
 
+    /// The guest currently focused by the Guests peek rail.
+    var selectedGuestID: UUID?
+
     init(selectedLens: PlanLens = .overview) {
         self.selectedLens = selectedLens
     }
@@ -99,6 +102,7 @@ final class AppNavigationModel {
     func clearTransientState() {
         sheetDestination = nil
         focusedVenueID = nil
+        selectedGuestID = nil
     }
 
     /// Returns one lens to its root without disturbing the others.

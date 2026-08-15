@@ -133,21 +133,51 @@ extension ConsoleHeader {
 struct VenueImpactHeader: View {
     let venue: MVPVenue
     let impact: TravelImpactState
+    let onOpenDetails: () -> Void
     let onTapReadout: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            Button(action: onOpenDetails) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(venue.name)
+                        .font(.system(size: 22, weight: .regular, design: .serif))
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(venue.status.title)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            }
+            .buttonStyle(.plain)
+            VenueImpactRow(state: impact, onTap: onTapReadout)
+        }
+    }
+}
+
+struct GuestSelectionHeader: View {
+    let guest: MVPGuest
+    let onOpenDetails: () -> Void
+
+    var body: some View {
+        Button(action: onOpenDetails) {
             HStack(alignment: .firstTextBaseline) {
-                Text(venue.name)
+                Text(guest.peekName)
                     .font(.system(size: 22, weight: .regular, design: .serif))
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                Text(venue.status.title)
+                Text(guest.rsvp.title)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(VowbaseTheme.mutedInk)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
             }
-            VenueImpactRow(state: impact, onTap: onTapReadout)
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -240,6 +270,7 @@ private extension TravelUnavailableReason {
 /// is anchored to a pin already on screen.
 struct VenueRailContent: View {
     let store: VowbaseWorkspaceStore
+    let onSelect: (MVPVenue) -> Void
 
     var body: some View {
         if store.venues.isEmpty {
@@ -252,7 +283,7 @@ struct VenueRailContent: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(store.venues) { venue in
-                        Button { store.selectedVenueID = venue.id } label: {
+                        Button { onSelect(venue) } label: {
                             VenueRailCard(venue: venue, selected: venue.id == store.selectedVenueID)
                         }
                         .buttonStyle(.plain)
@@ -271,7 +302,7 @@ private struct VenueRailCard: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            VowbaseVenueImage(url: venue.coverPhotoURL)
+            VowbaseVenueImage(url: venue.photoURL)
                 .frame(width: 88, height: 104)
             VStack(alignment: .leading, spacing: 6) {
                 Text(venue.name)
@@ -304,6 +335,8 @@ private struct VenueRailCard: View {
 /// chosen subtitle column — the same display resolver the Guests list uses.
 struct GuestRailContent: View {
     let store: VowbaseWorkspaceStore
+    let selectedGuestID: UUID?
+    let onSelect: (MVPGuest) -> Void
 
     var body: some View {
         let guests = store.guests
@@ -317,7 +350,10 @@ struct GuestRailContent: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(guests) { guest in
-                        GuestRailCard(guest: guest)
+                        Button { onSelect(guest) } label: {
+                            GuestRailCard(guest: guest, selected: guest.id == selectedGuestID)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 18)
@@ -329,15 +365,16 @@ struct GuestRailContent: View {
 
 private struct GuestRailCard: View {
     let guest: MVPGuest
+    let selected: Bool
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(guest.initials)
+            Text(guest.peekInitials)
                 .font(.system(size: 17, weight: .regular, design: .serif))
                 .frame(width: 46, height: 46)
                 .background(VowbaseTheme.blush, in: Circle())
             VStack(alignment: .leading, spacing: 4) {
-                Text(guest.name)
+                Text(guest.peekName)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(VowbaseTheme.ink)
                     .lineLimit(1)
@@ -358,8 +395,29 @@ private struct GuestRailCard: View {
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(VowbaseTheme.border, lineWidth: 1)
+                .stroke(selected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selected ? 1.5 : 1)
         }
         .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+    }
+}
+
+private extension MVPGuest {
+    var peekLastName: String? {
+        let candidate = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return candidate.isEmpty || candidate == "?" ? nil : candidate
+    }
+
+    var peekName: String {
+        let trimmedFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return [trimmedFirstName.isEmpty ? nil : trimmedFirstName, peekLastName]
+            .compactMap { $0 }
+            .joined(separator: " ")
+    }
+
+    var peekInitials: String {
+        [firstName.first, peekLastName?.first]
+            .compactMap { $0 }
+            .map { String($0).uppercased() }
+            .joined()
     }
 }

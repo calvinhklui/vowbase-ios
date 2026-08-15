@@ -73,7 +73,14 @@ struct WeddingAppShell: View {
             ZStack(alignment: .top) {
                 VowbaseTheme.background.ignoresSafeArea()
 
-                MapWorkspaceView(store: store, lens: navigation.selectedLens, consoleInset: consoleHeight)
+                MapWorkspaceView(
+                    store: store,
+                    lens: navigation.selectedLens,
+                    consoleInset: consoleHeight,
+                    selectedGuestID: navigation.selectedGuestID,
+                    onSelectVenue: selectVenue,
+                    onClearFocus: clearMapFocus
+                )
 
                 ContextBar(store: store, onSignOut: onSignOut)
                     .padding(.horizontal, 16)
@@ -332,12 +339,23 @@ struct WeddingAppShell: View {
             EmptyView()
         case .venues:
             if let venue = store.venues.first(where: { $0.id == store.selectedVenueID }) {
-                VenueImpactHeader(venue: venue, impact: store.travelImpact, onTapReadout: handleImpactRowTap)
+                VenueImpactHeader(
+                    venue: venue,
+                    impact: store.travelImpact,
+                    onOpenDetails: { openVenueDetails(venue) },
+                    onTapReadout: handleImpactRowTap
+                )
             } else {
                 ConsoleHeader(venues: store.venues)
             }
         case .guests:
-            ConsoleHeader(guests: store.allGuestRecords)
+            if let guest = store.guests.first(where: { $0.id == navigation.selectedGuestID }) {
+                GuestSelectionHeader(guest: guest) {
+                    openGuestDetails(guest)
+                }
+            } else {
+                ConsoleHeader(guests: store.allGuestRecords)
+            }
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
         }
@@ -390,7 +408,7 @@ struct WeddingAppShell: View {
             }
         case .venues:
             if currentDetent == .peek {
-                VenueRailContent(store: store)
+                VenueRailContent(store: store, onSelect: selectVenue)
             } else {
                 VenuesView(
                     store: store,
@@ -402,7 +420,11 @@ struct WeddingAppShell: View {
             }
         case .guests:
             if currentDetent == .peek {
-                GuestRailContent(store: store)
+                GuestRailContent(
+                    store: store,
+                    selectedGuestID: navigation.selectedGuestID,
+                    onSelect: selectGuest
+                )
             } else {
                 GuestsView(store: store, path: guestsPathBinding)
             }
@@ -424,6 +446,41 @@ struct WeddingAppShell: View {
             else { return false }
             return due <= boundary
         }.count
+    }
+
+    private func selectVenue(_ venue: MVPVenue) {
+        navigation.selectedGuestID = nil
+        if store.selectedVenueID == venue.id {
+            openVenueDetails(venue)
+        } else {
+            store.selectedVenueID = venue.id
+        }
+    }
+
+    private func selectGuest(_ guest: MVPGuest) {
+        store.selectedVenueID = nil
+        if navigation.selectedGuestID == guest.id {
+            openGuestDetails(guest)
+        } else {
+            navigation.selectedGuestID = guest.id
+        }
+    }
+
+    private func openVenueDetails(_ venue: MVPVenue) {
+        lensDetents[.venues] = .full
+        navigation.venuesPath = NavigationPath()
+        navigation.venuesPath.append(venue)
+    }
+
+    private func openGuestDetails(_ guest: MVPGuest) {
+        lensDetents[.guests] = .full
+        navigation.guestsPath = NavigationPath()
+        navigation.guestsPath.append(guest)
+    }
+
+    private func clearMapFocus() {
+        store.selectedVenueID = nil
+        navigation.selectedGuestID = nil
     }
 }
 
