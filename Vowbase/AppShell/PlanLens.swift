@@ -41,7 +41,7 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
     /// Whether this lens contributes anything to the map canvas.
     ///
     /// A canvas-optional lens draws no annotations, holds no camera authority,
-    /// and opens its console at `.half` rather than `.peek` — there is no map
+    /// and opens its console at `.full` rather than `.peek` — there is no map
     /// selection for a peek rail to caption. Tasks is the first of these;
     /// Budget will be the second. See spec §2.1.
     var isCanvasOptional: Bool {

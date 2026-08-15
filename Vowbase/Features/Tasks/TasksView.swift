@@ -25,7 +25,7 @@ private enum TasksPresentation: String, CaseIterable, Identifiable {
 }
 
 /// The Tasks lens's console content. Canvas-optional (spec §2.1): the
-/// console opens at `.half` rather than `.peek` since there's no map
+/// console opens at `.full` rather than `.peek` since there's no map
 /// selection for a peek rail to caption, and its own header is gone — the
 /// shared, selection-aware `ConsoleHeader` covers it now.
 @MainActor
@@ -182,7 +182,6 @@ private struct TaskSection: View {
             Text(bucket.title)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(bucket == .overdue ? .red : VowbaseTheme.mutedInk)
-                .padding(.horizontal, 20)
 
             VStack(spacing: 1) {
                 ForEach(tasks) { task in
@@ -192,7 +191,6 @@ private struct TaskSection: View {
             }
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(VowbaseTheme.border.opacity(0.72), lineWidth: 1) }
-            .padding(.horizontal, 20)
         }
     }
 }
@@ -302,7 +300,7 @@ private struct TaskBoard: View {
                 }
             }
             .scrollTargetLayout()
-            .padding(20)
+            .padding(.vertical, 20)
             .padding(.bottom, 100)
         }
         .scrollTargetBehavior(.viewAligned(limitBehavior: .always))

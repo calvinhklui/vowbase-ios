@@ -47,7 +47,7 @@ struct WeddingAppShell: View {
         .overview: .peek,
         .venues: .peek,
         .guests: .peek,
-        .tasks: .half,
+        .tasks: .full,
     ]
 
     init(
@@ -153,7 +153,7 @@ struct WeddingAppShell: View {
     }
 
     private func defaultDetent(for lens: PlanLens) -> ConsoleDetent {
-        lens == .tasks ? .half : .peek
+        lens == .tasks ? .full : .peek
     }
 
     private func availableDetents(for lens: PlanLens) -> Set<PresentationDetent> {
@@ -161,7 +161,7 @@ struct WeddingAppShell: View {
         case .overview, .venues, .guests:
             Set(ConsoleDetent.allCases.map(\.presentationDetent))
         case .tasks:
-            [ConsoleDetent.half.presentationDetent, ConsoleDetent.full.presentationDetent]
+            [ConsoleDetent.full.presentationDetent]
         }
     }
 

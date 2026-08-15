@@ -750,7 +750,7 @@ Unchanged from the MVP spec and extended:
 | `IdentityBar` | Context bar | 80 pt of names → 52 pt of names, date, and search |
 | `ShortlistPanel` | Console, peek detent | Gains detents and selection-aware header |
 | `VenuesView` / `GuestsView` bodies | Console, half/full detent | Same lists, no separate screen |
-| `TasksView` body | Console, half/full detent | Canvas-optional lens, §2.1 — the view itself is unchanged |
+| `TasksView` body | Console, full detent | Canvas-optional lens, §2.1 — the view itself is unchanged |
 | `MapVenueCard` (4 facts, truncating) | Rail card (2 facts) | Location is redundant beside a pin |
 | `travel = "Unavailable"` | Impact readout | Wires up `travelTimes`, already in the API |
 | Bottom-right floating FAB | FAB riding the console's top edge | Stops overlapping cards |
