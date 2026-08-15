@@ -38,7 +38,10 @@ struct WorkspaceRepositoryIntegrationTests {
             let patch = WeddingPatch(
                 name: current.name,
                 coupleNames: current.coupleNames,
-                weddingDate: current.weddingDate,
+                weddingDate: current.weddingDate.map(NullablePatch.value) ?? .null,
+                dateFlexibility: current.dateFlexibility,
+                dateRangeStart: current.dateRangeStart.map(NullablePatch.value) ?? .null,
+                dateRangeEnd: current.dateRangeEnd.map(NullablePatch.value) ?? .null,
                 location: current.location
             )
 
@@ -60,7 +63,10 @@ struct WorkspaceRepositoryIntegrationTests {
             let patch = WeddingPatch(
                 name: current.name,
                 coupleNames: current.coupleNames,
-                weddingDate: current.weddingDate,
+                weddingDate: current.weddingDate.map(NullablePatch.value) ?? .null,
+                dateFlexibility: current.dateFlexibility,
+                dateRangeStart: current.dateRangeStart.map(NullablePatch.value) ?? .null,
+                dateRangeEnd: current.dateRangeEnd.map(NullablePatch.value) ?? .null,
                 location: current.location
             )
 

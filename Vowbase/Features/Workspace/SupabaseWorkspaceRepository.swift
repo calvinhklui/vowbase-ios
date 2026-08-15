@@ -3,7 +3,7 @@ import Supabase
 
 final class SupabaseWorkspaceRepository: WorkspaceRepository, @unchecked Sendable {
     private static let weddingColumns =
-        "id,name,couple_names,wedding_date,location"
+        "id,name,couple_names,wedding_date,date_flexibility,date_range_start,date_range_end,location"
     private static let membershipColumns =
         "id,wedding_id,user_id,role,status,wedding:weddings(\(weddingColumns))"
 

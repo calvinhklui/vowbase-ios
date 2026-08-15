@@ -18,7 +18,7 @@ enum WeddingCountdownFormatter {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.timeZone = .current
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
@@ -26,7 +26,16 @@ enum WeddingCountdownFormatter {
     private static let displayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = .current
         formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+
+    private static let shortDisplayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = .current
+        formatter.dateFormat = "MMM d"
         return formatter
     }()
 
@@ -78,6 +87,27 @@ enum WeddingCountdownFormatter {
         if calendar.isDateInTomorrow(date) { return "Tomorrow" }
         guard let days = daysUntilWedding(weddingDateString) else { return nil }
         return days >= 0 ? "In \(days) days" : "\(-days) days ago"
+    }
+
+    static func dateRangeText(start: String?, end: String?) -> String? {
+        let startDate = start.flatMap(date(from:))
+        let endDate = end.flatMap(date(from:))
+        switch (startDate, endDate) {
+        case let (startDate?, endDate?):
+            if Calendar.current.isDate(startDate, inSameDayAs: endDate) {
+                return displayFormatter.string(from: startDate)
+            }
+            if Calendar.current.component(.year, from: startDate) == Calendar.current.component(.year, from: endDate) {
+                return "\(shortDisplayFormatter.string(from: startDate)) – \(displayFormatter.string(from: endDate))"
+            }
+            return "\(displayFormatter.string(from: startDate)) – \(displayFormatter.string(from: endDate))"
+        case let (startDate?, nil):
+            return displayFormatter.string(from: startDate)
+        case let (nil, endDate?):
+            return displayFormatter.string(from: endDate)
+        case (nil, nil):
+            return nil
+        }
     }
 }
 
@@ -235,6 +265,9 @@ final class VowbaseWorkspaceStore {
             name: "Example Wedding",
             coupleNames: "Example Couple",
             weddingDate: "2027-09-18",
+            dateFlexibility: "specific",
+            dateRangeStart: nil,
+            dateRangeEnd: nil,
             location: "Example City"
         )
         activeMembership = WeddingMembership(
@@ -517,14 +550,57 @@ final class VowbaseWorkspaceStore {
         saveFailure = SaveFailure(message: message, retry: retry, discard: discard)
     }
 
-    /// Sets the wedding's date — the context bar's "Add your date" tap
-    /// target (spec §5) routes here rather than being a dead end.
     func updateWeddingDate(_ date: Date) async -> Bool {
         guard let repositories, let weddingID = wedding?.id else { return unavailable() }
         do {
             let updated = try await repositories.workspace.updateWedding(
                 id: weddingID,
-                patch: WeddingPatch(weddingDate: WeddingCountdownFormatter.string(from: date))
+                patch: WeddingPatch(
+                    weddingDate: .value(WeddingCountdownFormatter.string(from: date)),
+                    dateFlexibility: "specific",
+                    dateRangeStart: .null,
+                    dateRangeEnd: .null
+                )
+            )
+            wedding = updated
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func updateWeddingDateRange(start: Date, end: Date) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        do {
+            let updated = try await repositories.workspace.updateWedding(
+                id: weddingID,
+                patch: WeddingPatch(
+                    weddingDate: .null,
+                    dateFlexibility: "range",
+                    dateRangeStart: .value(WeddingCountdownFormatter.string(from: start)),
+                    dateRangeEnd: .value(WeddingCountdownFormatter.string(from: end))
+                )
+            )
+            wedding = updated
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    func clearWeddingDates() async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        do {
+            let updated = try await repositories.workspace.updateWedding(
+                id: weddingID,
+                patch: WeddingPatch(
+                    weddingDate: .null,
+                    dateFlexibility: "undecided",
+                    dateRangeStart: .null,
+                    dateRangeEnd: .null
+                )
             )
             wedding = updated
             return true

@@ -32,11 +32,14 @@ struct WorkspaceRepositoryTests {
         #expect(membership.wedding.name == "Example Wedding")
         #expect(membership.wedding.coupleNames == "Example Couple")
         #expect(membership.wedding.weddingDate == "2027-06-12")
+        #expect(membership.wedding.dateFlexibility == "specific")
+        #expect(membership.wedding.dateRangeStart == nil)
+        #expect(membership.wedding.dateRangeEnd == nil)
         #expect(membership.wedding.location == "Brooklyn, NY")
         #expect(await adapter.selectRequests == [
             WorkspaceSelectRequest(
                 table: "wedding_memberships",
-                columns: "id,wedding_id,user_id,role,status,wedding:weddings(id,name,couple_names,wedding_date,location)",
+                columns: "id,wedding_id,user_id,role,status,wedding:weddings(id,name,couple_names,wedding_date,date_flexibility,date_range_start,date_range_end,location)",
                 equalityFilters: [
                     .init(column: "user_id", value: userID.uuidString.lowercased()),
                     .init(column: "status", value: "active"),
@@ -63,7 +66,7 @@ struct WorkspaceRepositoryTests {
         #expect(await adapter.selectRequests == [
             WorkspaceSelectRequest(
                 table: "weddings",
-                columns: "id,name,couple_names,wedding_date,location",
+                columns: "id,name,couple_names,wedding_date,date_flexibility,date_range_start,date_range_end,location",
                 equalityFilters: [
                     .init(column: "id", value: weddingID.uuidString.lowercased()),
                 ],
@@ -90,7 +93,7 @@ struct WorkspaceRepositoryTests {
         #expect(await adapter.updateRequests == [
             .init(
                 table: "weddings",
-                columns: "id,name,couple_names,wedding_date,location",
+                columns: "id,name,couple_names,wedding_date,date_flexibility,date_range_start,date_range_end,location",
                 equalityFilters: [
                     .init(column: "id", value: weddingID.uuidString.lowercased()),
                 ],
@@ -98,6 +101,37 @@ struct WorkspaceRepositoryTests {
                 patch: patch
             ),
         ])
+    }
+
+    @Test("wedding timing patches set one mode and clear the other")
+    func weddingTimingPatchEncoding() throws {
+        let encoder = JSONEncoder()
+
+        let specific = try #require(
+            JSONSerialization.jsonObject(with: encoder.encode(WeddingPatch(
+                weddingDate: .value("2027-06-12"),
+                dateFlexibility: "specific",
+                dateRangeStart: .null,
+                dateRangeEnd: .null
+            ))) as? [String: Any]
+        )
+        #expect(specific["wedding_date"] as? String == "2027-06-12")
+        #expect(specific["date_flexibility"] as? String == "specific")
+        #expect(specific["date_range_start"] is NSNull)
+        #expect(specific["date_range_end"] is NSNull)
+
+        let range = try #require(
+            JSONSerialization.jsonObject(with: encoder.encode(WeddingPatch(
+                weddingDate: .null,
+                dateFlexibility: "range",
+                dateRangeStart: .value("2027-06-01"),
+                dateRangeEnd: .value("2027-08-31")
+            ))) as? [String: Any]
+        )
+        #expect(range["wedding_date"] is NSNull)
+        #expect(range["date_flexibility"] as? String == "range")
+        #expect(range["date_range_start"] as? String == "2027-06-01")
+        #expect(range["date_range_end"] as? String == "2027-08-31")
     }
 
     @Test("session summary uses only the authenticated API endpoint fixture")
@@ -139,7 +173,7 @@ struct WorkspaceRepositoryTests {
             #expect(await adapter.updateRequests == [
                 .init(
                     table: "weddings",
-                    columns: "id,name,couple_names,wedding_date,location",
+                    columns: "id,name,couple_names,wedding_date,date_flexibility,date_range_start,date_range_end,location",
                     equalityFilters: [
                         .init(column: "id", value: weddingID.uuidString.lowercased()),
                     ],
@@ -316,6 +350,9 @@ struct WorkspaceRepositoryTests {
             name: "Example Wedding",
             coupleNames: "Example Couple",
             weddingDate: "2027-06-12",
+            dateFlexibility: "specific",
+            dateRangeStart: nil,
+            dateRangeEnd: nil,
             location: "Brooklyn, NY"
         )
     }
@@ -344,6 +381,9 @@ struct WorkspaceRepositoryTests {
             "name": "Example Wedding",
             "couple_names": "Example Couple",
             "wedding_date": "2027-06-12",
+            "date_flexibility": "specific",
+            "date_range_start": null,
+            "date_range_end": null,
             "location": "Brooklyn, NY"
           }
         }]
@@ -357,6 +397,9 @@ struct WorkspaceRepositoryTests {
           "name": "Example Wedding",
           "couple_names": "Example Couple",
           "wedding_date": "2027-06-12",
+          "date_flexibility": "specific",
+          "date_range_start": null,
+          "date_range_end": null,
           "location": "Brooklyn, NY"
         }
         """.utf8)
@@ -425,11 +468,24 @@ private actor WorkspaceDatabaseSpy: WorkspaceDatabaseAdapter {
                 id: current.id,
                 name: patch.name ?? current.name,
                 coupleNames: patch.coupleNames ?? current.coupleNames,
-                weddingDate: patch.weddingDate ?? current.weddingDate,
+                weddingDate: patch.weddingDate.applying(to: current.weddingDate),
+                dateFlexibility: patch.dateFlexibility ?? current.dateFlexibility,
+                dateRangeStart: patch.dateRangeStart.applying(to: current.dateRangeStart),
+                dateRangeEnd: patch.dateRangeEnd.applying(to: current.dateRangeEnd),
                 location: patch.location ?? current.location
             ) as! Response
         }
         return try productionDecoder.decode(Response.self, from: try #require(updateResponse))
+    }
+}
+
+private extension NullablePatch {
+    func applying(to current: Value?) -> Value? {
+        switch self {
+        case .unchanged: current
+        case let .value(value): value
+        case .null: nil
+        }
     }
 }
 

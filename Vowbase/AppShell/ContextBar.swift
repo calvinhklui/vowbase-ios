@@ -125,28 +125,76 @@ struct ContextBar: View {
     }
 }
 
-/// The only route to the wedding date, in both directions: a single
-/// `DatePicker` and a Save button, not a wedding-settings screen — nothing
-/// else about the wedding record is editable from the app yet.
+/// The only route to the workspace's wedding timing. It edits the same
+/// specific-date/range fields as web settings and clears the inactive shape
+/// whenever the couple switches modes.
 struct SetWeddingDateSheet: View {
+    private enum DateMode: String, CaseIterable, Identifiable {
+        case specific
+        case range
+
+        var id: Self { self }
+        var title: String { self == .specific ? "A date" : "A range" }
+    }
+
     let store: VowbaseWorkspaceStore
     @Environment(\.dismiss) private var dismiss
+    @State private var mode: DateMode = .specific
     @State private var date = Date()
+    @State private var rangeStart = Date()
+    @State private var rangeEnd = Date()
     @State private var isSaving = false
     @State private var failureMessage: String?
 
-    /// Editing an existing date should open *on* that date, not on today —
-    /// otherwise changing a date by one day means navigating back to it.
     private var existingDate: Date? {
         store.wedding?.weddingDate.flatMap(WeddingCountdownFormatter.date(from:))
+    }
+
+    private var existingRangeStart: Date? {
+        store.wedding?.dateRangeStart.flatMap(WeddingCountdownFormatter.date(from:))
+    }
+
+    private var existingRangeEnd: Date? {
+        store.wedding?.dateRangeEnd.flatMap(WeddingCountdownFormatter.date(from:))
+    }
+
+    private var hasExistingTiming: Bool {
+        existingDate != nil || existingRangeStart != nil || existingRangeEnd != nil
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                DatePicker("Wedding date", selection: $date, displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-                    .tint(VowbaseTheme.rose)
+                Section {
+                    Picker("When", selection: $mode) {
+                        ForEach(DateMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section {
+                    if mode == .specific {
+                        DatePicker("Wedding date", selection: $date, displayedComponents: .date)
+                    } else {
+                        DatePicker("Earliest", selection: $rangeStart, displayedComponents: .date)
+                        DatePicker(
+                            "Latest",
+                            selection: $rangeEnd,
+                            in: rangeStart...,
+                            displayedComponents: .date
+                        )
+                    }
+                }
+                .tint(VowbaseTheme.rose)
+
+                if hasExistingTiming {
+                    Section {
+                        Button("Remove wedding timing", role: .destructive) { clear() }
+                            .disabled(isSaving)
+                    }
+                }
 
                 if let failureMessage {
                     Section {
@@ -156,8 +204,20 @@ struct SetWeddingDateSheet: View {
                     }
                 }
             }
-            .onAppear { if let existingDate { date = existingDate } }
-            .navigationTitle(existingDate == nil ? "Add your date" : "Your date")
+            .onAppear {
+                if let existingDate {
+                    mode = .specific
+                    date = existingDate
+                } else if existingRangeStart != nil || existingRangeEnd != nil {
+                    mode = .range
+                    rangeStart = existingRangeStart ?? existingRangeEnd ?? Date()
+                    rangeEnd = max(existingRangeEnd ?? rangeStart, rangeStart)
+                }
+            }
+            .onChange(of: rangeStart) { _, newStart in
+                if rangeEnd < newStart { rangeEnd = newStart }
+            }
+            .navigationTitle(hasExistingTiming ? "Wedding timing" : "Add wedding timing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -175,12 +235,31 @@ struct SetWeddingDateSheet: View {
         isSaving = true
         failureMessage = nil
         Task {
-            let didSave = await store.updateWeddingDate(date)
+            let didSave = switch mode {
+            case .specific:
+                await store.updateWeddingDate(date)
+            case .range:
+                await store.updateWeddingDateRange(start: rangeStart, end: rangeEnd)
+            }
             isSaving = false
             if didSave {
                 dismiss()
             } else {
                 failureMessage = store.errorMessage ?? "Couldn’t save your date. Please try again."
+            }
+        }
+    }
+
+    private func clear() {
+        isSaving = true
+        failureMessage = nil
+        Task {
+            let didClear = await store.clearWeddingDates()
+            isSaving = false
+            if didClear {
+                dismiss()
+            } else {
+                failureMessage = store.errorMessage ?? "Couldn’t remove your timing. Please try again."
             }
         }
     }

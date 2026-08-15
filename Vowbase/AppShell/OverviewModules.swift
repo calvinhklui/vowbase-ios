@@ -229,14 +229,24 @@ struct CountdownModule: View {
             Button {
                 isSettingDate = true
             } label: {
-                if let weddingDate = store.wedding?.weddingDate,
-                   let date = WeddingCountdownFormatter.date(from: weddingDate) {
+                if let wedding = store.wedding,
+                   let countdownDateString = wedding.weddingDate ?? wedding.dateRangeStart ?? wedding.dateRangeEnd,
+                   let countdownDate = WeddingCountdownFormatter.date(from: countdownDateString) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(date.formatted(.dateTime.month(.abbreviated).day().year()))
+                        Text(
+                            wedding.weddingDate.flatMap {
+                                WeddingCountdownFormatter.dateRangeText(start: $0, end: nil)
+                            }
+                                ?? WeddingCountdownFormatter.dateRangeText(
+                                    start: wedding.dateRangeStart,
+                                    end: wedding.dateRangeEnd
+                                )
+                                ?? countdownDate.formatted(.dateTime.month(.abbreviated).day().year())
+                        )
                             .font(.system(size: 20, weight: .regular, design: .serif))
                             .foregroundStyle(VowbaseTheme.ink)
                         Spacer(minLength: 8)
-                        if let countdown = WeddingCountdownFormatter.countdownPhrase(for: weddingDate) {
+                        if let countdown = WeddingCountdownFormatter.countdownPhrase(for: countdownDateString) {
                             Text(countdown)
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(VowbaseTheme.mutedInk)
@@ -244,7 +254,7 @@ struct CountdownModule: View {
                     }
                     .contentShape(Rectangle())
                 } else {
-                    Text("Add your wedding date")
+                    Text("Add your wedding timing")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(VowbaseTheme.rose)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -252,7 +262,7 @@ struct CountdownModule: View {
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Changes your wedding date")
+            .accessibilityHint("Changes your wedding date or date range")
         }
         .sheet(isPresented: $isSettingDate) {
             SetWeddingDateSheet(store: store)
@@ -260,7 +270,12 @@ struct CountdownModule: View {
     }
 
     /// Blocking when unset — spec §11.2.
-    var urgency: ModuleUrgency { store.wedding?.weddingDate == nil ? .blocking : .ambient }
+    var urgency: ModuleUrgency {
+        guard let wedding = store.wedding else { return .blocking }
+        return wedding.weddingDate == nil && wedding.dateRangeStart == nil && wedding.dateRangeEnd == nil
+            ? .blocking
+            : .ambient
+    }
 }
 
 // MARK: - Needs you module
