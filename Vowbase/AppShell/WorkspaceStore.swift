@@ -404,7 +404,7 @@ final class VowbaseWorkspaceStore {
         }
     }
 
-    /// The plain-duration value venue cards and the comparison sheet show
+    /// The plain-duration value venue cards and other planning surfaces show
     /// alongside their own "guest travel" caption. Only ever real for the
     /// selected, resolved venue — computing this for every listed venue
     /// would mean one `travelTimes` request per row, which spec §8 never
