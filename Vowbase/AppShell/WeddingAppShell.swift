@@ -25,7 +25,7 @@ private enum QuickAddDestination: String, Identifiable {
 ///   to its bottom) rather than as an overlay on the canvas — otherwise the
 ///   sheet would cover it at every detent. The Quick Add FAB follows suit:
 ///   at `.peek` it floats on the canvas just above the console, but past
-///   peek the console covers most or all of the screen, so the FAB moves
+///   peek the console covers most or all of the screen, so the same FAB moves
 ///   inside the console itself (bottom-trailing, above the rail) or it would
 ///   be unreachable. Both the FAB's position and the map's camera inset are
 ///   driven off `currentDetent` rather than the live drag position — SwiftUI
@@ -195,27 +195,11 @@ struct WeddingAppShell: View {
                 // own material. `mutedInk` at partial opacity stays adaptive
                 // across light/dark and Increased Contrast while actually
                 // being visible.
-                ZStack(alignment: .top) {
-                    Capsule()
-                        .fill(VowbaseTheme.mutedInk.opacity(0.5))
-                        .frame(width: 44, height: 5)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 22)
-
-                    // Past peek the console fills too much of the screen for a
-                    // floating button to sit anywhere harmless — it landed on
-                    // the Tasks filter control and on venue detail's stats. A
-                    // menu anchored here can't collide with content, and being
-                    // a plain `Menu` it also sheds the custom scrim whose
-                    // z-order was swallowing the FAB's taps.
-                    if currentDetent != .peek && !isVenueNoteEditing {
-                        HStack {
-                            Spacer(minLength: 0)
-                            consoleAddMenu
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                }
+                Capsule()
+                    .fill(VowbaseTheme.mutedInk.opacity(0.5))
+                    .frame(width: 44, height: 5)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 22)
 
                 consoleHeader
                     .padding(.horizontal, 16)
@@ -227,6 +211,32 @@ struct WeddingAppShell: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isVenueNoteEditing {
                 LensRail(selection: selectedLensBinding)
+            }
+        }
+        .overlay {
+            if showsConsoleQuickAdd && isQuickAddPresented {
+                Color.black.opacity(0.22)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
+                            isQuickAddPresented = false
+                        }
+                    }
+                    .accessibilityHidden(true)
+                    .transition(.opacity)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if showsConsoleQuickAdd {
+                QuickAddOverlay(
+                    isPresented: $isQuickAddPresented,
+                    onAddVenue: { quickAdd = .venue },
+                    onAddGuest: { quickAdd = .guest },
+                    onAddTask: { taskEditor = .add() }
+                )
+                .padding(.trailing, VowbaseControlMetric.screenInset)
+                .padding(.bottom, LensRail.occupiedHeight + VowbaseSpace.medium)
             }
         }
         .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
@@ -255,37 +265,10 @@ struct WeddingAppShell: View {
         }
     }
 
-    /// Quick Add past the peek detent. Rendered inside the grabber row, which
-    /// only exists while the console is at its own root — so a pushed venue or
-    /// guest detail gets no add button at all, which is right: creating a new
-    /// venue isn't a thing you do from inside one.
-    private var consoleAddMenu: some View {
-        Menu {
-            Button {
-                quickAdd = .venue
-            } label: {
-                Label("Add Venue", systemImage: "mappin.and.ellipse")
-            }
-            Button {
-                quickAdd = .guest
-            } label: {
-                Label("Add Guest", systemImage: "person.badge.plus")
-            }
-            Button {
-                taskEditor = .add()
-            } label: {
-                Label("Add Task", systemImage: "checkmark.circle.badge.plus")
-            }
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(VowbaseTheme.rose, in: Circle())
-                .contentShape(Circle())
-        }
-        .accessibilityLabel("Quick add")
-        .accessibilityHint("Shows actions to add a venue, guest, or task")
+    /// Past peek, keep the same full-size FAB inside the console and above the
+    /// lens rail. Pushed venue/guest details and venue-note editing suppress it.
+    private var showsConsoleQuickAdd: Bool {
+        currentDetent != .peek && isConsoleAtRoot && !isVenueNoteEditing
     }
 
     /// Whether the active lens's console is showing its own root content
@@ -430,6 +413,9 @@ struct WeddingAppShell: View {
 private struct LensRail: View {
     @Binding var selection: PlanLens
 
+    static let contentHeight: CGFloat = 70
+    static let occupiedHeight = contentHeight + 16
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
@@ -478,7 +464,7 @@ private struct LensRail: View {
         }
         .padding(6)
         .frame(maxWidth: .infinity)
-        .frame(height: 70)
+        .frame(height: Self.contentHeight)
     }
 
     private func select(_ lens: PlanLens) {
