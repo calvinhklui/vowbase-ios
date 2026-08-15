@@ -188,17 +188,11 @@ struct GuestsView: View {
         if visibleGuests.isEmpty {
             emptyState
         } else {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(visibleGuests.enumerated()), id: \.element.id) { index, guest in
-                    NavigationLink(value: guest) {
-                        GuestRow(guest: guest)
-                    }
-                    .buttonStyle(.plain)
-                    if index < visibleGuests.count - 1 {
-                        Divider().padding(.leading, 72)
-                    }
-                }
-            }
+            GuestLedger(
+                guests: visibleGuests,
+                customColumns: store.visibleCustomColumns,
+                store: store
+            )
         }
     }
 
@@ -622,31 +616,263 @@ private struct GuestFilterSheet: View {
     }
 }
 
-private struct GuestRow: View {
-    let guest: MVPGuest
+// MARK: - Guest ledger
+
+/// A compact, spreadsheet-like guest list. The leading name column stays in
+/// place while one shared horizontal scroller reveals all remaining fields.
+/// Keeping every attribute row inside the same scroller is what keeps headers
+/// and rows aligned as the user scrolls sideways.
+@MainActor
+private struct GuestLedger: View {
+    let guests: [MVPGuest]
+    let customColumns: [GuestCustomColumn]
+    let store: VowbaseWorkspaceStore
+
+    private let nameColumnWidth: CGFloat = 172
+    private let headerHeight: CGFloat = 42
+    private let rowHeight: CGFloat = 62
+
+    private var columns: [GuestLedgerColumn] {
+        let preferred = GuestDisplayResolver.subtitleColumn(in: customColumns)
+        let remaining = customColumns.filter { $0.id != preferred?.id }
+        let leading = preferred.map(GuestLedgerColumn.custom).map { [$0] } ?? []
+        return leading
+            + [.rsvp]
+            + remaining.map(GuestLedgerColumn.custom)
+            + [.location, .email, .phone, .plusGuests]
+    }
+
+    /// Resolve records and plus-one text once per render rather than doing
+    /// store lookups from every visible cell.
+    private var rows: [GuestLedgerRowModel] {
+        let recordsByID = Dictionary(uniqueKeysWithValues: store.allGuestRecords.map { ($0.id, $0) })
+        let namedPlusCounts = Dictionary(grouping: store.allGuestRecords.compactMap { record in
+            record.plusOfGuestID.map { ($0, record) }
+        }, by: \.0).mapValues(\.count)
+
+        return guests.map { guest in
+            let record = recordsByID[guest.id]
+            let plusGuestsText: String?
+            if let hostID = record?.plusOfGuestID, let host = recordsByID[hostID] {
+                let hostName = [host.firstName, host.lastName]
+                    .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                plusGuestsText = hostName.isEmpty ? "Linked guest" : "Guest of \(hostName)"
+            } else if let limit = record?.plusLimit, limit > 0 {
+                plusGuestsText = "\(namedPlusCounts[guest.id, default: 0]) of \(limit) named"
+            } else {
+                plusGuestsText = nil
+            }
+            return GuestLedgerRowModel(guest: guest, record: record, plusGuestsText: plusGuestsText)
+        }
+    }
 
     var body: some View {
-        HStack(spacing: 14) {
-            Text(guest.initials)
-                .font(.system(size: 22, weight: .regular, design: .serif))
-                .frame(width: 58, height: 58)
-                .background(VowbaseTheme.blush, in: Circle())
-            VStack(alignment: .leading, spacing: 5) {
-                Text(guest.name)
-                    .font(.system(size: 19, weight: .semibold, design: .serif))
-                    .foregroundStyle(VowbaseTheme.ink)
-                if let subtitle = guest.subtitle {
-                    Text(subtitle)
-                        .font(.system(size: 15))
-                        .foregroundStyle(VowbaseTheme.mutedInk)
-                        .lineLimit(1)
+        ZStack(alignment: .topLeading) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    fullWidthHeaders
+                    ForEach(rows) { row in
+                        NavigationLink(value: row.guest) {
+                            GuestLedgerAttributeRow(
+                                row: row,
+                                columns: columns,
+                                nameColumnWidth: nameColumnWidth,
+                                rowHeight: rowHeight
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(accessibilityLabel(for: row))
+                        .accessibilityHint("Shows guest details")
+                        Divider()
+                    }
                 }
             }
-            Spacer(minLength: 8)
-            RSVPStatusCapsule(status: guest.rsvp)
+            .accessibilityLabel("Guest details columns")
+
+            nameColumnOverlay
+                .frame(width: nameColumnWidth)
+                .background(VowbaseTheme.background)
+                .overlay(alignment: .trailing) {
+                    Rectangle()
+                        .fill(VowbaseTheme.border)
+                        .frame(width: 1)
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
-        .padding(.vertical, 18)
+        .overlay(alignment: .top) { Divider() }
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private var nameColumnOverlay: some View {
+        VStack(spacing: 0) {
+            Text("Name")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.mutedInk)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .frame(height: headerHeight)
+
+            ForEach(rows) { row in
+                Text(row.guest.name)
+                    .font(.system(size: 19, weight: .regular, design: .serif))
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .frame(height: rowHeight)
+                Divider()
+            }
+        }
+    }
+
+    private var fullWidthHeaders: some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: nameColumnWidth)
+            ForEach(columns) { column in
+                Text(column.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                    .lineLimit(1)
+                    .frame(width: column.width, alignment: .leading)
+                    .padding(.horizontal, 12)
+            }
+        }
+        .frame(height: headerHeight)
+    }
+
+    private func accessibilityLabel(for row: GuestLedgerRowModel) -> String {
+        let values = columns.compactMap { column -> String? in
+            let value: String?
+            switch column {
+            case .rsvp:
+                value = row.guest.rsvp.title
+            default:
+                value = row.value(for: column)
+            }
+            return value.map { "\(column.title): \($0)" }
+        }
+        return (["Open \(row.guest.name)"] + values).joined(separator: ", ")
+    }
+}
+
+private enum GuestLedgerColumn: Identifiable {
+    case custom(GuestCustomColumn)
+    case rsvp
+    case location
+    case email
+    case phone
+    case plusGuests
+
+    var id: String {
+        switch self {
+        case let .custom(column): "custom-\(column.id.uuidString)"
+        case .rsvp: "rsvp"
+        case .location: "location"
+        case .email: "email"
+        case .phone: "phone"
+        case .plusGuests: "plus-guests"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case let .custom(column): column.label
+        case .rsvp: "RSVP"
+        case .location: "Location"
+        case .email: "Email"
+        case .phone: "Phone"
+        case .plusGuests: "Plus-one"
+        }
+    }
+
+    var width: CGFloat {
+        switch self {
+        case .rsvp: 104
+        case .location: 144
+        case .email: 190
+        case .phone: 142
+        case .plusGuests: 156
+        case .custom: 148
+        }
+    }
+}
+
+@MainActor
+private struct GuestLedgerAttributeRow: View {
+    let row: GuestLedgerRowModel
+    let columns: [GuestLedgerColumn]
+    let nameColumnWidth: CGFloat
+    let rowHeight: CGFloat
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: nameColumnWidth)
+            ForEach(columns) { column in
+                cell(for: column)
+                    .frame(width: column.width, alignment: .leading)
+                    .padding(.horizontal, 12)
+            }
+        }
+        .frame(height: rowHeight)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private func cell(for column: GuestLedgerColumn) -> some View {
+        switch column {
+        case .rsvp:
+            Text(row.guest.rsvp.title)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(rsvpColor)
+                .lineLimit(1)
+        default:
+            let value = row.value(for: column)
+            Text(value ?? "—")
+                .font(.system(size: 16))
+                .foregroundStyle(value == nil ? VowbaseTheme.mutedInk : VowbaseTheme.ink)
+                .lineLimit(1)
+        }
+    }
+
+    private var rsvpColor: Color {
+        switch row.guest.rsvp {
+        case .maybe: VowbaseTheme.guestBlue
+        case .accepted: VowbaseTheme.ink
+        case .pending, .declined: VowbaseTheme.rose
+        case .notInvited: VowbaseTheme.mutedInk
+        }
+    }
+
+}
+
+private struct GuestLedgerRowModel: Identifiable {
+    let guest: MVPGuest
+    let record: Guest?
+    let plusGuestsText: String?
+
+    var id: UUID { guest.id }
+
+    func value(for column: GuestLedgerColumn) -> String? {
+        switch column {
+        case let .custom(column):
+            return GuestCustomFields.displayText(
+                record.flatMap { GuestCustomFields.value(in: $0.customFields, for: column.key) },
+                kind: column.kind
+            )
+        case .location:
+            return guest.location
+        case .email:
+            return guest.email
+        case .phone:
+            return guest.phone
+        case .plusGuests:
+            return plusGuestsText
+        case .rsvp:
+            return nil
+        }
     }
 }
 
