@@ -172,6 +172,7 @@ private struct TaskEditorFields: View {
                 Section { Button("Delete Task", role: .destructive) { showsDeleteConfirmation = true } }
             }
         }
+        .contentMargins(.horizontal, VowbaseControlMetric.screenInset, for: .scrollContent)
     }
 }
 

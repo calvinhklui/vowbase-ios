@@ -14,7 +14,7 @@ struct AddVenueSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("First, the essentials") {
+                Section {
                     TextField("Venue name", text: $name)
                         .focused($isNameFocused)
                         .textInputAutocapitalization(.words)
@@ -27,15 +27,16 @@ struct AddVenueSheet: View {
                     }
                 }
             }
+            .contentMargins(.horizontal, VowbaseControlMetric.screenInset, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
             .tint(VowbaseTheme.rose)
-            .navigationTitle("Add venue")
+            .navigationTitle("Add Venue")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save venue") {
+                    Button("Save") {
                         saveVenue()
                     }
                     .disabled(name.trimmed.isEmpty || isSaving)

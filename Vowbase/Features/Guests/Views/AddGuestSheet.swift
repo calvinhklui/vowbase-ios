@@ -54,15 +54,16 @@ struct AddGuestSheet: View {
                     }
                 }
             }
+            .contentMargins(.horizontal, VowbaseControlMetric.screenInset, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
             .tint(VowbaseTheme.rose)
-            .navigationTitle("Add guest")
+            .navigationTitle("Add Guest")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save guest") { save() }
+                    Button("Save") { save() }
                         .disabled(!canSave)
                 }
             }
@@ -133,8 +134,6 @@ struct AddGuestSheet: View {
             .accessibilityHint(showsMoreDetails
                                ? "Hides contact and custom fields"
                                : "Shows contact and custom fields")
-        } header: {
-            Text("First, the essentials")
         }
     }
 
@@ -153,8 +152,6 @@ struct AddGuestSheet: View {
             ForEach(store.visibleCustomColumns) { column in
                 customField(column)
             }
-        } header: {
-            Text("More details")
         } footer: {
             if store.customFieldsUnavailable {
                 Text("Custom fields couldn’t be loaded. You can still save this guest and fill them in later.")
