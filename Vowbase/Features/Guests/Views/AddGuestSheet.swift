@@ -16,6 +16,7 @@ struct AddGuestSheet: View {
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var location = ""
+    @State private var selectedAddress: String?
     @State private var email = ""
     @State private var phone = ""
     @State private var rsvp: RSVPStatus = .notInvited
@@ -86,8 +87,11 @@ struct AddGuestSheet: View {
                     Text(status.title).tag(status)
                 }
             }
-            TextField("Address or location (optional)", text: $location)
-                .textInputAutocapitalization(.words)
+            AppleMapsAddressField(
+                text: $location,
+                selectedAddress: $selectedAddress,
+                placeholder: "Address or location (optional)"
+            )
             Picker("Additional guests", selection: $plusLimit) {
                 Text("None").tag(0)
                 ForEach(1...10, id: \.self) { count in
@@ -208,6 +212,7 @@ struct AddGuestSheet: View {
                 firstName: firstName,
                 lastName: lastName,
                 location: location,
+                selectedAddress: selectedAddress,
                 rsvp: rsvp,
                 email: email,
                 phone: phone,

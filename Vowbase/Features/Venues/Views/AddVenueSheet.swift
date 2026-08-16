@@ -8,6 +8,7 @@ struct AddVenueSheet: View {
     @FocusState private var isNameFocused: Bool
     @State private var name = ""
     @State private var location = ""
+    @State private var selectedAddress: String?
     @State private var status: VenueStatus = .considering
     @State private var isSaving = false
 
@@ -18,8 +19,11 @@ struct AddVenueSheet: View {
                     TextField("Venue name", text: $name)
                         .focused($isNameFocused)
                         .textInputAutocapitalization(.words)
-                    TextField("Address or location (optional)", text: $location)
-                        .textInputAutocapitalization(.words)
+                    AppleMapsAddressField(
+                        text: $location,
+                        selectedAddress: $selectedAddress,
+                        placeholder: "Address or location (optional)"
+                    )
                     Picker("Status", selection: $status) {
                         ForEach([VenueStatus.considering, .contacted, .toured, .shortlisted], id: \.self) {
                             Text($0.title).tag($0)
@@ -49,7 +53,12 @@ struct AddVenueSheet: View {
     private func saveVenue() {
         isSaving = true
         Task {
-            let didSave = await store.createVenue(name: name, location: location, status: status)
+            let didSave = await store.createVenue(
+                name: name,
+                location: location,
+                selectedAddress: selectedAddress,
+                status: status
+            )
             isSaving = false
             guard didSave else {
                 store.presentSaveFailure(retry: saveVenue, discard: { dismiss() })

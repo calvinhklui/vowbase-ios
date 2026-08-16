@@ -34,6 +34,7 @@
 		A1B2C3D4E5F600000000000B /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001F /* AuthServiceTests.swift */; };
 		A1B2C3D4E5F6000000000022 /* GuestFieldEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000023 /* GuestFieldEditingTests.swift */; };
 		A1B2C3D4E5F6000000000024 /* GuestFilteringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */; };
+		AADD00000000000000000001 /* AppleMapsAddressField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADD00000000000000000002 /* AppleMapsAddressField.swift */; };
 		A1B2C3D4E5F60000000000C1 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60000000000D1 /* AuthenticationView.swift */; };
 		AE0CF3EF8770A8484E394B73 /* PlanLens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B4D7ACA064013D3983E8B3E /* PlanLens.swift */; };
 		AE9AF995C56EA551D49B981C /* VenueDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EDA0836CF273871C711B1C9 /* VenueDetailView.swift */; };
@@ -151,6 +152,7 @@
 		72560A894289C3DF6F4B28F7 /* MapCameraFittingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapCameraFittingTests.swift; sourceTree = "<group>"; };
 		730B95063539CAED2656EDE9 /* WorkspaceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
 		7996C3888797713DA2463A22 /* AddGuestSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddGuestSheet.swift; path = Features/Guests/Views/AddGuestSheet.swift; sourceTree = "<group>"; };
+		AADD00000000000000000002 /* AppleMapsAddressField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMapsAddressField.swift; sourceTree = "<group>"; };
 		7FF5D34ADBBD2CB63EEA023B /* AddVenueSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AddVenueSheet.swift; path = Features/Venues/Views/AddVenueSheet.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000010 /* Vowbase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vowbase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6000000000011 /* VowbaseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseApp.swift; sourceTree = "<group>"; };
@@ -542,6 +544,7 @@
 		FAA3B4C5D6E7000000000039 /* Maps */ = {
 			isa = PBXGroup;
 			children = (
+				AADD00000000000000000002 /* AppleMapsAddressField.swift */,
 				FAA3B4C5D6E7000000000011 /* MapWorkflowModels.swift */,
 				FAA3B4C5D6E7000000000012 /* MapWorkflowRepository.swift */,
 				FAA3B4C5D6E7000000000013 /* APIMapWorkflowRepository.swift */,
@@ -662,6 +665,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AADD00000000000000000001 /* AppleMapsAddressField.swift in Sources */,
 				C1D2E3F4A5B6000000000001 /* APIRequest.swift in Sources */,
 				A1B2C3D4E5F6000000000009 /* APIErrorEnvelope.swift in Sources */,
 				D1E2F3A4B5C6000000000002 /* AppDependencies.swift in Sources */,

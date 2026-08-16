@@ -661,16 +661,22 @@ final class VowbaseWorkspaceStore {
         }
     }
 
-    func createVenue(name: String, location: String, status: VenueStatus) async -> Bool {
+    func createVenue(
+        name: String,
+        location: String,
+        selectedAddress: String? = nil,
+        status: VenueStatus
+    ) async -> Bool {
         guard let repositories, let weddingID = wedding?.id else { return unavailable() }
         do {
             let location = await resolvedLocation(for: location, repositories: repositories)
+            let savedAddress = selectedAddress?.nilIfBlank ?? location.displayName
             let venue = try await repositories.venues.createVenue(
                 VenueDraft(
                     name: name.trimmed,
                     status: status,
-                    location: location.displayName,
-                    address: location.displayName,
+                    location: savedAddress,
+                    address: savedAddress,
                     city: location.city,
                     state: location.region,
                     country: location.country,
@@ -750,6 +756,7 @@ final class VowbaseWorkspaceStore {
         firstName: String,
         lastName: String,
         location: String,
+        selectedAddress: String? = nil,
         rsvp: RSVPStatus,
         email: String = "",
         phone: String = "",
@@ -762,6 +769,7 @@ final class VowbaseWorkspaceStore {
         }
         do {
             let resolved = await resolvedLocation(for: location, repositories: repositories)
+            let savedAddress = selectedAddress?.nilIfBlank ?? resolved.displayName
             let guest = try await repositories.guests.createGuest(
                 GuestDraft(
                     firstName: firstName.trimmed,
@@ -769,7 +777,7 @@ final class VowbaseWorkspaceStore {
                     email: email.nilIfBlank,
                     phone: phone.nilIfBlank,
                     plusLimit: plusGuests.count,
-                    address: resolved.displayName,
+                    address: savedAddress,
                     customFields: .object(customFields),
                     rsvpStatus: rsvp,
                     originLabel: resolved.city ?? resolved.displayName,

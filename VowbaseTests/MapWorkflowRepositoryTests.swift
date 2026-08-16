@@ -4,6 +4,28 @@ import Testing
 
 @Suite("Map workflow repository")
 struct MapWorkflowRepositoryTests {
+    @Test("Apple Maps selection saves a one-line postal street address")
+    func appleMapsStreetAddress() {
+        let address = AppleMapsAddressSearch.streetAddress(
+            streetNumber: "1",
+            streetName: "Apple Park Way",
+            locality: "Cupertino",
+            administrativeArea: "CA",
+            postalCode: "95014",
+            country: "United States"
+        )
+
+        #expect(address == "1 Apple Park Way, Cupertino, CA 95014, United States")
+        #expect(AppleMapsAddressSearch.streetAddress(
+            streetNumber: nil,
+            streetName: nil,
+            locality: "Cupertino",
+            administrativeArea: "CA",
+            postalCode: "95014",
+            country: "United States"
+        ) == nil)
+    }
+
     @Test("geocode and travel requests use versioned camelCase contracts")
     func requestContractsAndFixtureDecoding() async throws {
         let api = MapAPIStub(responses: [try fixture("geocode-response"), try fixture("travel-times-response")])
