@@ -184,16 +184,30 @@ struct MapWorkspaceView: View {
             : TravelDurationFormatter.string(fromSeconds: travelTime.durationSeconds)
     }
 
-    /// The label under each cluster pin. A single guest reads "1 guest in
-    /// Northvale", not "1 guests" — it's the most prominent text on the
-    /// canvas, and a wedding with one guest per city is entirely normal.
+    /// The count is already visible in the cluster circle, so the title only
+    /// names the city and state. Shared web records can include country as a
+    /// third comma-separated component; it is intentionally omitted here.
     static func clusterTitle(for cluster: GuestCluster) -> String {
-        "\(cluster.count) \(cluster.count == 1 ? "guest" : "guests") in \(cluster.city)"
+        "Guests in \(guestOriginDisplayLocation(cluster.city))"
+    }
+
+    static func clusterAccessibilityTitle(for cluster: GuestCluster) -> String {
+        "\(cluster.count) \(cluster.count == 1 ? "guest" : "guests") in \(guestOriginDisplayLocation(cluster.city))"
+    }
+
+    private static func guestOriginDisplayLocation(_ label: String) -> String {
+        let cityAndState = label
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .prefix(2)
+            .joined(separator: ", ")
+        return cityAndState.isEmpty ? label : cityAndState
     }
 
     private func accessibilityLabel(for cluster: GuestCluster, badge: String?) -> String {
-        guard let badge else { return Self.clusterTitle(for: cluster) }
-        return "\(Self.clusterTitle(for: cluster)), \(badge) to selected venue"
+        guard let badge else { return Self.clusterAccessibilityTitle(for: cluster) }
+        return "\(Self.clusterAccessibilityTitle(for: cluster)), \(badge) to selected venue"
     }
 }
 
