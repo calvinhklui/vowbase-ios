@@ -188,41 +188,51 @@ struct GuestsView: View {
 
     private var metricCards: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: VowbaseSpace.small) {
                 ForEach(metricConfiguration.shownMetrics) { metric in
+                    let isSelected = selectedMetricID == metric.id
+
                     Button {
-                        selectedMetricID = selectedMetricID == metric.id ? nil : metric.id
+                        selectedMetricID = isSelected ? nil : metric.id
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
+                            Text("\(metric.count(in: records))")
+                                .font(.system(.title2, design: .serif, weight: .semibold))
+                                .foregroundStyle(isSelected ? VowbaseDesign.onRose : VowbaseTheme.ink)
+                                .monospacedDigit()
+                            Spacer(minLength: 0)
                             Text(metric.cardTitle)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(VowbaseTheme.mutedInk)
+                                .font(VowbaseType.caption.weight(.semibold))
+                                .foregroundStyle(isSelected ? VowbaseDesign.onRose.opacity(0.82) : VowbaseTheme.mutedInk)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.8)
-                            Spacer(minLength: 0)
-                            Text("\(metric.count(in: records))")
-                                .font(.system(size: 24, weight: .regular, design: .rounded))
-                                .foregroundStyle(selectedMetricID == metric.id ? VowbaseTheme.rose : VowbaseTheme.ink)
-                                .monospacedDigit()
+                                .multilineTextAlignment(.leading)
                         }
-                        .padding(10)
+                        .padding(VowbaseSpace.medium)
                         .frame(width: 104, height: 88, alignment: .leading)
                         .background(
-                            selectedMetricID == metric.id ? VowbaseTheme.blush : VowbaseTheme.background,
-                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            isSelected ? VowbaseTheme.rose : VowbaseDesign.surface,
+                            in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
                         )
                         .overlay {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(selectedMetricID == metric.id ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selectedMetricID == metric.id ? 1.5 : 1)
+                            RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
+                                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: 1)
                         }
+                        .shadow(
+                            color: isSelected ? VowbaseTheme.rose.opacity(0.18) : Color.black.opacity(0.04),
+                            radius: isSelected ? 7 : 4,
+                            y: isSelected ? 3 : 2
+                        )
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(metric.name), \(metric.count(in: records)) guests")
-                    .accessibilityHint(selectedMetricID == metric.id ? "Double tap to show all guests" : "Double tap to filter the guest list")
+                    .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest list")
                 }
             }
-            .padding(.vertical, 1)
+            .padding(.vertical, VowbaseSpace.small)
         }
+        .contentMargins(.horizontal, 1, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
     }
 
     /// A filtered list should never look like the whole list. Every active
