@@ -18,7 +18,7 @@ enum GuestLocationBucket: Hashable, Sendable {
 
 /// A three-way condition. `any` means the field is not constrained at all,
 /// which is different from constraining it to "absent".
-enum GuestPresenceFilter: String, CaseIterable, Sendable {
+enum GuestPresenceFilter: String, CaseIterable, Codable, Sendable {
     case any
     case present
     case absent
@@ -283,5 +283,171 @@ enum GuestQuery {
         case .accepted: 3
         case .declined: 4
         }
+    }
+}
+
+// MARK: - Configurable guest metrics
+
+/// A compact card always has one count condition. Keeping this separate from
+/// `GuestFilterSet` means tapping a card can narrow the ledger without
+/// rewriting the user's search or the independently managed filter row.
+enum GuestMetricCondition: Codable, Equatable, Sendable {
+    case allGuests
+    case rsvp(Set<RSVPStatus>)
+    case address(GuestPresenceFilter)
+    case customValue(key: String, value: String)
+    case customHasValue(key: String)
+    case customCheckbox(key: String, expected: Bool)
+
+    func matches(_ guest: Guest) -> Bool {
+        switch self {
+        case .allGuests:
+            return true
+        case let .rsvp(statuses):
+            return statuses.contains(guest.rsvpStatus ?? .notInvited)
+        case let .address(presence):
+            return presence.matches(guest.address)
+        case let .customValue(key, value):
+            return GuestMetricCondition.normalizedValue(
+                GuestMetricCondition.comparableValue(
+                    GuestCustomFields.value(in: guest.customFields, for: key)
+                )
+            ) == GuestMetricCondition.normalizedValue(value)
+        case let .customHasValue(key):
+            return GuestMetricCondition.normalizedValue(
+                GuestMetricCondition.comparableValue(
+                    GuestCustomFields.value(in: guest.customFields, for: key)
+                )
+            ) != nil
+        case let .customCheckbox(key, expected):
+            return (GuestCustomFields.value(in: guest.customFields, for: key) == .bool(true)) == expected
+        }
+    }
+
+    func summary(columns: [GuestCustomColumn]) -> String {
+        switch self {
+        case .allGuests:
+            return "All guests"
+        case let .rsvp(statuses):
+            let names = RSVPStatus.allCases.filter(statuses.contains).map(\.title)
+            return "RSVP is " + names.joined(separator: " or ")
+        case let .address(presence):
+            return presence == .absent ? "Address is missing" : "Has an address"
+        case let .customValue(key, value):
+            return "\(Self.columnLabel(for: key, columns: columns)) is \(value)"
+        case let .customHasValue(key):
+            return "Has \(Self.columnLabel(for: key, columns: columns))"
+        case let .customCheckbox(key, expected):
+            return "\(Self.columnLabel(for: key, columns: columns)) is \(expected ? "Yes" : "No")"
+        }
+    }
+
+    private static func columnLabel(for key: String, columns: [GuestCustomColumn]) -> String {
+        columns.first(where: { $0.key == key })?.label ?? key
+    }
+
+    private static func comparableValue(_ value: JSONValue?) -> String? {
+        guard let value else { return nil }
+        switch value {
+        case let .string(text): return text.isEmpty ? nil : text
+        case let .number(number): return GuestCustomFields.displayText(.number(number), kind: .number)
+        case let .bool(flag): return flag ? "Yes" : "No"
+        case .array, .object, .null: return nil
+        }
+    }
+
+    /// Text custom fields are authored by people, unlike select values, so
+    /// their metric equality follows the existing search normalization.
+    private static func normalizedValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.isEmpty ? nil : normalized
+    }
+}
+
+struct GuestMetric: Codable, Equatable, Identifiable, Sendable {
+    let id: String
+    var name: String
+    var condition: GuestMetricCondition
+    var isEnabled: Bool
+    let isCustom: Bool
+
+    /// The card rail uses a compact label while configuration keeps the more
+    /// descriptive metric name used in the approved management surface.
+    var cardTitle: String { id == "total-guests" ? "Total" : name }
+
+    func count(in guests: [Guest]) -> Int {
+        guests.count(where: condition.matches)
+    }
+}
+
+/// Device-local MVP configuration. Guest data remains server-backed; this is
+/// only each planner's preferred compact dashboard arrangement.
+struct GuestMetricConfiguration: Codable, Equatable, Sendable {
+    static let maximumShownMetrics = 8
+
+    var metrics: [GuestMetric]
+
+    static func `default`(columns: [GuestCustomColumn]) -> GuestMetricConfiguration {
+        GuestMetricConfiguration(metrics: systemMetrics(columns: columns))
+    }
+
+    var shownMetrics: [GuestMetric] { metrics.filter(\.isEnabled) }
+    var availableMetrics: [GuestMetric] { metrics.filter { !$0.isEnabled } }
+
+    func normalized(columns: [GuestCustomColumn]) -> GuestMetricConfiguration {
+        let defaults = Self.systemMetrics(columns: columns)
+        var normalized = metrics
+        for metric in defaults where !normalized.contains(where: { $0.id == metric.id }) {
+            normalized.append(metric)
+        }
+        return GuestMetricConfiguration(metrics: normalized)
+    }
+
+    mutating func enable(_ id: String) {
+        guard shownMetrics.count < Self.maximumShownMetrics,
+              let index = metrics.firstIndex(where: { $0.id == id }) else { return }
+        metrics[index].isEnabled = true
+    }
+
+    mutating func disable(_ id: String) {
+        guard let index = metrics.firstIndex(where: { $0.id == id }) else { return }
+        metrics[index].isEnabled = false
+    }
+
+    mutating func moveShown(from source: IndexSet, to destination: Int) {
+        var shown = shownMetrics
+        shown.move(fromOffsets: source, toOffset: destination)
+        let shownIDs = Set(shown.map(\.id))
+        let available = metrics.filter { !shownIDs.contains($0.id) }
+        metrics = shown + available
+    }
+
+    mutating func addCustom(name: String, condition: GuestMetricCondition) -> String? {
+        guard shownMetrics.count < Self.maximumShownMetrics else { return nil }
+        let id = "custom-\(UUID().uuidString.lowercased())"
+        metrics.append(GuestMetric(id: id, name: name, condition: condition, isEnabled: true, isCustom: true))
+        return id
+    }
+
+    private static func systemMetrics(columns: [GuestCustomColumn]) -> [GuestMetric] {
+        var metrics = [
+            GuestMetric(id: "total-guests", name: "Total guests", condition: .allGuests, isEnabled: true, isCustom: false),
+            GuestMetric(id: "needs-response", name: "Needs response", condition: .rsvp([.pending, .maybe]), isEnabled: true, isCustom: false),
+            GuestMetric(id: "accepted", name: "Accepted", condition: .rsvp([.accepted]), isEnabled: false, isCustom: false),
+            GuestMetric(id: "missing-address", name: "Missing address", condition: .address(.absent), isEnabled: false, isCustom: false)
+        ]
+        metrics += columns.map { column in
+            GuestMetric(
+                id: "field-\(column.key)",
+                name: column.label,
+                condition: column.kind == .checkbox
+                    ? .customCheckbox(key: column.key, expected: true)
+                    : .customHasValue(key: column.key),
+                isEnabled: false,
+                isCustom: false
+            )
+        }
+        return metrics
     }
 }

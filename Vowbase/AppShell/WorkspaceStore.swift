@@ -451,11 +451,13 @@ final class VowbaseWorkspaceStore {
     func filteredGuests(
         searchText: String,
         filters: GuestFilterSet,
-        sort: GuestSortOrder
+        sort: GuestSortOrder,
+        metric: GuestMetric? = nil
     ) -> [MVPGuest] {
         let columns = customColumnRecords
         return GuestQuery
             .apply(to: guestRecords, columns: columns, searchText: searchText, filters: filters, sort: sort)
+            .filter { metric?.condition.matches($0) ?? true }
             .map { MVPGuest($0, columns: columns) }
     }
 

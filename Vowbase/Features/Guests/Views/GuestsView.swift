@@ -14,17 +14,28 @@ struct GuestsView: View {
     @State private var filters = GuestFilterSet()
     @State private var sort: GuestSortOrder = .nameAscending
     @State private var showsFilter = false
+    @State private var metricConfiguration = GuestMetricConfiguration.default(columns: [])
+    @State private var selectedMetricID: String?
 
     private var visibleGuests: [MVPGuest] {
-        store.filteredGuests(searchText: query, filters: filters, sort: sort)
+        store.filteredGuests(
+            searchText: query,
+            filters: filters,
+            sort: sort,
+            metric: selectedMetric
+        )
     }
 
     private var records: [Guest] { store.allGuestRecords }
+    private var selectedMetric: GuestMetric? {
+        metricConfiguration.metrics.first(where: { $0.id == selectedMetricID })
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    metricCards
                     toolRow
                     if filters.conditionCount > 0 {
                         activeFilterTokens
@@ -44,12 +55,39 @@ struct GuestsView: View {
             }
             .navigationDestination(for: GuestsRoute.self) { route in
                 switch route {
+                case .customizeMetrics:
+                    CustomizeGuestMetricsView(
+                        configuration: $metricConfiguration,
+                        columns: store.visibleCustomColumns,
+                        guests: records
+                    )
                 case .customFields:
                     GuestFieldListView(store: store)
                 }
             }
             .sheet(isPresented: $showsFilter) {
                 GuestFilterSheet(store: store, searchText: query, filters: $filters)
+            }
+            .task(id: store.wedding?.id) {
+                let configuration = GuestMetricConfigurationStorage.load(
+                    weddingID: store.wedding?.id,
+                    columns: store.visibleCustomColumns
+                )
+                metricConfiguration = configuration
+                if let selectedMetricID,
+                   !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
+            }
+            .onChange(of: metricConfiguration) { _, configuration in
+                if let selectedMetricID,
+                   !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
+                GuestMetricConfigurationStorage.save(configuration, weddingID: store.wedding?.id)
+            }
+            .onChange(of: store.visibleCustomColumns) { _, columns in
+                metricConfiguration = metricConfiguration.normalized(columns: columns)
             }
         }
     }
@@ -132,6 +170,11 @@ struct GuestsView: View {
             } label: {
                 Label("Manage fields", systemImage: "list.bullet.rectangle")
             }
+            Button {
+                path.append(GuestsRoute.customizeMetrics)
+            } label: {
+                Label("Customize metrics", systemImage: "slider.horizontal.3")
+            }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 18, weight: .semibold))
@@ -140,7 +183,45 @@ struct GuestsView: View {
                 .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
         }
-        .accessibilityLabel("Sort and manage fields")
+        .accessibilityLabel("Sort, manage fields, and customize metrics")
+    }
+
+    private var metricCards: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(metricConfiguration.shownMetrics) { metric in
+                    Button {
+                        selectedMetricID = selectedMetricID == metric.id ? nil : metric.id
+                    } label: {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(metric.cardTitle)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(VowbaseTheme.mutedInk)
+                                .lineLimit(2)
+                            Spacer(minLength: 0)
+                            Text("\(metric.count(in: records))")
+                                .font(.system(size: 30, weight: .regular, design: .rounded))
+                                .foregroundStyle(selectedMetricID == metric.id ? VowbaseTheme.rose : VowbaseTheme.ink)
+                                .monospacedDigit()
+                        }
+                        .padding(16)
+                        .frame(width: 154, height: 112, alignment: .leading)
+                        .background(
+                            selectedMetricID == metric.id ? VowbaseTheme.blush : VowbaseTheme.background,
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(selectedMetricID == metric.id ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selectedMetricID == metric.id ? 1.5 : 1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(metric.name), \(metric.count(in: records)) guests")
+                    .accessibilityHint(selectedMetricID == metric.id ? "Double tap to show all guests" : "Double tap to filter the guest list")
+                }
+            }
+            .padding(.vertical, 1)
+        }
     }
 
     /// A filtered list should never look like the whole list. Every active
@@ -206,7 +287,7 @@ struct GuestsView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 36)
-        } else if filters.conditionCount > 0 {
+        } else if filters.conditionCount > 0 || selectedMetric != nil {
             VStack(spacing: 12) {
                 ContentUnavailableView(
                     "No guests match these filters",
@@ -215,6 +296,7 @@ struct GuestsView: View {
                 )
                 Button("Clear filters") {
                     filters = GuestFilterSet()
+                    selectedMetricID = nil
                 }
                 .font(.system(size: 16, weight: .semibold))
                 .tint(VowbaseTheme.rose)
@@ -233,12 +315,340 @@ struct GuestsView: View {
     }
 
     private var filterSummary: String {
-        "Active: " + tokens.map(\.title).joined(separator: ", ")
+        let parts = tokens.map(\.title) + (selectedMetric.map { [$0.name] } ?? [])
+        return "Active: " + parts.joined(separator: ", ")
     }
 }
 
 enum GuestsRoute: Hashable {
+    case customizeMetrics
     case customFields
+}
+
+private enum GuestMetricConfigurationStorage {
+    private static let keyPrefix = "guestMetricConfiguration."
+
+    static func load(weddingID: UUID?, columns: [GuestCustomColumn]) -> GuestMetricConfiguration {
+        let fallback = GuestMetricConfiguration.default(columns: columns)
+        guard let weddingID,
+              let data = UserDefaults.standard.data(forKey: key(for: weddingID)),
+              let stored = try? JSONDecoder().decode(GuestMetricConfiguration.self, from: data)
+        else {
+            return fallback
+        }
+        return stored.normalized(columns: columns)
+    }
+
+    static func save(_ configuration: GuestMetricConfiguration, weddingID: UUID?) {
+        guard let weddingID,
+              let data = try? JSONEncoder().encode(configuration) else { return }
+        UserDefaults.standard.set(data, forKey: key(for: weddingID))
+    }
+
+    private static func key(for weddingID: UUID) -> String {
+        keyPrefix + weddingID.uuidString.lowercased()
+    }
+}
+
+@MainActor
+private struct CustomizeGuestMetricsView: View {
+    @Binding var configuration: GuestMetricConfiguration
+    let columns: [GuestCustomColumn]
+    let guests: [Guest]
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: GuestMetricConfiguration
+    @State private var showsAddMetric = false
+
+    init(
+        configuration: Binding<GuestMetricConfiguration>,
+        columns: [GuestCustomColumn],
+        guests: [Guest]
+    ) {
+        _configuration = configuration
+        self.columns = columns
+        self.guests = guests
+        _draft = State(initialValue: configuration.wrappedValue.normalized(columns: columns))
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Text("Choose up to \(GuestMetricConfiguration.maximumShownMetrics) cards. Drag to reorder. Cards filter the guest list when tapped.")
+                    .font(.footnote)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                    .listRowBackground(Color.clear)
+            }
+
+            Section("Shown on Guests") {
+                ForEach(draft.shownMetrics) { metric in
+                    metricRow(metric, action: { draft.disable(metric.id) }, actionSymbol: "minus")
+                }
+                .onMove { source, destination in
+                    draft.moveShown(from: source, to: destination)
+                }
+            }
+
+            Section("Available Metrics") {
+                Button {
+                    showsAddMetric = true
+                } label: {
+                    Label("Add Metric", systemImage: "plus.circle")
+                        .foregroundStyle(VowbaseTheme.rose)
+                }
+                .disabled(draft.shownMetrics.count >= GuestMetricConfiguration.maximumShownMetrics)
+
+                ForEach(draft.availableMetrics) { metric in
+                    metricRow(metric, action: { draft.enable(metric.id) }, actionSymbol: "plus")
+                        .disabled(draft.shownMetrics.count >= GuestMetricConfiguration.maximumShownMetrics)
+                }
+            }
+        }
+        .environment(\.editMode, .constant(.active))
+        .scrollContentBackground(.hidden)
+        .background(VowbaseTheme.groupedBackground)
+        .tint(VowbaseTheme.rose)
+        .navigationTitle("Customize metrics")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    configuration = draft
+                    dismiss()
+                }
+            }
+        }
+        .sheet(isPresented: $showsAddMetric) {
+            AddGuestMetricView(columns: columns, guests: guests) { name, condition in
+                _ = draft.addCustom(name: name, condition: condition)
+            }
+        }
+    }
+
+    private func metricRow(
+        _ metric: GuestMetric,
+        action: @escaping () -> Void,
+        actionSymbol: String
+    ) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(metric.name)
+                    .foregroundStyle(VowbaseTheme.ink)
+                Text(metric.condition.summary(columns: columns))
+                    .font(.footnote)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Button(action: action) {
+                Image(systemName: actionSymbol)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(VowbaseTheme.rose)
+                    .frame(width: 32, height: 32)
+                    .background(VowbaseTheme.blush, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(actionSymbol == "minus" ? "Hide \(metric.name)" : "Show \(metric.name)")
+        }
+        .padding(.vertical, 5)
+    }
+}
+
+@MainActor
+private struct AddGuestMetricView: View {
+    let columns: [GuestCustomColumn]
+    let guests: [Guest]
+    let onAdd: (String, GuestMetricCondition) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var fieldID = "rsvp"
+    @State private var rsvp = RSVPStatus.accepted
+    @State private var addressPresence = GuestPresenceFilter.absent
+    @State private var customValue = ""
+    @State private var checkboxValue = true
+
+    private var fields: [MetricField] {
+        [.rsvp, .address] + columns.map(MetricField.custom)
+    }
+
+    private var field: MetricField {
+        fields.first(where: { $0.id == fieldID }) ?? .rsvp
+    }
+
+    private var values: [String] {
+        guard case let .custom(column) = field else { return [] }
+        let fromGuests = guests.compactMap { guest in
+            GuestCustomFields.displayText(
+                GuestCustomFields.value(in: guest.customFields, for: column.key),
+                kind: column.kind
+            )
+        }
+        let options = GuestCustomFields.options(in: column)
+        return Array(Set(options + fromGuests)).sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+    }
+
+    private var condition: GuestMetricCondition? {
+        switch field {
+        case .rsvp:
+            return .rsvp([rsvp])
+        case .address:
+            return .address(addressPresence)
+        case let .custom(column):
+            switch column.kind {
+            case .checkbox:
+                return .customCheckbox(key: column.key, expected: checkboxValue)
+            case .text, .number, .select:
+                guard !customValue.isEmpty else { return nil }
+                return .customValue(key: column.key, value: customValue)
+            }
+        }
+    }
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var previewCount: Int { condition.map { $0.matchesCount(in: guests) } ?? 0 }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Preview") {
+                    VStack(spacing: 8) {
+                        Text(trimmedName.isEmpty ? "New metric" : trimmedName)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                        Text("\(previewCount)")
+                            .font(.system(size: 34, weight: .regular, design: .rounded))
+                            .monospacedDigit()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .listRowBackground(VowbaseTheme.background)
+                }
+
+                Section("Card") {
+                    TextField("Metric name", text: $name)
+                        .textInputAutocapitalization(.words)
+                }
+
+                Section("Count guests where") {
+                    Picker("Field", selection: $fieldID) {
+                        ForEach(fields) { field in
+                            Text(field.title).tag(field.id)
+                        }
+                    }
+
+                    LabeledContent("Condition") {
+                        Text(field.conditionLabel)
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+
+                    conditionValueControl
+
+                    if let condition {
+                        Text("\(condition.summary(columns: columns)) · \(previewCount) guest\(previewCount == 1 ? "" : "s") match")
+                            .font(.footnote)
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(VowbaseTheme.groupedBackground)
+            .tint(VowbaseTheme.rose)
+            .navigationTitle("Add metric")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        guard let condition else { return }
+                        onAdd(trimmedName, condition)
+                        dismiss()
+                    }
+                    .disabled(trimmedName.isEmpty || condition == nil)
+                }
+            }
+            .onChange(of: fieldID) { _, _ in
+                customValue = values.first ?? ""
+            }
+            .onAppear {
+                customValue = values.first ?? ""
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var conditionValueControl: some View {
+        switch field {
+        case .rsvp:
+            Picker("Value", selection: $rsvp) {
+                ForEach(RSVPStatus.allCases, id: \.self) { status in
+                    Text(status.title).tag(status)
+                }
+            }
+        case .address:
+            Picker("Value", selection: $addressPresence) {
+                Text("Has address").tag(GuestPresenceFilter.present)
+                Text("Missing address").tag(GuestPresenceFilter.absent)
+            }
+        case let .custom(column):
+            if column.kind == .checkbox {
+                Picker("Value", selection: $checkboxValue) {
+                    Text("Yes").tag(true)
+                    Text("No").tag(false)
+                }
+            } else if values.isEmpty {
+                LabeledContent("Value") {
+                    Text("No values yet")
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            } else {
+                Picker("Value", selection: $customValue) {
+                    ForEach(values, id: \.self) { value in
+                        Text(value).tag(value)
+                    }
+                }
+            }
+        }
+    }
+
+    private enum MetricField: Identifiable {
+        case rsvp
+        case address
+        case custom(GuestCustomColumn)
+
+        var id: String {
+            switch self {
+            case .rsvp: "rsvp"
+            case .address: "address"
+            case let .custom(column): "custom-\(column.key)"
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .rsvp: "RSVP status"
+            case .address: "Address"
+            case let .custom(column): column.label
+            }
+        }
+
+        var conditionLabel: String {
+            "is"
+        }
+    }
+}
+
+private extension GuestMetricCondition {
+    func matchesCount(in guests: [Guest]) -> Int {
+        guests.count(where: matches)
+    }
 }
 
 /// One removable condition shown beneath the chips.

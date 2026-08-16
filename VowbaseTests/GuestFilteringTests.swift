@@ -280,4 +280,65 @@ struct GuestFilteringTests {
         #expect(previewed == applied)
         #expect(applied == 2)
     }
+
+    // MARK: - Metric cards
+
+    @Test("Metric conditions count RSVP, address, and custom-field values")
+    func metricConditionsMatchTheExpectedGuests() {
+        let needsResponse = GuestMetricCondition.rsvp([.pending, .maybe])
+        #expect(roster.count(where: needsResponse.matches) == 2)
+
+        let missingAddress = GuestMetricCondition.address(.absent)
+        #expect(roster.count(where: missingAddress.matches) == 2)
+
+        let originWithoutAddress = Guest(
+            id: UUID(), weddingID: weddingID, firstName: "Origin only",
+            address: nil, originLabel: "Lumen Bay", createdAt: .distantPast
+        )
+        #expect(missingAddress.matches(originWithoutAddress))
+
+        let fish = GuestMetricCondition.customValue(key: "meal", value: "Fish")
+        #expect(roster.count(where: fish.matches) == 2)
+
+        let normalizedVegan = GuestMetricCondition.customValue(key: "meal", value: "  vegan ")
+        #expect(roster.count(where: normalizedVegan.matches) == 1)
+
+        let plusOne = GuestMetricCondition.customCheckbox(key: "plus_one", expected: true)
+        #expect(roster.count(where: plusOne.matches) == 1)
+    }
+
+    @Test("Metric configuration preserves shown ordering and caps cards at eight")
+    func metricConfigurationOrderingAndLimit() {
+        var configuration = GuestMetricConfiguration.default(columns: [selectColumn("meal", options: ["Fish", "Vegan"])])
+        #expect(configuration.shownMetrics.map(\.id) == ["total-guests", "needs-response"])
+
+        configuration.enable("accepted")
+        configuration.moveShown(from: IndexSet(integer: 2), to: 0)
+        #expect(configuration.shownMetrics.map(\.id) == ["accepted", "total-guests", "needs-response"])
+
+        for index in 0..<6 {
+            _ = configuration.addCustom(name: "Metric \(index)", condition: .allGuests)
+        }
+        #expect(configuration.shownMetrics.count == GuestMetricConfiguration.maximumShownMetrics)
+        #expect(configuration.addCustom(name: "Too many", condition: .allGuests) == nil)
+    }
+
+    @Test("Metric configuration round-trips its user-created condition")
+    func metricConfigurationRoundTrips() throws {
+        var configuration = GuestMetricConfiguration.default(columns: [])
+        let addedID = configuration.addCustom(
+            name: "Bride's side",
+            condition: .customValue(key: "group", value: "Bride's side")
+        )
+        let id = try #require(addedID)
+
+        let restored = try JSONDecoder().decode(
+            GuestMetricConfiguration.self,
+            from: JSONEncoder().encode(configuration)
+        )
+        let metric = try #require(restored.metrics.first(where: { $0.id == id }))
+        #expect(metric.name == "Bride's side")
+        #expect(metric.condition == .customValue(key: "group", value: "Bride's side"))
+        #expect(metric.isEnabled)
+    }
 }
