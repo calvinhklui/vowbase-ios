@@ -163,8 +163,10 @@ struct WeddingAppShell: View {
 
     private func availableDetents(for lens: PlanLens) -> Set<PresentationDetent> {
         switch lens {
-        case .overview, .venues, .guests:
+        case .overview:
             Set(ConsoleDetent.allCases.map(\.presentationDetent))
+        case .venues, .guests:
+            [ConsoleDetent.peek.presentationDetent, ConsoleDetent.full.presentationDetent]
         case .tasks:
             [ConsoleDetent.full.presentationDetent]
         }
