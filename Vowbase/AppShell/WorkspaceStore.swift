@@ -144,6 +144,7 @@ struct MVPVenue: Identifiable, Hashable {
     let latitude: Double?
     let longitude: Double?
     let coverPhotoURL: URL?
+    let coverPhotoCacheKey: String
     let photos: [VenuePhotoDisplay]
     let ourNotes: String?
 
@@ -1281,6 +1282,7 @@ private extension MVPVenue {
         // here avoids a blank-image flash on the first render for plain https URLs, which
         // is exactly what the async resolver would settle on anyway.
         self.coverPhotoURL = coverPhotoURL ?? VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)
+        coverPhotoCacheKey = "venue-cover-\(venue.id)|\(venue.photoURL ?? "none")"
         photos = gallery.map { VenuePhotoDisplay(photo: $0, url: galleryPhotoURLs[$0.id]) }
         ourNotes = venue.ourNotes?.nilIfBlank
     }

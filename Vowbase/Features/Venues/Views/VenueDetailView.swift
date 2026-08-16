@@ -49,7 +49,10 @@ struct VenueDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                VowbaseVenueImage(url: currentVenue.photoURL)
+                VowbaseVenueImage(
+                    url: currentVenue.photoURL,
+                    cacheKey: currentVenue.coverPhotoCacheKey
+                )
                     .frame(height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 if currentVenue.photoURLs.count > 1 {

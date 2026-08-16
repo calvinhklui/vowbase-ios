@@ -296,12 +296,13 @@ private struct VenueRailCard: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            VowbaseVenueImage(url: venue.photoURL)
+            VowbaseVenueImage(url: venue.photoURL, cacheKey: venue.coverPhotoCacheKey)
                 .frame(width: 88, height: 104)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(venue.name)
                     .font(.system(size: 16, weight: .regular, design: .serif))
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
                 StatusCapsule(status: venue.status)
                 if let travel = venue.travel {
                     Label("\(travel) median guest travel", systemImage: "airplane")
@@ -310,7 +311,8 @@ private struct VenueRailCard: View {
                         .lineLimit(1)
                 }
             }
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .frame(width: 260, height: 104)
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))

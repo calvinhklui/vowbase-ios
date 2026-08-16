@@ -107,7 +107,7 @@ private struct CompactVenueRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            VowbaseVenueImage(url: venue.photoURL)
+            VowbaseVenueImage(url: venue.photoURL, cacheKey: venue.coverPhotoCacheKey)
                 .frame(width: 72, height: 76)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
@@ -153,10 +153,10 @@ private struct CompactVenueStatus: View {
     var body: some View {
         Text(status.title)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(VowbaseTheme.rose)
+            .foregroundStyle(status.badgeColor)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(VowbaseTheme.blush, in: Capsule())
+            .background(status.badgeColor.opacity(0.16), in: Capsule())
     }
 }
 

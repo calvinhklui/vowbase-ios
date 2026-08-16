@@ -5,10 +5,25 @@ struct StatusCapsule: View {
     var body: some View {
         Text(status.title)
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(VowbaseTheme.rose)
+            .foregroundStyle(status.badgeColor)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(VowbaseTheme.blush, in: Capsule())
+            .background(status.badgeColor.opacity(0.16), in: Capsule())
+    }
+}
+
+extension VenueStatus {
+    var badgeColor: Color {
+        switch self {
+        case .suggested: Color(uiColor: .systemPurple)
+        case .considering: Color(uiColor: .systemOrange)
+        case .contacted: Color(uiColor: .systemBlue)
+        case .toured: Color(uiColor: .systemIndigo)
+        case .shortlisted: Color(uiColor: .systemTeal)
+        case .negotiating: Color(uiColor: .systemBrown)
+        case .booked: Color(uiColor: .systemGreen)
+        case .passed: Color(uiColor: .secondaryLabel)
+        }
     }
 }
 
