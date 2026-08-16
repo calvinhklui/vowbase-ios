@@ -1038,9 +1038,9 @@ private struct GuestLedger: View {
     let customColumns: [GuestCustomColumn]
     let store: VowbaseWorkspaceStore
 
-    private let nameColumnWidth: CGFloat = 172
-    private let headerHeight: CGFloat = 42
-    private let rowHeight: CGFloat = 62
+    private let nameColumnWidth: CGFloat = 148
+    private let headerHeight: CGFloat = 36
+    private let rowHeight: CGFloat = 50
 
     private var columns: [GuestLedgerColumn] {
         let preferred = GuestDisplayResolver.subtitleColumn(in: customColumns)
@@ -1127,7 +1127,7 @@ private struct GuestLedger: View {
 
             ForEach(rows) { row in
                 Text(row.guest.name)
-                    .font(.system(size: 19, weight: .regular, design: .serif))
+                    .font(.system(size: 16, weight: .regular, design: .serif))
                     .foregroundStyle(VowbaseTheme.ink)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1147,7 +1147,7 @@ private struct GuestLedger: View {
                     .foregroundStyle(VowbaseTheme.mutedInk)
                     .lineLimit(1)
                     .frame(width: column.width, alignment: .leading)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 8)
             }
         }
         .frame(height: headerHeight)
@@ -1200,12 +1200,12 @@ private enum GuestLedgerColumn: Identifiable {
 
     var width: CGFloat {
         switch self {
-        case .rsvp: 104
-        case .location: 144
-        case .email: 190
-        case .phone: 142
-        case .plusGuests: 156
-        case .custom: 148
+        case .rsvp: 88
+        case .location: 120
+        case .email: 160
+        case .phone: 120
+        case .plusGuests: 132
+        case .custom: 124
         }
     }
 }
@@ -1223,7 +1223,7 @@ private struct GuestLedgerAttributeRow: View {
             ForEach(columns) { column in
                 cell(for: column)
                     .frame(width: column.width, alignment: .leading)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 8)
             }
         }
         .frame(height: rowHeight)
