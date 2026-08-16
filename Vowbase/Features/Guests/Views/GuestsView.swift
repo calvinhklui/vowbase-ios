@@ -363,13 +363,13 @@ private struct GuestMetricCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
             Text("\(guestCount)")
-                .font(.system(.title2, design: .serif, weight: .semibold))
-                .foregroundStyle(isSelected ? VowbaseDesign.onRose : VowbaseTheme.ink)
+                .font(.system(.title2, design: .default, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.rose)
                 .monospacedDigit()
             Spacer(minLength: 0)
             Text(metric.cardTitle)
-                .font(VowbaseType.caption.weight(.semibold))
-                .foregroundStyle(isSelected ? VowbaseDesign.onRose.opacity(0.82) : VowbaseTheme.mutedInk)
+                .font(.system(size: 13, weight: .semibold, design: .serif))
+                .foregroundStyle(VowbaseTheme.ink)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
                 .multilineTextAlignment(.leading)
@@ -377,18 +377,14 @@ private struct GuestMetricCard: View {
         .padding(VowbaseSpace.medium)
         .frame(width: 104, height: 88, alignment: .leading)
         .background(
-            isSelected ? VowbaseTheme.rose : VowbaseDesign.surface,
+            isSelected ? VowbaseTheme.blush : VowbaseDesign.surface,
             in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
         )
         .overlay {
             RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
-                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: 1)
+                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: isSelected ? 2 : 1)
         }
-        .shadow(
-            color: isSelected ? VowbaseTheme.rose.opacity(0.18) : Color.black.opacity(0.04),
-            radius: isSelected ? 7 : 4,
-            y: isSelected ? 3 : 2
-        )
+        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
     }
 }
 

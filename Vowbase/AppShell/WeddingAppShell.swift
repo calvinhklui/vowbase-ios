@@ -185,7 +185,7 @@ struct WeddingAppShell: View {
         )
     }
 
-    /// The console: grabber, selection-aware header, per-lens content — and,
+    /// The console: grabber, per-lens header, per-lens content — and,
     /// pinned to its own bottom, the lens rail. A `.sheet` always presents
     /// above the entire view it's attached to, so the rail has to live
     /// inside the sheet's own content to stay visible at every detent —
@@ -358,13 +358,7 @@ struct WeddingAppShell: View {
         case .venues:
             ConsoleHeader(venues: store.venues)
         case .guests:
-            if let guest = store.guests.first(where: { $0.id == navigation.selectedGuestID }) {
-                GuestSelectionHeader(guest: guest) {
-                    openGuestDetails(guest)
-                }
-            } else {
-                ConsoleHeader(guests: store.allGuestRecords)
-            }
+            ConsoleHeader(guests: store.allGuestRecords)
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
         }
@@ -468,23 +462,13 @@ struct WeddingAppShell: View {
 
     private func selectGuest(_ guest: MVPGuest) {
         store.selectedVenueID = nil
-        if navigation.selectedGuestID == guest.id {
-            openGuestDetails(guest)
-        } else {
-            navigation.selectedGuestID = guest.id
-        }
+        navigation.selectedGuestID = guest.id
     }
 
     private func openVenueDetails(_ venue: MVPVenue) {
         lensDetents[.venues] = .full
         navigation.venuesPath = NavigationPath()
         navigation.venuesPath.append(venue)
-    }
-
-    private func openGuestDetails(_ guest: MVPGuest) {
-        lensDetents[.guests] = .full
-        navigation.guestsPath = NavigationPath()
-        navigation.guestsPath.append(guest)
     }
 
     private func clearMapFocus() {

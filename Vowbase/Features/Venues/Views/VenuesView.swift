@@ -17,11 +17,10 @@ struct VenuesView: View {
     /// when this stack has drilled past its root so it can hide the
     /// console's own header and grabber for the pushed detail screen.
     @Binding var path: NavigationPath
-    @State private var statusFilter: VenueStatusFilter = .all
-    @State private var showsFilter = false
+    @State private var selectedStatus: VenueStatus?
 
     private var visibleVenues: [MVPVenue] {
-        store.venues.filter { statusFilter == .all || $0.status == statusFilter.status }
+        store.venues.filter { selectedStatus == nil || $0.status == selectedStatus }
     }
 
     var body: some View {
@@ -31,33 +30,23 @@ struct VenuesView: View {
                     if store.venues.isEmpty {
                         VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
                     } else {
-                        HStack(spacing: 10) {
-                            Text("Shortlist")
-                                .font(.system(size: 19, weight: .semibold, design: .serif))
-                                .foregroundStyle(VowbaseTheme.ink)
-                            Text("· \(visibleVenues.count)")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(VowbaseTheme.rose)
-
-                            Spacer(minLength: 8)
-
-                            Button { showsFilter = true } label: {
-                                Label(statusFilter.compactTitle, systemImage: "line.3.horizontal.decrease.circle")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(VowbaseTheme.rose)
-                                    .padding(.horizontal, 12)
-                                    .frame(minHeight: 42)
-                                    .background(VowbaseTheme.background, in: Capsule())
-                                    .overlay(Capsule().stroke(VowbaseTheme.border, lineWidth: 1))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical, 8)
+                        VenueMetricCards(venues: store.venues, selectedStatus: $selectedStatus)
 
                         if visibleVenues.isEmpty {
-                            ContentUnavailableView("No venues match", systemImage: "line.3.horizontal.decrease.circle", description: Text("Try a different status filter."))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 36)
+                            VStack(spacing: 12) {
+                                ContentUnavailableView(
+                                    "No venues match this status",
+                                    systemImage: "line.3.horizontal.decrease.circle",
+                                    description: Text("Try a different lifecycle status.")
+                                )
+                                Button("Clear filter") {
+                                    selectedStatus = nil
+                                }
+                                .font(.system(size: 16, weight: .semibold))
+                                .tint(VowbaseTheme.rose)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 36)
                         } else {
                             LazyVStack(spacing: 0) {
                                 ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
@@ -86,20 +75,76 @@ struct VenuesView: View {
             .navigationDestination(for: MVPVenue.self) { venue in
                 VenueDetailView(venue: venue, store: store, isNoteEditing: $isNoteEditing)
             }
-            .sheet(isPresented: $showsFilter) {
-                VenueFilterSheet(selection: $statusFilter)
-                    .presentationDetents([.height(380)])
-            }
         }
     }
 }
 
-private enum VenueStatusFilter: String, CaseIterable, Identifiable {
-    case all, considering, contacted, toured, shortlisted, negotiating, booked, passed
-    var id: String { rawValue }
-    var title: String { self == .all ? "All statuses" : rawValue.capitalized }
-    var compactTitle: String { self == .all ? "Filter" : rawValue.capitalized }
-    var status: VenueStatus? { VenueStatus(rawValue: rawValue) }
+private extension VenueStatus {
+    static let compactLifecycleOrder: [VenueStatus] = [
+        .suggested, .considering, .contacted, .toured,
+        .shortlisted, .negotiating, .booked, .passed
+    ]
+}
+
+private struct VenueMetricCards: View {
+    let venues: [MVPVenue]
+    @Binding var selectedStatus: VenueStatus?
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: VowbaseSpace.small) {
+                ForEach(VenueStatus.compactLifecycleOrder, id: \.self) { status in
+                    let isSelected = selectedStatus == status
+                    let count = venues.count(where: { $0.status == status })
+
+                    Button {
+                        selectedStatus = isSelected ? nil : status
+                    } label: {
+                        VenueMetricCard(status: status, venueCount: count, isSelected: isSelected)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(status.title), \(count) venue\(count == 1 ? "" : "s")")
+                    .accessibilityHint(isSelected ? "Double tap to show all venues" : "Double tap to filter the venue list")
+                }
+            }
+            .padding(.vertical, VowbaseSpace.small)
+        }
+        .contentMargins(.horizontal, 1, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.18), value: selectedStatus)
+    }
+}
+
+private struct VenueMetricCard: View {
+    let status: VenueStatus
+    let venueCount: Int
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
+            Text("\(venueCount)")
+                .font(.system(.title2, design: .default, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.rose)
+                .monospacedDigit()
+            Spacer(minLength: 0)
+            Text(status.title)
+                .font(.system(size: 13, weight: .semibold, design: .serif))
+                .foregroundStyle(VowbaseTheme.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(VowbaseSpace.medium)
+        .frame(width: 104, height: 88, alignment: .leading)
+        .background(
+            isSelected ? VowbaseTheme.blush : VowbaseDesign.surface,
+            in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
+                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: isSelected ? 2 : 1)
+        }
+        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+    }
 }
 
 private struct CompactVenueRow: View {
@@ -195,30 +240,5 @@ private struct VenuesEmptyState: View {
         .padding(.horizontal, 24)
         .padding(.vertical, 44)
         .frame(maxWidth: .infinity)
-    }
-}
-
-private struct VenueFilterSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selection: VenueStatusFilter
-
-    var body: some View {
-        NavigationStack {
-            List(VenueStatusFilter.allCases) { item in
-                Button {
-                    selection = item
-                    dismiss()
-                } label: {
-                    HStack {
-                        Text(item.title)
-                        Spacer()
-                        if item == selection { Image(systemName: "checkmark").foregroundStyle(VowbaseTheme.rose) }
-                    }
-                }
-                .foregroundStyle(VowbaseTheme.ink)
-            }
-            .navigationTitle("Venue status")
-            .navigationBarTitleDisplayMode(.inline)
-        }
     }
 }

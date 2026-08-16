@@ -21,14 +21,14 @@ enum ConsoleDetent: CaseIterable {
     ///
     ///     27  grabber (22 pt of clearance + a 5 pt capsule)
     ///     14  stack spacing
-    ///     50  header — two lines for a selected venue and its impact row
+    ///     31  header — the lens title
     ///     14  stack spacing
-    ///    124  guest metric filters plus the tallest contact card
+    ///    150  venue metric filters plus the venue card
     ///      8  breathing room
     ///     86  lens rail (70 pt tall, 16 pt of padding)
     ///
     /// Anything added to the console's resting stack has to be paid for here.
-    static let peekHeight: CGFloat = 323
+    static let peekHeight: CGFloat = 331
 
     var presentationDetent: PresentationDetent {
         switch self {
@@ -95,17 +95,12 @@ struct ConsoleHeader: View {
 }
 
 extension ConsoleHeader {
-    /// No venue selected: the lens's own state at a glance.
+    /// The Venues lens always keeps its own title, including when a venue is
+    /// selected on the map. Status counts live in the compact metric rail.
     init(venues: [MVPVenue]) {
         title = "Venues"
-        trailing = "\(venues.count) venue\(venues.count == 1 ? "" : "s")"
-        let counts = Dictionary(grouping: venues, by: \.status).mapValues(\.count)
-        let ordered: [VenueStatus] = [.toured, .negotiating, .shortlisted, .considering, .contacted, .booked, .suggested, .passed]
-        let parts = ordered.compactMap { status -> String? in
-            guard let count = counts[status], count > 0 else { return nil }
-            return "\(count) \(status.title.lowercased())"
-        }
-        subline = parts.isEmpty ? nil : parts.joined(separator: " · ")
+        trailing = nil
+        subline = nil
     }
 
     /// No selection: the Guests lens's own state at a glance.
@@ -154,31 +149,6 @@ struct VenueImpactHeader: View {
             .buttonStyle(.plain)
             VenueImpactRow(state: impact, onTap: onTapReadout)
         }
-    }
-}
-
-struct GuestSelectionHeader: View {
-    let guest: MVPGuest
-    let onOpenDetails: () -> Void
-
-    @ScaledMetric(relativeTo: .title2) private var titlePointSize: CGFloat = 26
-
-    var body: some View {
-        Button(action: onOpenDetails) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(guest.peekName)
-                    .font(.system(size: titlePointSize, weight: .regular, design: .serif))
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(guest.rsvp.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -273,6 +243,17 @@ struct VenueRailContent: View {
     let store: VowbaseWorkspaceStore
     let onSelect: (MVPVenue) -> Void
 
+    @State private var selectedStatus: VenueStatus?
+
+    private let lifecycleOrder: [VenueStatus] = [
+        .suggested, .considering, .contacted, .toured,
+        .shortlisted, .negotiating, .booked, .passed,
+    ]
+
+    private var visibleVenues: [MVPVenue] {
+        store.venues.filter { selectedStatus == nil || $0.status == selectedStatus }
+    }
+
     var body: some View {
         if store.venues.isEmpty {
             Text("Add a venue to start your shortlist.")
@@ -281,19 +262,58 @@ struct VenueRailContent: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(store.venues) { venue in
-                        Button { onSelect(venue) } label: {
-                            VenueRailCard(venue: venue, selected: venue.id == store.selectedVenueID)
+            VStack(alignment: .leading, spacing: 10) {
+                statusMetricPills
+
+                if visibleVenues.isEmpty {
+                    Text("No venues match this status.")
+                        .font(.system(size: 16))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 14) {
+                            ForEach(visibleVenues) { venue in
+                                Button { onSelect(venue) } label: {
+                                    VenueRailCard(venue: venue, selected: venue.id == store.selectedVenueID)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 18)
                     }
+                    .contentMargins(.trailing, 18, for: .scrollContent)
                 }
-                .padding(.horizontal, 18)
             }
-            .contentMargins(.trailing, 18, for: .scrollContent)
         }
+    }
+
+    private var statusMetricPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(lifecycleOrder, id: \.self) { status in
+                    let isSelected = selectedStatus == status
+                    let venueCount = store.venues.count { $0.status == status }
+                    Button {
+                        selectedStatus = isSelected ? nil : status
+                    } label: {
+                        CompactMetricFilterPill(
+                            count: venueCount,
+                            title: status.title,
+                            isSelected: isSelected
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(status.title), \(venueCount) venues")
+                    .accessibilityHint(isSelected ? "Double tap to show all venues" : "Double tap to filter the venue rail")
+                    .accessibilityValue(isSelected ? "Selected" : "Not selected")
+                }
+            }
+            .padding(.horizontal, 18)
+        }
+        .contentMargins(.trailing, 18, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.18), value: selectedStatus)
     }
 }
 
@@ -329,7 +349,10 @@ private struct VenueRailCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(selected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selected ? 3 : 1)
+                .strokeBorder(
+                    selected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.65),
+                    lineWidth: selected ? 4 : 1
+                )
         }
         .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
@@ -420,15 +443,16 @@ struct GuestRailContent: View {
                     Button {
                         selectedMetricID = isSelected ? nil : metric.id
                     } label: {
-                        GuestMetricFilterPill(
-                            metric: metric,
-                            guestCount: metric.count(in: store.allGuestRecords),
+                        CompactMetricFilterPill(
+                            count: metric.count(in: store.allGuestRecords),
+                            title: metric.cardTitle,
                             isSelected: isSelected
                         )
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(metric.name), \(metric.count(in: store.allGuestRecords)) guests")
                     .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest rail")
+                    .accessibilityValue(isSelected ? "Selected" : "Not selected")
                 }
             }
             .padding(.horizontal, 18)
@@ -445,30 +469,31 @@ struct GuestRailContent: View {
     }
 }
 
-private struct GuestMetricFilterPill: View {
-    let metric: GuestMetric
-    let guestCount: Int
+private struct CompactMetricFilterPill: View {
+    let count: Int
+    let title: String
     let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 6) {
-            Text("\(guestCount)")
-                .font(.system(size: 16, weight: .semibold, design: .serif))
+            Text("\(count)")
+                .font(.system(size: 16, weight: .semibold, design: .default))
                 .monospacedDigit()
-            Text(metric.cardTitle)
-                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.rose)
+            Text(title)
+                .font(.system(size: 13, weight: .semibold, design: .serif))
+                .foregroundStyle(VowbaseTheme.ink)
                 .lineLimit(1)
         }
-        .foregroundStyle(isSelected ? VowbaseDesign.onRose : VowbaseTheme.ink)
         .padding(.horizontal, 12)
         .frame(height: 36)
         .background(
-            isSelected ? VowbaseTheme.rose : VowbaseTheme.background,
+            isSelected ? VowbaseTheme.blush : VowbaseTheme.background,
             in: Capsule()
         )
         .overlay {
             Capsule()
-                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: 1)
+                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.65), lineWidth: isSelected ? 2 : 1)
         }
     }
 }
@@ -505,7 +530,10 @@ private struct GuestRailCard: View {
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(selected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selected ? 1.5 : 1)
+                .strokeBorder(
+                    selected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.65),
+                    lineWidth: selected ? 4 : 1
+                )
         }
         .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
