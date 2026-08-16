@@ -188,30 +188,31 @@ struct GuestsView: View {
 
     private var metricCards: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 ForEach(metricConfiguration.shownMetrics) { metric in
                     Button {
                         selectedMetricID = selectedMetricID == metric.id ? nil : metric.id
                     } label: {
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(metric.cardTitle)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(VowbaseTheme.mutedInk)
                                 .lineLimit(2)
+                                .minimumScaleFactor(0.8)
                             Spacer(minLength: 0)
                             Text("\(metric.count(in: records))")
-                                .font(.system(size: 30, weight: .regular, design: .rounded))
+                                .font(.system(size: 24, weight: .regular, design: .rounded))
                                 .foregroundStyle(selectedMetricID == metric.id ? VowbaseTheme.rose : VowbaseTheme.ink)
                                 .monospacedDigit()
                         }
-                        .padding(16)
-                        .frame(width: 154, height: 112, alignment: .leading)
+                        .padding(10)
+                        .frame(width: 104, height: 88, alignment: .leading)
                         .background(
                             selectedMetricID == metric.id ? VowbaseTheme.blush : VowbaseTheme.background,
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                         )
                         .overlay {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .stroke(selectedMetricID == metric.id ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selectedMetricID == metric.id ? 1.5 : 1)
                         }
                     }
