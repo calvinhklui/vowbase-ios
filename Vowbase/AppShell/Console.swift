@@ -23,12 +23,12 @@ enum ConsoleDetent: CaseIterable {
     ///     14  stack spacing
     ///     50  header — two lines for a selected venue and its impact row
     ///     14  stack spacing
-    ///    104  the tallest rail card
+    ///    124  guest metric filters plus the tallest contact card
     ///      8  breathing room
     ///     86  lens rail (70 pt tall, 16 pt of padding)
     ///
     /// Anything added to the console's resting stack has to be paid for here.
-    static let peekHeight: CGFloat = 303
+    static let peekHeight: CGFloat = 323
 
     var presentationDetent: PresentationDetent {
         switch self {
@@ -62,6 +62,11 @@ enum ConsoleDetent: CaseIterable {
 /// The impact readout (§8) isn't wired yet — Phase 4 — so a selected venue's
 /// second line shows its location rather than a fabricated travel figure.
 struct ConsoleHeader: View {
+    /// 22 pt was visually too close to the supporting header text. 26 pt is
+    /// the nearest readable step to a 20% increase. It scales with the
+    /// existing title-sized Dynamic Type category.
+    @ScaledMetric(relativeTo: .title2) private var tabTitlePointSize: CGFloat = 26
+
     let title: String
     let trailing: String?
     let subline: String?
@@ -70,7 +75,7 @@ struct ConsoleHeader: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.system(size: 22, weight: .regular, design: .serif))
+                    .font(.system(size: tabTitlePointSize, weight: .regular, design: .serif))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 if let trailing {
@@ -113,8 +118,8 @@ extension ConsoleHeader {
     /// Tasks has no map selection to reflect — always its own state at a glance.
     init(openTaskCount: Int, dueSoonCount: Int) {
         title = "Tasks"
-        trailing = "\(openTaskCount) open"
-        subline = dueSoonCount > 0 ? "\(dueSoonCount) due this week" : nil
+        trailing = nil
+        subline = "\(openTaskCount) open" + (dueSoonCount > 0 ? " · \(dueSoonCount) due this week" : "")
     }
 }
 
@@ -156,11 +161,13 @@ struct GuestSelectionHeader: View {
     let guest: MVPGuest
     let onOpenDetails: () -> Void
 
+    @ScaledMetric(relativeTo: .title2) private var titlePointSize: CGFloat = 26
+
     var body: some View {
         Button(action: onOpenDetails) {
             HStack(alignment: .firstTextBaseline) {
                 Text(guest.peekName)
-                    .font(.system(size: 22, weight: .regular, design: .serif))
+                    .font(.system(size: titlePointSize, weight: .regular, design: .serif))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Text(guest.rsvp.title)
@@ -314,12 +321,15 @@ private struct VenueRailCard: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .frame(width: 260, height: 104)
+        // Anchor the image-containing HStack to the card's leading edge; a
+        // centered fixed frame otherwise leaves an apparent white gutter
+        // before the photo when the text column is narrower than the card.
+        .frame(width: 260, height: 104, alignment: .leading)
         .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(selected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selected ? 1.5 : 1)
+                .stroke(selected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: selected ? 3 : 1)
         }
         .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
@@ -334,27 +344,131 @@ struct GuestRailContent: View {
     let selectedGuestID: UUID?
     let onSelect: (MVPGuest) -> Void
 
+    @State private var metricConfiguration = GuestMetricConfiguration.default(columns: [])
+    @State private var selectedMetricID: String?
+
+    private var selectedMetric: GuestMetric? {
+        metricConfiguration.metrics.first(where: { $0.id == selectedMetricID })
+    }
+
+    /// Match the full Guests surface's default ordering, then narrow that
+    /// same result when a compact metric pill is selected.
+    private var visibleGuests: [MVPGuest] {
+        store.filteredGuests(
+            searchText: "",
+            filters: GuestFilterSet(),
+            sort: .nameAscending,
+            metric: selectedMetric
+        )
+    }
+
     var body: some View {
-        let guests = store.guests
-        if guests.isEmpty {
-            Text("Add a guest to start your list.")
-                .font(.system(size: 16))
-                .foregroundStyle(VowbaseTheme.mutedInk)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-        } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(guests) { guest in
-                        Button { onSelect(guest) } label: {
-                            GuestRailCard(guest: guest, selected: guest.id == selectedGuestID)
+        Group {
+            if store.guests.isEmpty {
+                Text("Add a guest to start your list.")
+                    .font(.system(size: 16))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    metricFilterPills
+
+                    if visibleGuests.isEmpty {
+                        Text("No guests match this metric.")
+                            .font(.system(size: 16))
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 12)
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 14) {
+                                ForEach(visibleGuests) { guest in
+                                    Button { onSelect(guest) } label: {
+                                        GuestRailCard(guest: guest, selected: guest.id == selectedGuestID)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 18)
                         }
-                        .buttonStyle(.plain)
+                        .contentMargins(.trailing, 18, for: .scrollContent)
                     }
                 }
-                .padding(.horizontal, 18)
             }
-            .contentMargins(.trailing, 18, for: .scrollContent)
+        }
+        .task(id: store.wedding?.id) {
+            let configuration = GuestMetricConfigurationStorage.load(
+                weddingID: store.wedding?.id,
+                columns: store.visibleCustomColumns
+            )
+            metricConfiguration = configuration
+            clearUnavailableMetric(in: configuration)
+        }
+        .onChange(of: store.visibleCustomColumns) { _, columns in
+            let configuration = metricConfiguration.normalized(columns: columns)
+            metricConfiguration = configuration
+            clearUnavailableMetric(in: configuration)
+        }
+    }
+
+    private var metricFilterPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(metricConfiguration.shownMetrics) { metric in
+                    let isSelected = selectedMetricID == metric.id
+                    Button {
+                        selectedMetricID = isSelected ? nil : metric.id
+                    } label: {
+                        GuestMetricFilterPill(
+                            metric: metric,
+                            guestCount: metric.count(in: store.allGuestRecords),
+                            isSelected: isSelected
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(metric.name), \(metric.count(in: store.allGuestRecords)) guests")
+                    .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest rail")
+                }
+            }
+            .padding(.horizontal, 18)
+        }
+        .contentMargins(.trailing, 18, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
+    }
+
+    private func clearUnavailableMetric(in configuration: GuestMetricConfiguration) {
+        if let selectedMetricID,
+           !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+            self.selectedMetricID = nil
+        }
+    }
+}
+
+private struct GuestMetricFilterPill: View {
+    let metric: GuestMetric
+    let guestCount: Int
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("\(guestCount)")
+                .font(.system(size: 16, weight: .semibold, design: .serif))
+                .monospacedDigit()
+            Text(metric.cardTitle)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+        }
+        .foregroundStyle(isSelected ? VowbaseDesign.onRose : VowbaseTheme.ink)
+        .padding(.horizontal, 12)
+        .frame(height: 36)
+        .background(
+            isSelected ? VowbaseTheme.rose : VowbaseTheme.background,
+            in: Capsule()
+        )
+        .overlay {
+            Capsule()
+                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border, lineWidth: 1)
         }
     }
 }

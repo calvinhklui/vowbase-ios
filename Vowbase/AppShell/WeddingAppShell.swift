@@ -41,6 +41,7 @@ struct WeddingAppShell: View {
     @State private var taskEditor: TaskEditorDestination?
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
+    @State private var isSignOutConfirmationPresented = false
 
     /// Each lens remembers its own detent for the session — spec §7.1.
     @State private var lensDetents: [PlanLens: ConsoleDetent] = [
@@ -82,7 +83,9 @@ struct WeddingAppShell: View {
                     onClearFocus: clearMapFocus
                 )
 
-                ContextBar(store: store, onSignOut: onSignOut)
+                ContextBar(store: store) {
+                    isSignOutConfirmationPresented = true
+                }
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
 
@@ -245,6 +248,19 @@ struct WeddingAppShell: View {
         .presentationDragIndicator(.hidden)
         .presentationBackgroundInteraction(.enabled)
         .interactiveDismissDisabled(true)
+        // The console is the persistent presentation context. Keeping this
+        // dialog here lets its modal hierarchy preserve the console, lens
+        // rail, and the rest of the shell until the user confirms sign out.
+        .confirmationDialog(
+            "Your Vowbase account",
+            isPresented: $isSignOutConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Sign out", role: .destructive, action: onSignOut)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You can sign back in with Apple or Google at any time.")
+        }
         // Creation sheets present from *inside* the console, not from the
         // shell around it. The console is itself a permanently-presented
         // sheet, so a second sheet attached to the shell has no free
@@ -340,16 +356,7 @@ struct WeddingAppShell: View {
             // three modules at half/full would just waste vertical space.
             EmptyView()
         case .venues:
-            if let venue = store.venues.first(where: { $0.id == store.selectedVenueID }) {
-                VenueImpactHeader(
-                    venue: venue,
-                    impact: store.travelImpact,
-                    onOpenDetails: { openVenueDetails(venue) },
-                    onTapReadout: handleImpactRowTap
-                )
-            } else {
-                ConsoleHeader(venues: store.venues)
-            }
+            ConsoleHeader(venues: store.venues)
         case .guests:
             if let guest = store.guests.first(where: { $0.id == navigation.selectedGuestID }) {
                 GuestSelectionHeader(guest: guest) {

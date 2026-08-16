@@ -1,30 +1,15 @@
 import SwiftUI
 
 /// Replaces `IdentityBar`. One row, 52 pt, floating material capsule — spec §5.
-///
-/// The search glyph expands the row in place to a full-width field. The
-/// field itself is inert here: it takes text but returns nothing. Wiring it
-/// to real cross-lens results (venues, guests, places — spec §5.1) is a
-/// deliberately separate follow-up, not part of this pass.
 struct ContextBar: View {
     let store: VowbaseWorkspaceStore
-    let onSignOut: () -> Void
-
-    @State private var isAccountMenuPresented = false
-    @State private var isSearching = false
-    @State private var searchQuery = ""
-    @FocusState private var isSearchFieldFocused: Bool
+    let onRequestSignOut: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            if isSearching {
-                searchField
-            } else {
-                monogram
-                titleLine
-                Spacer(minLength: 0)
-                searchButton
-            }
+            monogram
+            titleLine
+            Spacer(minLength: 0)
         }
         .padding(8)
         .background(.regularMaterial, in: Capsule())
@@ -32,23 +17,12 @@ struct ContextBar: View {
             Capsule().stroke(VowbaseTheme.border.opacity(0.8), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.08), radius: 14, y: 5)
-        .confirmationDialog(
-            "Your Vowbase account",
-            isPresented: $isAccountMenuPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Sign out", role: .destructive, action: onSignOut)
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You can sign back in with Apple or Google at any time.")
-        }
-        .animation(.snappy(duration: 0.22), value: isSearching)
     }
 
     // MARK: Default state
 
     private var monogram: some View {
-        Button { isAccountMenuPresented = true } label: {
+        Button(action: onRequestSignOut) {
             Text(weddingInitials)
                 .font(.system(size: 14, weight: .regular, design: .serif))
                 .frame(width: 36, height: 36)
@@ -59,7 +33,7 @@ struct ContextBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Account")
-        .accessibilityHint("Opens account actions")
+        .accessibilityHint("Opens sign out confirmation")
     }
 
     // The date used to live here too, as either a countdown or an "Add your
@@ -71,48 +45,6 @@ struct ContextBar: View {
             .font(.system(size: 17, weight: .regular, design: .serif))
             .foregroundStyle(VowbaseTheme.ink)
             .lineLimit(1)
-    }
-
-    private var searchButton: some View {
-        Button {
-            isSearching = true
-            isSearchFieldFocused = true
-        } label: {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(VowbaseTheme.ink)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Search")
-    }
-
-    // MARK: Search state
-
-    private var searchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(VowbaseTheme.mutedInk)
-            TextField("Search", text: $searchQuery)
-                .focused($isSearchFieldFocused)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-            Button {
-                isSearchFieldFocused = false
-                isSearching = false
-                searchQuery = ""
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                    .frame(width: 30, height: 30)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Cancel search")
-        }
-        .padding(.leading, 8)
     }
 
     private var weddingInitials: String {

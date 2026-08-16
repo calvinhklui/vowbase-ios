@@ -187,52 +187,11 @@ struct GuestsView: View {
     }
 
     private var metricCards: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: VowbaseSpace.small) {
-                ForEach(metricConfiguration.shownMetrics) { metric in
-                    let isSelected = selectedMetricID == metric.id
-
-                    Button {
-                        selectedMetricID = isSelected ? nil : metric.id
-                    } label: {
-                        VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
-                            Text("\(metric.count(in: records))")
-                                .font(.system(.title2, design: .serif, weight: .semibold))
-                                .foregroundStyle(isSelected ? VowbaseDesign.onRose : VowbaseTheme.ink)
-                                .monospacedDigit()
-                            Spacer(minLength: 0)
-                            Text(metric.cardTitle)
-                                .font(VowbaseType.caption.weight(.semibold))
-                                .foregroundStyle(isSelected ? VowbaseDesign.onRose.opacity(0.82) : VowbaseTheme.mutedInk)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.8)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(VowbaseSpace.medium)
-                        .frame(width: 104, height: 88, alignment: .leading)
-                        .background(
-                            isSelected ? VowbaseTheme.rose : VowbaseDesign.surface,
-                            in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
-                                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: 1)
-                        }
-                        .shadow(
-                            color: isSelected ? VowbaseTheme.rose.opacity(0.18) : Color.black.opacity(0.04),
-                            radius: isSelected ? 7 : 4,
-                            y: isSelected ? 3 : 2
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(metric.name), \(metric.count(in: records)) guests")
-                    .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest list")
-                }
-            }
-            .padding(.vertical, VowbaseSpace.small)
-        }
-        .contentMargins(.horizontal, 1, for: .scrollContent)
-        .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
+        GuestMetricCards(
+            configuration: metricConfiguration,
+            guests: records,
+            selectedMetricID: $selectedMetricID
+        )
     }
 
     /// A filtered list should never look like the whole list. Every active
@@ -336,7 +295,7 @@ enum GuestsRoute: Hashable {
     case customFields
 }
 
-private enum GuestMetricConfigurationStorage {
+enum GuestMetricConfigurationStorage {
     private static let keyPrefix = "guestMetricConfiguration."
 
     static func load(weddingID: UUID?, columns: [GuestCustomColumn]) -> GuestMetricConfiguration {
@@ -358,6 +317,78 @@ private enum GuestMetricConfigurationStorage {
 
     private static func key(for weddingID: UUID) -> String {
         keyPrefix + weddingID.uuidString.lowercased()
+    }
+}
+
+/// Shared metric filter control for the full Guests list and the console's
+/// compact guest rail. Its selection is intentionally binding-driven so each
+/// host decides how the selected metric filters or orders its own guest list.
+struct GuestMetricCards: View {
+    let configuration: GuestMetricConfiguration
+    let guests: [Guest]
+    @Binding var selectedMetricID: String?
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: VowbaseSpace.small) {
+                ForEach(configuration.shownMetrics) { metric in
+                    let isSelected = selectedMetricID == metric.id
+
+                    Button {
+                        selectedMetricID = isSelected ? nil : metric.id
+                    } label: {
+                        GuestMetricCard(
+                            metric: metric,
+                            guestCount: metric.count(in: guests),
+                            isSelected: isSelected
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(metric.name), \(metric.count(in: guests)) guests")
+                    .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest list")
+                }
+            }
+            .padding(.vertical, VowbaseSpace.small)
+        }
+        .contentMargins(.horizontal, 1, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
+    }
+}
+
+private struct GuestMetricCard: View {
+    let metric: GuestMetric
+    let guestCount: Int
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
+            Text("\(guestCount)")
+                .font(.system(.title2, design: .serif, weight: .semibold))
+                .foregroundStyle(isSelected ? VowbaseDesign.onRose : VowbaseTheme.ink)
+                .monospacedDigit()
+            Spacer(minLength: 0)
+            Text(metric.cardTitle)
+                .font(VowbaseType.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? VowbaseDesign.onRose.opacity(0.82) : VowbaseTheme.mutedInk)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(VowbaseSpace.medium)
+        .frame(width: 104, height: 88, alignment: .leading)
+        .background(
+            isSelected ? VowbaseTheme.rose : VowbaseDesign.surface,
+            in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
+                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: 1)
+        }
+        .shadow(
+            color: isSelected ? VowbaseTheme.rose.opacity(0.18) : Color.black.opacity(0.04),
+            radius: isSelected ? 7 : 4,
+            y: isSelected ? 3 : 2
+        )
     }
 }
 
