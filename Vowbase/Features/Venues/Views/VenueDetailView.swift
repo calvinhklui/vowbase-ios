@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import QuickLook
 
 /// Fields the Venue Detail screen edits inline. `status` never becomes `focusedField`
 /// (it commits synchronously from a `Menu`) but shares the same saving/error dictionaries
@@ -15,11 +16,23 @@ struct VenueDetailView: View {
     let venue: MVPVenue
     let store: VowbaseWorkspaceStore
     @Binding var isNoteEditing: Bool
+    let onViewOnMap: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingDeletion = false
     /// `nil` keeps the cover photo as the hero. A gallery selection is local to this
     /// detail presentation, so navigating to a different venue always starts at its cover.
     @State private var selectedHeroPhotoURL: URL?
+    @State private var isDetailsEditing = false
+    @State private var websiteDraft = ""
+    @State private var contactNameDraft = ""
+    @State private var contactEmailDraft = ""
+    @State private var contactPhoneDraft = ""
+    @State private var notesDraft = ""
+    @State private var detailsSaveError: String?
+    @State private var isSavingDetails = false
+    @State private var documentPreview: VenueDocumentPreview?
+    @State private var downloadingAttachmentID: UUID?
+    @State private var documentDownloadError: String?
 
     /// Which row currently shows a TextField. Kept separate from `focusedField`: a
     /// TextField conditionally mounted in the same instant its own `@FocusState` target
@@ -41,6 +54,18 @@ struct VenueDetailView: View {
     @State private var locationSuggestions: [GeocodeResult] = []
     @State private var locationSearchTask: Task<Void, Never>?
 
+    init(
+        venue: MVPVenue,
+        store: VowbaseWorkspaceStore,
+        isNoteEditing: Binding<Bool>,
+        onViewOnMap: @escaping () -> Void = {}
+    ) {
+        self.venue = venue
+        self.store = store
+        self._isNoteEditing = isNoteEditing
+        self.onViewOnMap = onViewOnMap
+    }
+
     /// The screen must read live data by id — `venue` is a snapshot captured at
     /// navigation-push time and never refreshes on its own when `store.venues` changes.
     private var currentVenue: MVPVenue {
@@ -48,22 +73,23 @@ struct VenueDetailView: View {
     }
 
     private var displayStatus: VenueStatus { optimisticStatus ?? currentVenue.status }
+    private var heroPhotoURL: URL? { selectedHeroPhotoURL ?? currentVenue.photoURL }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VowbaseVenueImage(
-                    url: selectedHeroPhotoURL ?? currentVenue.photoURL,
+                    url: heroPhotoURL,
                     cacheKey: selectedHeroPhotoURL == nil ? currentVenue.coverPhotoCacheKey : nil
                 )
                     .frame(height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                if currentVenue.photoURLs.count > 1 {
+                if !currentVenue.photoURLs.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
-                            ForEach(currentVenue.photoURLs.dropFirst(), id: \.absoluteString) { photoURL in
+                            ForEach(currentVenue.photoURLs, id: \.absoluteString) { photoURL in
                                 Button {
-                                    selectedHeroPhotoURL = photoURL
+                                    selectedHeroPhotoURL = photoURL == currentVenue.photoURL ? nil : photoURL
                                 } label: {
                                     VowbaseVenueImage(url: photoURL)
                                         .frame(width: 108, height: 76)
@@ -71,7 +97,7 @@ struct VenueDetailView: View {
                                         .overlay {
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                                 .stroke(
-                                                    selectedHeroPhotoURL == photoURL ? VowbaseTheme.rose : .clear,
+                                                    heroPhotoURL == photoURL ? VowbaseTheme.rose : .clear,
                                                     lineWidth: 2
                                                 )
                                         }
@@ -116,44 +142,9 @@ struct VenueDetailView: View {
                 .padding()
                 .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Details")
-                        .font(.title2.weight(.semibold))
-                    detailRow(title: "Website", field: .website, icon: "link", placeholder: "Add website", keyboardType: .URL, autocapitalization: .never)
-                    detailRow(title: "Contact", field: .contactName, icon: "person", placeholder: "Add contact", autocapitalization: .words)
-                    detailRow(title: "Email", field: .contactEmail, icon: "envelope", placeholder: "Add email", keyboardType: .emailAddress, autocapitalization: .never)
-                    detailRow(title: "Phone", field: .contactPhone, icon: "phone", placeholder: "Add phone", keyboardType: .phonePad)
-                }
-                .padding()
-                .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(VowbaseTheme.border, lineWidth: 1)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Notes")
-                        .font(.title2.weight(.semibold))
-                    if editingField == .notes {
-                        TextField("Add notes", text: $draftText, axis: .vertical)
-                            .focused($focusedField, equals: .notes)
-                            .onAppear { focusedField = .notes }
-                            .font(.body)
-                            .foregroundStyle(VowbaseTheme.ink)
-                            .textInputAutocapitalization(.sentences)
-                            .lineLimit(1...)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        let value = displayValue(for: .notes)
-                        Button {
-                            beginEditingSimple(.notes)
-                        } label: {
-                            noteDisplay(value)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    errorCaption(.notes)
-                }
+                detailsSection
+                documentsSection
+                notesSection
             }
             .padding(16)
         }
@@ -163,15 +154,20 @@ struct VenueDetailView: View {
                 Rectangle().fill(VowbaseTheme.rose).frame(height: 2)
             }
         }
-        .vowbaseScrollClearance(includesQuickAdd: editingField != .notes)
+        .vowbaseScrollClearance(includesQuickAdd: !isDetailsEditing)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isDetailsEditing {
+                detailsSaveBar
+            }
+        }
         .navigationTitle(currentVenue.name)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(editingField == .notes)
+        .navigationBarBackButtonHidden(isDetailsEditing)
         .toolbar {
-            if editingField == .notes {
+            if isDetailsEditing {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        finishNotesEditing()
+                        cancelDetailsEditing()
                     } label: {
                         Label("Back", systemImage: "chevron.left")
                     }
@@ -184,15 +180,6 @@ struct VenueDetailView: View {
                     Image(systemName: "ellipsis")
                 }
             }
-            ToolbarItem(placement: .keyboard) {
-                if editingField == .notes {
-                    Button("Save") {
-                        finishNotesEditing()
-                    }
-                    .fontWeight(.semibold)
-                    .padding(.bottom, 16)
-                }
-            }
         }
         .alert("Delete \(currentVenue.name)?", isPresented: $isConfirmingDeletion) {
             Button("Delete", role: .destructive) {
@@ -201,6 +188,9 @@ struct VenueDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the venue from your wedding workspace.")
+        }
+        .sheet(item: $documentPreview) { preview in
+            VenueDocumentQuickLookPreview(url: preview.url)
         }
         .onChange(of: focusedField) { oldValue, newValue in
             guard let oldValue else { return }
@@ -215,12 +205,13 @@ struct VenueDetailView: View {
             editingField = nil
             dispatchCommit(oldValue)
         }
-        .onChange(of: editingField) { _, newValue in
-            isNoteEditing = newValue == .notes
+        .onChange(of: isDetailsEditing) { _, newValue in
+            isNoteEditing = newValue
         }
         .onDisappear {
             focusedField = nil
             editingField = nil
+            isDetailsEditing = false
             isNoteEditing = false
             locationSearchTask?.cancel()
         }
@@ -283,6 +274,263 @@ struct VenueDetailView: View {
     }
 
     @ViewBuilder
+    private var detailsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Details")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                if !isDetailsEditing {
+                    Button {
+                        beginDetailsEditing()
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.body.weight(.semibold))
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Edit venue details and notes")
+                }
+            }
+
+            if isDetailsEditing {
+                detailsEditor
+            } else {
+                detailsReadOnly
+            }
+        }
+        .padding()
+        .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(VowbaseTheme.border, lineWidth: 1)
+        }
+    }
+
+    private var detailsReadOnly: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            detailReadOnlyRow(
+                title: "Website",
+                value: currentVenue.website,
+                placeholder: "Not added",
+                icon: "link",
+                destination: websiteURL(from: currentVenue.website)
+            )
+            detailReadOnlyRow(
+                title: "Contact",
+                value: currentVenue.contactName,
+                placeholder: "Not added",
+                icon: "person",
+                destination: nil
+            )
+            detailReadOnlyRow(
+                title: "Email",
+                value: currentVenue.contactEmail,
+                placeholder: "Not added",
+                icon: "envelope",
+                destination: emailURL(from: currentVenue.contactEmail)
+            )
+            detailReadOnlyRow(
+                title: "Phone",
+                value: currentVenue.contactPhone,
+                placeholder: "Not added",
+                icon: "phone",
+                destination: phoneURL(from: currentVenue.contactPhone)
+            )
+
+        }
+    }
+
+    private var detailsEditor: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            detailEditorRow("Website", text: $websiteDraft, placeholder: "Add website", keyboardType: .URL, autocapitalization: .never)
+            detailEditorRow("Contact", text: $contactNameDraft, placeholder: "Add contact", autocapitalization: .words)
+            detailEditorRow("Email", text: $contactEmailDraft, placeholder: "Add email", keyboardType: .emailAddress, autocapitalization: .never)
+            detailEditorRow("Phone", text: $contactPhoneDraft, placeholder: "Add phone", keyboardType: .phonePad)
+        }
+    }
+
+    private var notesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notes")
+                .font(.title2.weight(.semibold))
+            if isDetailsEditing {
+                TextField("Add notes", text: $notesDraft, axis: .vertical)
+                    .font(.body)
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .textInputAutocapitalization(.sentences)
+                    .lineLimit(3...)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Button {
+                    beginDetailsEditing()
+                } label: {
+                    noteDisplay(displayValue(for: .notes))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Edit venue notes")
+            }
+
+            if let detailsSaveError {
+                Text(detailsSaveError)
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.rose)
+            }
+        }
+        .padding()
+        .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(VowbaseTheme.border, lineWidth: 1)
+        }
+    }
+
+    private var detailsSaveBar: some View {
+        HStack {
+            Button {
+                saveDetails()
+            } label: {
+                Group {
+                    if isSavingDetails {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Save")
+                    }
+                }
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            }
+            .disabled(isSavingDetails)
+            .buttonStyle(.borderedProminent)
+            .tint(VowbaseTheme.rose)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 18)
+        .background(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private func detailReadOnlyRow(
+        title: String,
+        value: String?,
+        placeholder: String,
+        icon: String,
+        destination: URL?
+    ) -> some View {
+        LabeledContent(title) {
+            if let value = value?.nilIfBlank {
+                if let destination {
+                    Link(destination: destination) {
+                        Label(value, systemImage: icon)
+                            .lineLimit(1)
+                    }
+                    .tint(VowbaseTheme.rose)
+                } else {
+                    Label(value, systemImage: icon)
+                        .lineLimit(1)
+                        .foregroundStyle(VowbaseTheme.ink)
+                }
+            } else {
+                Label(placeholder, systemImage: icon)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        }
+        .font(.subheadline)
+    }
+
+    private func detailEditorRow(
+        _ title: String,
+        text: Binding<String>,
+        placeholder: String,
+        keyboardType: UIKeyboardType = .default,
+        autocapitalization: TextInputAutocapitalization = .sentences
+    ) -> some View {
+        LabeledContent(title) {
+            TextField(placeholder, text: text)
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(autocapitalization)
+                .multilineTextAlignment(.trailing)
+        }
+        .font(.subheadline)
+    }
+
+    @ViewBuilder
+    private var documentsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Documents")
+                .font(.title2.weight(.semibold))
+
+            let attachments = currentVenue.attachments.filter {
+                $0.parent == .venue && $0.parentID == currentVenue.id
+            }
+            if store.isLoadingVenueAttachments(for: currentVenue.id), attachments.isEmpty {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Loading documents…")
+                }
+                .font(.subheadline)
+                .foregroundStyle(VowbaseTheme.mutedInk)
+            } else if attachments.isEmpty {
+                ContentUnavailableView(
+                    "No documents yet",
+                    systemImage: "doc",
+                    description: Text("Contracts, proposals, and PDFs for this venue will appear here."))
+                    .frame(maxWidth: .infinity)
+            } else {
+                ForEach(attachments) { attachment in
+                    Button {
+                        downloadAndPreview(attachment)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: documentIcon(for: attachment))
+                                .font(.title3)
+                                .foregroundStyle(VowbaseTheme.rose)
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(attachment.fileName)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(VowbaseTheme.ink)
+                                    .lineLimit(1)
+                                Text(documentSubtitle(for: attachment))
+                                    .font(.caption)
+                                    .foregroundStyle(VowbaseTheme.mutedInk)
+                            }
+                            Spacer(minLength: 0)
+                            if downloadingAttachmentID == attachment.id {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "arrow.down.circle")
+                                    .foregroundStyle(VowbaseTheme.mutedInk)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(downloadingAttachmentID != nil)
+
+                    if attachment.id != attachments.last?.id {
+                        Divider()
+                    }
+                }
+            }
+
+            if let error = store.venueAttachmentError(for: currentVenue.id) ?? documentDownloadError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.rose)
+            }
+        }
+        .padding()
+        .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(VowbaseTheme.border, lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
     private func factCell(icon: String, field: VenueEditableField, placeholder: String, caption: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Label {
@@ -296,30 +544,6 @@ struct VenueDetailView: View {
             errorCaption(field)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func detailRow(
-        title: String,
-        field: VenueEditableField,
-        icon: String,
-        placeholder: String,
-        keyboardType: UIKeyboardType = .default,
-        autocapitalization: TextInputAutocapitalization = .sentences
-    ) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            LabeledContent(title) {
-                Label {
-                    inlineTextField(field, placeholder: placeholder, font: .subheadline, keyboardType: keyboardType, autocapitalization: autocapitalization)
-                        .multilineTextAlignment(.trailing)
-                } icon: {
-                    Image(systemName: icon)
-                }
-                .font(.subheadline)
-                .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-            errorCaption(field)
-        }
     }
 
     @ViewBuilder
@@ -390,14 +614,23 @@ struct VenueDetailView: View {
                     .onSubmit { focusedField = nil }
                     .onChange(of: locationDraft) { _, newValue in searchLocation(newValue) }
             } else {
-                Button {
-                    beginEditingLocation()
-                } label: {
-                    Label(displayValue(for: .location), systemImage: "mappin.and.ellipse")
-                        .font(.subheadline)
-                        .foregroundStyle(flashingFields.contains(.location) ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Button {
+                        beginEditingLocation()
+                    } label: {
+                        Label(displayValue(for: .location), systemImage: "mappin.and.ellipse")
+                            .font(.subheadline)
+                            .foregroundStyle(flashingFields.contains(.location) ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer(minLength: 0)
+
+                    Button("View on map", action: onViewOnMap)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(VowbaseTheme.rose)
                 }
-                .buttonStyle(.plain)
             }
             if editingField == .location, !locationSuggestions.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
@@ -436,6 +669,108 @@ struct VenueDetailView: View {
 
     private func displayValue(for field: VenueEditableField) -> String {
         optimisticValues[field] ?? rawStringValue(for: field)
+    }
+
+    private func beginDetailsEditing() {
+        websiteDraft = currentVenue.website ?? ""
+        contactNameDraft = currentVenue.contactName ?? ""
+        contactEmailDraft = currentVenue.contactEmail ?? ""
+        contactPhoneDraft = currentVenue.contactPhone ?? ""
+        notesDraft = currentVenue.ourNotes ?? ""
+        detailsSaveError = nil
+        isDetailsEditing = true
+    }
+
+    /// Back leaves the editor in the venue detail rather than popping its navigation
+    /// destination. Draft values are intentionally discarded; Save is the one commit point.
+    private func cancelDetailsEditing() {
+        focusedField = nil
+        isDetailsEditing = false
+        detailsSaveError = nil
+    }
+
+    private func saveDetails() {
+        let original = VenueDetailsDraft(venue: currentVenue)
+        let draft = VenueDetailsDraft(
+            website: websiteDraft,
+            contactName: contactNameDraft,
+            contactEmail: contactEmailDraft,
+            contactPhone: contactPhoneDraft,
+            notes: notesDraft
+        )
+        let patch = draft.patch(comparedWith: original)
+        guard !patch.isEmpty else {
+            isDetailsEditing = false
+            return
+        }
+
+        isSavingDetails = true
+        detailsSaveError = nil
+        let venueID = currentVenue.id
+        Task {
+            let result = await store.patchVenue(id: venueID, patch)
+            isSavingDetails = false
+            guard result != nil else {
+                detailsSaveError = "Couldn't save details. Try again."
+                return
+            }
+            focusedField = nil
+            isDetailsEditing = false
+        }
+    }
+
+    private func websiteURL(from value: String?) -> URL? {
+        guard let value = value?.trimmed, !value.isEmpty else { return nil }
+        let candidate = value.contains("://") ? value : "https://\(value)"
+        guard let url = URL(string: candidate), let scheme = url.scheme?.lowercased(),
+              scheme == "https" || scheme == "http"
+        else { return nil }
+        return url
+    }
+
+    private func emailURL(from value: String?) -> URL? {
+        guard let value = value?.trimmed, value.contains("@"),
+              !value.contains(where: { $0.isWhitespace })
+        else { return nil }
+        return URL(string: "mailto:\(value)")
+    }
+
+    private func phoneURL(from value: String?) -> URL? {
+        guard let value = value?.trimmed else { return nil }
+        let dialing = value.filter { $0.isNumber || $0 == "+" || $0 == "*" || $0 == "#" }
+        guard dialing.contains(where: \.isNumber) else { return nil }
+        return URL(string: "tel:\(dialing)")
+    }
+
+    private func documentIcon(for attachment: Attachment) -> String {
+        let isPDF = attachment.mimeType?.lowercased() == "application/pdf"
+            || attachment.fileName.lowercased().hasSuffix(".pdf")
+        return isPDF ? "doc.richtext" : "doc"
+    }
+
+    private func documentSubtitle(for attachment: Attachment) -> String {
+        let type = attachment.mimeType?.nilIfBlank ?? "Document"
+        guard let sizeBytes = attachment.sizeBytes else { return type }
+        return "\(type) · \(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))"
+    }
+
+    private func downloadAndPreview(_ attachment: Attachment) {
+        guard attachment.parent == .venue, attachment.parentID == currentVenue.id else { return }
+        downloadingAttachmentID = attachment.id
+        documentDownloadError = nil
+        Task {
+            do {
+                let data = try await store.downloadVenueAttachment(attachment)
+                let fileName = URL(fileURLWithPath: attachment.fileName).lastPathComponent
+                let destination = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("\(attachment.id.uuidString)-\(fileName)")
+                try data.write(to: destination, options: .atomic)
+                documentPreview = VenueDocumentPreview(id: attachment.id, url: destination)
+            } catch {
+                documentDownloadError = "Couldn't download \(attachment.fileName). Try again."
+            }
+            downloadingAttachmentID = nil
+        }
     }
 
     @ViewBuilder
@@ -489,18 +824,6 @@ struct VenueDetailView: View {
         draftText = rawStringValue(for: field)
         fieldErrors[field] = nil
         editingField = field
-    }
-
-    /// The detail screen keeps ownership of a notes edit. Its Back action ends the
-    /// edit instead of allowing the containing NavigationStack to pop the venue.
-    private func finishNotesEditing() {
-        guard editingField == .notes else { return }
-        if focusedField == .notes {
-            focusedField = nil
-        } else {
-            editingField = nil
-            dispatchCommit(.notes)
-        }
     }
 
     private func beginEditingCapacity() {
@@ -691,6 +1014,82 @@ struct VenueDetailView: View {
                 fieldErrors[.location] = "Couldn't save — Retry"
                 flash(.location)
             }
+        }
+    }
+}
+
+private struct VenueDetailsDraft {
+    let website: String
+    let contactName: String
+    let contactEmail: String
+    let contactPhone: String
+    let notes: String
+
+    init(venue: MVPVenue) {
+        website = venue.website ?? ""
+        contactName = venue.contactName ?? ""
+        contactEmail = venue.contactEmail ?? ""
+        contactPhone = venue.contactPhone ?? ""
+        notes = venue.ourNotes ?? ""
+    }
+
+    init(website: String, contactName: String, contactEmail: String, contactPhone: String, notes: String) {
+        self.website = website
+        self.contactName = contactName
+        self.contactEmail = contactEmail
+        self.contactPhone = contactPhone
+        self.notes = notes
+    }
+
+    func patch(comparedWith original: Self) -> VenuePatch {
+        VenuePatch(
+            contactName: nullablePatch(contactName, comparedWith: original.contactName),
+            contactEmail: nullablePatch(contactEmail, comparedWith: original.contactEmail),
+            contactPhone: nullablePatch(contactPhone, comparedWith: original.contactPhone),
+            website: nullablePatch(website, comparedWith: original.website),
+            ourNotes: nullablePatch(notes, comparedWith: original.notes)
+        )
+    }
+
+    private func nullablePatch(_ value: String, comparedWith original: String) -> NullablePatch<String> {
+        let trimmed = value.trimmed
+        guard trimmed != original.trimmed else { return .unchanged }
+        return trimmed.isEmpty ? .null : .value(trimmed)
+    }
+}
+
+private struct VenueDocumentPreview: Identifiable {
+    let id: UUID
+    let url: URL
+}
+
+private struct VenueDocumentQuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeCoordinator() -> Coordinator { Coordinator(url: url) }
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ controller: QLPreviewController, context: Context) {
+        context.coordinator.url = url
+        controller.reloadData()
+    }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        var url: URL
+
+        init(url: URL) {
+            self.url = url
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> any QLPreviewItem {
+            url as NSURL
         }
     }
 }

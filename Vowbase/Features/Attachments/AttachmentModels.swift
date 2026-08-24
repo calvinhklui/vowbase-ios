@@ -5,7 +5,7 @@ enum AttachmentParent: String, Codable, Equatable, Sendable {
     case vendor
 }
 
-struct Attachment: Codable, Equatable, Sendable, Identifiable {
+struct Attachment: Codable, Equatable, Hashable, Sendable, Identifiable {
     let id: UUID
     let weddingID: UUID
     let parent: AttachmentParent

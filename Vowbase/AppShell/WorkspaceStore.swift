@@ -125,6 +125,9 @@ struct MVPVenue: Identifiable, Hashable {
     /// The most specific stored address available for handing this venue to Maps.
     /// Keep this separate from `location`, whose shorter display copy is useful in UI.
     let mapSearchQuery: String
+    /// The stored/synthesized street address without a provider rewrite. This is
+    /// the value Maps and document-sharing surfaces should preserve verbatim.
+    let fullAddress: String?
     let capacityMin: Int?
     let capacityMax: Int?
     let capacityTextOverride: String?
@@ -149,6 +152,9 @@ struct MVPVenue: Identifiable, Hashable {
     let coverPhotoURL: URL?
     let coverPhotoCacheKey: String
     let photos: [VenuePhotoDisplay]
+    /// Metadata for files attached through the authoritative polymorphic
+    /// `attachments` relation (`parent_type = venue`, `parent_id = id`).
+    let attachments: [Attachment]
     let ourNotes: String?
 
     var capacity: String {
@@ -216,6 +222,9 @@ final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
     private var venueGalleries = [UUID: [VenuePhoto]]()
+    private var venueAttachments = [UUID: [Attachment]]()
+    private var loadingVenueAttachmentIDs = Set<UUID>()
+    private var venueAttachmentErrors = [UUID: String]()
     private var signedCoverPhotoURLs = [UUID: URL]()
     private var signedGalleryPhotoURLs = [UUID: URL]()
     /// Coordinates recovered for legacy or free-form venue addresses. These are
@@ -411,6 +420,7 @@ final class VowbaseWorkspaceStore {
             MVPVenue(
                 venue,
                 gallery: venueGalleries[venue.id] ?? [],
+                attachments: venueAttachments[venue.id] ?? [],
                 galleryPhotoURLs: signedGalleryPhotoURLs,
                 coverPhotoURL: signedCoverPhotoURLs[venue.id],
                 recoveredCoordinate: recoveredCoordinate(for: venue),
@@ -436,6 +446,15 @@ final class VowbaseWorkspaceStore {
         return guestRecords.map { MVPGuest($0, columns: columns) }
     }
     var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
+    var isVenueAttachmentsLoading: Bool { !loadingVenueAttachmentIDs.isEmpty }
+
+    func isLoadingVenueAttachments(for venueID: UUID) -> Bool {
+        loadingVenueAttachmentIDs.contains(venueID)
+    }
+
+    func venueAttachmentError(for venueID: UUID) -> String? {
+        venueAttachmentErrors[venueID]
+    }
 
     /// Columns offered for editing and filtering, in their configured order.
     /// Empty while definitions are unavailable so rows never render broken.
@@ -543,12 +562,16 @@ final class VowbaseWorkspaceStore {
             }
             let currentVenueIDs = Set(venueRecords.map(\.id))
             venueGalleries = venueGalleries.filter { currentVenueIDs.contains($0.key) }
+            venueAttachments = venueAttachments.filter { currentVenueIDs.contains($0.key) }
+            loadingVenueAttachmentIDs.formIntersection(currentVenueIDs)
+            venueAttachmentErrors = venueAttachmentErrors.filter { currentVenueIDs.contains($0.key) }
             signedCoverPhotoURLs = signedCoverPhotoURLs.filter { currentVenueIDs.contains($0.key) }
             recoveredVenueCoordinates = recoveredVenueCoordinates.filter { currentVenueIDs.contains($0.key) }
             venueCoordinateRecoveryAttempts = venueCoordinateRecoveryAttempts.filter { currentVenueIDs.contains($0.key) }
             let currentPhotoIDs = Set(venueGalleries.values.flatMap { $0.map(\.id) })
             signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { currentPhotoIDs.contains($0.key) }
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
+            resolveVenueAttachments(for: venueRecords, repositories: repositories)
             recoverVenueCoordinates(for: venueRecords, repositories: repositories)
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
@@ -739,6 +762,9 @@ final class VowbaseWorkspaceStore {
             venueRecords.removeAll { $0.id == venue.id }
             let orphanedPhotoIDs = Set((venueGalleries[venue.id] ?? []).map(\.id))
             venueGalleries[venue.id] = nil
+            venueAttachments[venue.id] = nil
+            loadingVenueAttachmentIDs.remove(venue.id)
+            venueAttachmentErrors[venue.id] = nil
             signedCoverPhotoURLs[venue.id] = nil
             signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { !orphanedPhotoIDs.contains($0.key) }
             if selectedVenueID == venue.id {
@@ -773,6 +799,24 @@ final class VowbaseWorkspaceStore {
         } catch {
             return nil
         }
+    }
+
+    /// Retrieves one venue attachment only after confirming that it belongs to
+    /// a venue still loaded in this workspace. The view owns presentation (for
+    /// example Quick Look for a PDF); the repository remains the sole storage
+    /// transport.
+    func downloadVenueAttachment(_ attachment: Attachment) async throws -> Data {
+        guard let repositories,
+              attachment.parent == .venue,
+              venueRecords.contains(where: {
+                  $0.id == attachment.parentID && $0.weddingID == attachment.weddingID
+              }) else {
+            throw BackendError.validation(
+                message: "This document is not available in the current venue workspace.",
+                requestID: nil
+            )
+        }
+        return try await repositories.attachments.download(attachment)
     }
 
     /// Address suggestions for the location autocomplete row. Empty input and lookup
@@ -1234,6 +1278,50 @@ final class VowbaseWorkspaceStore {
         }
     }
 
+    /// Attachment metadata is stored in the existing polymorphic `attachments`
+    /// table, not in a venue-specific document model. Loading it separately
+    /// keeps a slow file listing from delaying the workspace's core venues.
+    private func resolveVenueAttachments(
+        for venues: [Venue],
+        repositories: RepositoryContainer
+    ) {
+        let venuesToResolve = venues.filter { loadingVenueAttachmentIDs.insert($0.id).inserted }
+        guard !venuesToResolve.isEmpty else { return }
+        Task { [weak self] in
+            defer {
+                if Task.isCancelled {
+                    for venue in venuesToResolve {
+                        self?.loadingVenueAttachmentIDs.remove(venue.id)
+                    }
+                }
+            }
+            for venue in venuesToResolve {
+                guard !Task.isCancelled else { return }
+                do {
+                    let attachments = try await repositories.attachments.attachments(
+                        weddingID: venue.weddingID,
+                        parent: .venue,
+                        parentID: venue.id
+                    )
+                    guard !Task.isCancelled,
+                          self?.venueRecords.contains(where: {
+                              $0.id == venue.id && $0.weddingID == venue.weddingID
+                          }) == true else {
+                        continue
+                    }
+                    self?.venueAttachments[venue.id] = attachments
+                    self?.venueAttachmentErrors[venue.id] = nil
+                    self?.loadingVenueAttachmentIDs.remove(venue.id)
+                } catch is CancellationError {
+                    self?.loadingVenueAttachmentIDs.remove(venue.id)
+                } catch {
+                    self?.venueAttachmentErrors[venue.id] = self?.userMessage(for: error)
+                    self?.loadingVenueAttachmentIDs.remove(venue.id)
+                }
+            }
+        }
+    }
+
     /// Returns persisted coordinates when available, otherwise an address-bound
     /// in-memory recovery. The address match makes a delayed old lookup harmless
     /// if the venue's location changes while it is in flight.
@@ -1358,15 +1446,24 @@ struct VenueCoordinateRecovery: Equatable {
         self.coordinate = coordinate
     }
 
+    static func fullAddress(for venue: Venue) -> String? {
+        let primary = venue.address?.nilIfBlank
+            ?? venue.locationText?.nilIfBlank
+            ?? venue.location?.nilIfBlank
+        let regionalParts = [venue.city, venue.state, venue.country]
+            .compactMap { $0?.nilIfBlank }
+
+        guard var result = primary else {
+            return regionalParts.joined(separator: ", ").nilIfBlank
+        }
+        for part in regionalParts where result.range(of: part, options: .caseInsensitive) == nil {
+            result += ", \(part)"
+        }
+        return result
+    }
+
     static func query(for venue: Venue) -> String? {
-        let regionalFallback = [venue.city, venue.state, venue.country]
-            .compactMap { $0?.nilIfBlank }
-            .joined(separator: ", ")
-            .nilIfBlank
-        let candidates = [venue.address, venue.locationText, venue.location, regionalFallback]
-        return candidates
-            .compactMap { $0?.nilIfBlank }
-            .first(where: isMeaningfulLocationText)
+        fullAddress(for: venue).flatMap { isMeaningfulLocationText($0) ? $0 : nil }
     }
 
     static func isUsable(latitude: Double, longitude: Double) -> Bool {
@@ -1385,6 +1482,7 @@ private extension MVPVenue {
     init(
         _ venue: Venue,
         gallery: [VenuePhoto] = [],
+        attachments: [Attachment] = [],
         galleryPhotoURLs: [UUID: URL] = [:],
         coverPhotoURL: URL? = nil,
         recoveredCoordinate: Coordinate? = nil,
@@ -1394,14 +1492,8 @@ private extension MVPVenue {
         name = venue.name
         status = venue.status
         location = venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? venue.address ?? "Location not added"
-        mapSearchQuery = venue.address?.nilIfBlank
-            ?? venue.locationText?.nilIfBlank
-            ?? venue.location?.nilIfBlank
-            ?? [venue.city, venue.state, venue.country]
-                .compactMap { $0?.nilIfBlank }
-                .joined(separator: ", ")
-                .nilIfBlank
-            ?? location
+        fullAddress = VenueCoordinateRecovery.fullAddress(for: venue)
+        mapSearchQuery = fullAddress ?? location
         capacityMin = venue.capacityMin
         capacityMax = venue.capacityMax
         capacityTextOverride = venue.capacityText?.nilIfBlank
@@ -1423,6 +1515,7 @@ private extension MVPVenue {
         self.coverPhotoURL = coverPhotoURL ?? VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)
         coverPhotoCacheKey = "venue-cover-\(venue.id)|\(venue.photoURL ?? "none")"
         photos = gallery.map { VenuePhotoDisplay(photo: $0, url: galleryPhotoURLs[$0.id]) }
+        self.attachments = attachments
         ourNotes = venue.ourNotes?.nilIfBlank
     }
 }

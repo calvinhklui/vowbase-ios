@@ -73,6 +73,7 @@ struct ConsoleHeader: View {
     let addAction: (() -> Void)?
     let addAccessibilityLabel: String?
     let addSystemImage: String
+    let titlePointSize: CGFloat?
 
     init(
         title: String,
@@ -80,7 +81,8 @@ struct ConsoleHeader: View {
         subline: String?,
         addAction: (() -> Void)? = nil,
         addAccessibilityLabel: String? = nil,
-        addSystemImage: String = "plus"
+        addSystemImage: String = "plus",
+        titlePointSize: CGFloat? = nil
     ) {
         self.title = title
         self.trailing = trailing
@@ -88,13 +90,14 @@ struct ConsoleHeader: View {
         self.addAction = addAction
         self.addAccessibilityLabel = addAccessibilityLabel
         self.addSystemImage = addSystemImage
+        self.titlePointSize = titlePointSize
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.system(size: tabTitlePointSize, weight: .regular, design: .serif))
+                    .font(.system(size: titlePointSize ?? tabTitlePointSize, weight: .regular, design: .serif))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 if let trailing {
@@ -127,13 +130,18 @@ struct ConsoleHeader: View {
 extension ConsoleHeader {
     /// The Venues lens always keeps its own title, including when a venue is
     /// selected on the map. Status counts live in the compact metric rail.
-    init(venues: [MVPVenue], addAction: (() -> Void)? = nil) {
+    init(
+        venues: [MVPVenue],
+        addAction: (() -> Void)? = nil,
+        titlePointSize: CGFloat? = nil
+    ) {
         title = "Venues"
         trailing = nil
         subline = nil
         self.addAction = addAction
         addAccessibilityLabel = "Add Venue"
-        addSystemImage = "mappin.and.ellipse"
+        addSystemImage = "plus"
+        self.titlePointSize = titlePointSize
     }
 
     /// No selection: the Guests lens's own state at a glance.
@@ -143,7 +151,8 @@ extension ConsoleHeader {
         subline = nil
         self.addAction = addAction
         addAccessibilityLabel = "Add Guest"
-        addSystemImage = "person.badge.plus"
+        addSystemImage = "plus"
+        titlePointSize = nil
     }
 
     /// Tasks has no map selection to reflect — always its own state at a glance.
@@ -153,7 +162,8 @@ extension ConsoleHeader {
         subline = "\(openTaskCount) open" + (dueSoonCount > 0 ? " · \(dueSoonCount) due this week" : "")
         self.addAction = addAction
         addAccessibilityLabel = "Add Task"
-        addSystemImage = "checkmark.circle.badge.plus"
+        addSystemImage = "plus"
+        titlePointSize = nil
     }
 }
 
@@ -281,6 +291,7 @@ private extension TravelUnavailableReason {
 struct VenueRailContent: View {
     let store: VowbaseWorkspaceStore
     let onSelect: (MVPVenue) -> Void
+    let onOpenDetails: (MVPVenue) -> Void
 
     @State private var selectedStatus: VenueStatus?
 
@@ -315,7 +326,13 @@ struct VenueRailContent: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 14) {
                                 ForEach(visibleVenues) { venue in
-                                    Button { onSelect(venue) } label: {
+                                    Button {
+                                        if venue.id == store.selectedVenueID {
+                                            onOpenDetails(venue)
+                                        } else {
+                                            onSelect(venue)
+                                        }
+                                    } label: {
                                         VenueRailCard(venue: venue, selected: venue.id == store.selectedVenueID)
                                     }
                                     .buttonStyle(.plain)

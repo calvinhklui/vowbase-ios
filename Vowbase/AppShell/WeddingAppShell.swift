@@ -42,7 +42,7 @@ struct WeddingAppShell: View {
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
-    @State private var venueActionMenu: MVPVenue?
+    @State private var mapFocusToken = 0
     /// Opening a venue from the peek rail needs a full-height navigation
     /// host, but Back should return the couple to the exact detent they were
     /// using rather than permanently promoting the Venues console to full.
@@ -84,7 +84,9 @@ struct WeddingAppShell: View {
                     lens: navigation.selectedLens,
                     consoleInset: consoleHeight,
                     selectedGuestID: navigation.selectedGuestID,
+                    focusToken: mapFocusToken,
                     onSelectVenue: selectVenue,
+                    onOpenVenueInMaps: openInMaps,
                     onClearFocus: clearMapFocus
                 )
 
@@ -275,19 +277,6 @@ struct WeddingAppShell: View {
         } message: {
             Text("You can sign back in with Apple or Google at any time.")
         }
-        .confirmationDialog("Venue options", isPresented: isVenueActionMenuPresented, titleVisibility: .visible) {
-            if let venue = venueActionMenu {
-                Button("See Details") {
-                    openVenueDetails(venue)
-                }
-                Button("Open in Maps") {
-                    openInMaps(venue)
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(venueActionMenu?.name ?? "")
-        }
         // Creation sheets present from *inside* the console, not from the
         // shell around it. The console is itself a permanently-presented
         // sheet, so a second sheet attached to the shell has no free
@@ -339,15 +328,15 @@ struct WeddingAppShell: View {
                 onAddTask: { taskEditor = .add() }
             )
         case .venues:
-            DirectAddFAB(title: "Add Venue", systemImage: "mappin.and.ellipse") {
+            DirectAddFAB(title: "Add Venue", systemImage: "plus") {
                 quickAdd = .venue
             }
         case .guests:
-            DirectAddFAB(title: "Add Guest", systemImage: "person.badge.plus") {
+            DirectAddFAB(title: "Add Guest", systemImage: "plus") {
                 quickAdd = .guest
             }
         case .tasks:
-            DirectAddFAB(title: "Add Task", systemImage: "checkmark.circle.badge.plus") {
+            DirectAddFAB(title: "Add Task", systemImage: "plus") {
                 taskEditor = .add()
             }
         }
@@ -373,17 +362,6 @@ struct WeddingAppShell: View {
         Binding(
             get: { navigation.selectedLens },
             set: { navigation.selectedLens = $0 }
-        )
-    }
-
-    private var isVenueActionMenuPresented: Binding<Bool> {
-        Binding(
-            get: { venueActionMenu != nil },
-            set: { isPresented in
-                if !isPresented {
-                    venueActionMenu = nil
-                }
-            }
         )
     }
 
@@ -423,7 +401,8 @@ struct WeddingAppShell: View {
         case .venues:
             ConsoleHeader(
                 venues: store.venues,
-                addAction: currentDetent == .peek ? { quickAdd = .venue } : nil
+                addAction: currentDetent == .peek ? { quickAdd = .venue } : nil,
+                titlePointSize: currentDetent == .full ? 21 : nil
             )
         case .guests:
             ConsoleHeader(
@@ -482,12 +461,17 @@ struct WeddingAppShell: View {
             }
         case .venues:
             if currentDetent == .peek && navigation.venuesPath.isEmpty {
-                VenueRailContent(store: store, onSelect: selectVenue)
+                VenueRailContent(
+                    store: store,
+                    onSelect: selectVenue,
+                    onOpenDetails: openVenueDetails
+                )
             } else {
                 VenuesView(
                     store: store,
                     onAddVenue: { quickAdd = .venue },
                     onReturnToMap: { navigation.selectedLens = .overview },
+                    onViewOnMap: showVenueOnMap,
                     isNoteEditing: $isVenueNoteEditing,
                     path: venuesPathBinding
                 )
@@ -524,11 +508,7 @@ struct WeddingAppShell: View {
 
     private func selectVenue(_ venue: MVPVenue) {
         navigation.selectedGuestID = nil
-        if store.selectedVenueID == venue.id {
-            venueActionMenu = venue
-        } else {
-            store.selectedVenueID = venue.id
-        }
+        store.selectedVenueID = venue.id
     }
 
     private func selectGuest(_ guest: MVPGuest) {
@@ -554,6 +534,18 @@ struct WeddingAppShell: View {
         components?.queryItems = [URLQueryItem(name: "q", value: location)]
         guard let url = components?.url else { return }
         UIApplication.shared.open(url)
+    }
+
+    /// Returns from a venue detail to the focused map state. Resetting the
+    /// path first makes the compact rail the active content; the focus token
+    /// makes MapKit recenter even if this venue was already selected.
+    private func showVenueOnMap(_ venue: MVPVenue) {
+        navigation.selectedGuestID = nil
+        navigation.venuesPath = NavigationPath()
+        venueDetailReturnDetent = nil
+        lensDetents[.venues] = .peek
+        store.selectedVenueID = venue.id
+        mapFocusToken += 1
     }
 
     private func clearMapFocus() {

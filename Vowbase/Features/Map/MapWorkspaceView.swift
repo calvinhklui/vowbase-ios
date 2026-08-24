@@ -25,7 +25,11 @@ struct MapWorkspaceView: View {
     let lens: PlanLens
     let consoleInset: CGFloat
     let selectedGuestID: UUID?
+    /// Explicit recenter request for a selected venue whose ID did not change
+    /// (for example, returning from its detail screen to the map peek).
+    let focusToken: Int
     let onSelectVenue: (MVPVenue) -> Void
+    let onOpenVenueInMaps: (MVPVenue) -> Void
     let onClearFocus: () -> Void
 
     /// Roughly a few kilometres across — the floor so a single pin lands on a
@@ -41,14 +45,24 @@ struct MapWorkspaceView: View {
             ForEach(store.venues) { venue in
                 if let coordinate = venue.coordinate {
                     Annotation(venue.name, coordinate: coordinate, anchor: .bottom) {
-                        Button { onSelectVenue(venue) } label: {
-                            VenueMapAnnotation(
-                                venue: venue,
-                                selected: store.selectedVenueID == venue.id
-                            )
+                        if store.selectedVenueID == venue.id {
+                            Menu {
+                                Button("Open in Maps") {
+                                    onOpenVenueInMaps(venue)
+                                }
+                            } label: {
+                                VenueMapAnnotation(venue: venue, selected: true)
+                            }
+                            .accessibilityLabel("\(venue.name), \(venue.status.title)")
+                        } else {
+                            Button {
+                                onSelectVenue(venue)
+                            } label: {
+                                VenueMapAnnotation(venue: venue, selected: false)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(venue.name), \(venue.status.title)")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(venue.name), \(venue.status.title)")
                     }
                 }
             }
@@ -98,6 +112,7 @@ struct MapWorkspaceView: View {
             lens.rawValue,
             store.selectedVenueID?.uuidString ?? "none",
             selectedGuestID?.uuidString ?? "none",
+            String(focusToken),
             String(store.venues.count),
             String(store.clusters.count),
         ].joined(separator: "|")

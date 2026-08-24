@@ -12,6 +12,7 @@ struct VenuesView: View {
     let store: VowbaseWorkspaceStore
     let onAddVenue: () -> Void
     let onReturnToMap: () -> Void
+    let onViewOnMap: (MVPVenue) -> Void
     @Binding var isNoteEditing: Bool
     /// Owned by `WeddingAppShell`, not this view — the shell needs to know
     /// when this stack has drilled past its root so it can hide the
@@ -73,7 +74,12 @@ struct VenuesView: View {
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
-                VenueDetailView(venue: venue, store: store, isNoteEditing: $isNoteEditing)
+                VenueDetailView(
+                    venue: venue,
+                    store: store,
+                    isNoteEditing: $isNoteEditing,
+                    onViewOnMap: { onViewOnMap(venue) }
+                )
             }
         }
     }
