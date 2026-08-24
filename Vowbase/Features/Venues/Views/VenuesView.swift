@@ -164,7 +164,7 @@ private struct CompactVenueRow: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(venue.name)
-                    .font(.system(size: 19, weight: .semibold, design: .serif))
+                    .font(.system(size: 16, weight: .semibold, design: .serif))
                     .foregroundStyle(VowbaseTheme.ink)
                     .lineLimit(1)
 

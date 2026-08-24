@@ -155,11 +155,6 @@ struct VenueDetailView: View {
             }
         }
         .vowbaseScrollClearance(includesQuickAdd: !isDetailsEditing)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isDetailsEditing {
-                detailsSaveBar
-            }
-        }
         .navigationTitle(currentVenue.name)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(isDetailsEditing)
@@ -169,15 +164,24 @@ struct VenueDetailView: View {
                     Button {
                         cancelDetailsEditing()
                     } label: {
-                        Label("Back", systemImage: "chevron.left")
+                        Image(systemName: "xmark")
                     }
+                    .accessibilityLabel("Close editing")
                 }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("Delete Venue", role: .destructive) { isConfirmingDeletion = true }
-                } label: {
-                    Image(systemName: "ellipsis")
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        saveDetails()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(isSavingDetails)
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Delete Venue", role: .destructive) { isConfirmingDeletion = true }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
                 }
             }
         }
@@ -382,33 +386,6 @@ struct VenueDetailView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(VowbaseTheme.border, lineWidth: 1)
         }
-    }
-
-    private var detailsSaveBar: some View {
-        HStack {
-            Button {
-                saveDetails()
-            } label: {
-                Group {
-                    if isSavingDetails {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Text("Save")
-                    }
-                }
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-            }
-            .disabled(isSavingDetails)
-            .buttonStyle(.borderedProminent)
-            .tint(VowbaseTheme.rose)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 18)
-        .background(.ultraThinMaterial)
     }
 
     @ViewBuilder
