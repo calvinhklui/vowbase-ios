@@ -70,6 +70,25 @@ struct ConsoleHeader: View {
     let title: String
     let trailing: String?
     let subline: String?
+    let addAction: (() -> Void)?
+    let addAccessibilityLabel: String?
+    let addSystemImage: String
+
+    init(
+        title: String,
+        trailing: String?,
+        subline: String?,
+        addAction: (() -> Void)? = nil,
+        addAccessibilityLabel: String? = nil,
+        addSystemImage: String = "plus"
+    ) {
+        self.title = title
+        self.trailing = trailing
+        self.subline = subline
+        self.addAction = addAction
+        self.addAccessibilityLabel = addAccessibilityLabel
+        self.addSystemImage = addSystemImage
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -82,6 +101,17 @@ struct ConsoleHeader: View {
                     Text(trailing)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+                if let addAction {
+                    Button(action: addAction) {
+                        Image(systemName: addSystemImage)
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: 36, height: 36)
+                            .background(VowbaseTheme.blush, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(VowbaseTheme.rose)
+                    .accessibilityLabel(addAccessibilityLabel ?? "Add")
                 }
             }
             if let subline {
@@ -97,24 +127,33 @@ struct ConsoleHeader: View {
 extension ConsoleHeader {
     /// The Venues lens always keeps its own title, including when a venue is
     /// selected on the map. Status counts live in the compact metric rail.
-    init(venues: [MVPVenue]) {
+    init(venues: [MVPVenue], addAction: (() -> Void)? = nil) {
         title = "Venues"
         trailing = nil
         subline = nil
+        self.addAction = addAction
+        addAccessibilityLabel = "Add Venue"
+        addSystemImage = "mappin.and.ellipse"
     }
 
     /// No selection: the Guests lens's own state at a glance.
-    init(guests: [Guest]) {
+    init(guests: [Guest], addAction: (() -> Void)? = nil) {
         title = "Guests"
         trailing = nil
         subline = nil
+        self.addAction = addAction
+        addAccessibilityLabel = "Add Guest"
+        addSystemImage = "person.badge.plus"
     }
 
     /// Tasks has no map selection to reflect — always its own state at a glance.
-    init(openTaskCount: Int, dueSoonCount: Int) {
+    init(openTaskCount: Int, dueSoonCount: Int, addAction: (() -> Void)? = nil) {
         title = "Tasks"
         trailing = nil
         subline = "\(openTaskCount) open" + (dueSoonCount > 0 ? " · \(dueSoonCount) due this week" : "")
+        self.addAction = addAction
+        addAccessibilityLabel = "Add Task"
+        addSystemImage = "checkmark.circle.badge.plus"
     }
 }
 
@@ -272,16 +311,28 @@ struct VenueRailContent: View {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
                 } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 14) {
-                            ForEach(visibleVenues) { venue in
-                                Button { onSelect(venue) } label: {
-                                    VenueRailCard(venue: venue, selected: venue.id == store.selectedVenueID)
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 14) {
+                                ForEach(visibleVenues) { venue in
+                                    Button { onSelect(venue) } label: {
+                                        VenueRailCard(venue: venue, selected: venue.id == store.selectedVenueID)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .id(venue.id)
                                 }
-                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 18)
+                        }
+                        .onChange(of: store.selectedVenueID) { _, selectedID in
+                            guard let selectedID else { return }
+                            if !visibleVenues.contains(where: { $0.id == selectedID }) {
+                                selectedStatus = nil
+                            }
+                            withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
+                                proxy.scrollTo(selectedID, anchor: .center)
                             }
                         }
-                        .padding(.horizontal, 18)
                     }
                     .contentMargins(.trailing, 18, for: .scrollContent)
                 }
@@ -325,18 +376,12 @@ private struct VenueRailCard: View {
         HStack(spacing: 0) {
             VowbaseVenueImage(url: venue.photoURL, cacheKey: venue.coverPhotoCacheKey)
                 .frame(width: 88, height: 104)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text(venue.name)
                     .font(.system(size: 16, weight: .regular, design: .serif))
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .multilineTextAlignment(.leading)
-                StatusCapsule(status: venue.status)
-                if let travel = venue.travel {
-                    Label("\(travel) median guest travel", systemImage: "airplane")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(VowbaseTheme.mutedInk)
-                        .lineLimit(1)
-                }
+                VenueRailFactMatrix(venue: venue)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -355,6 +400,44 @@ private struct VenueRailCard: View {
                 )
         }
         .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+    }
+}
+
+private struct VenueRailFactMatrix: View {
+    let venue: MVPVenue
+
+    var body: some View {
+        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
+            GridRow {
+                VenueRailFact(label: "guests", value: venue.capacity, systemImage: "person.2")
+                VenueRailFact(label: "venue est.", value: venue.estimate, systemImage: "dollarsign.circle")
+            }
+            GridRow {
+                VenueRailFact(label: "all-in est.", value: venue.allInEstimate, systemImage: "dollarsign.square")
+                VenueRailFact(label: "available", value: venue.availableDates, systemImage: "calendar")
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct VenueRailFact: View {
+    let label: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Label(label, systemImage: systemImage)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.mutedInk)
+                .lineLimit(1)
+            Text(value)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(VowbaseTheme.ink)
+                .lineLimit(1)
+        }
+        .frame(width: 70, alignment: .leading)
     }
 }
 

@@ -42,6 +42,11 @@ struct WeddingAppShell: View {
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
+    @State private var venueActionMenu: MVPVenue?
+    /// Opening a venue from the peek rail needs a full-height navigation
+    /// host, but Back should return the couple to the exact detent they were
+    /// using rather than permanently promoting the Venues console to full.
+    @State private var venueDetailReturnDetent: ConsoleDetent?
 
     /// Each lens remembers its own detent for the session — spec §7.1.
     @State private var lensDetents: [PlanLens: ConsoleDetent] = [
@@ -54,7 +59,7 @@ struct WeddingAppShell: View {
     init(
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
-        initialLens: PlanLens = .overview,
+        initialLens: PlanLens = .venues,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
@@ -126,7 +131,7 @@ struct WeddingAppShell: View {
                 // part of the canvas floating just above it. Past peek it
                 // moves inside `consoleSheet` itself, or the console would
                 // cover it.
-                if currentDetent == .peek && !isVenueNoteEditing {
+                if showsPeekFAB {
                     activeLensFAB
                         .padding(.trailing, VowbaseControlMetric.screenInset)
                         .padding(.bottom, consoleHeight + 12)
@@ -168,7 +173,16 @@ struct WeddingAppShell: View {
         switch lens {
         case .overview:
             Set(ConsoleDetent.allCases.map(\.presentationDetent))
-        case .venues, .guests:
+        case .venues:
+            // A NavigationStack cannot safely swap its destination for the
+            // peek rail while a detail is pushed. Keep the pushed screen at
+            // full height; the Back action restores its saved launch detent.
+            if !navigation.venuesPath.isEmpty {
+                [ConsoleDetent.full.presentationDetent]
+            } else {
+                [ConsoleDetent.peek.presentationDetent, ConsoleDetent.full.presentationDetent]
+            }
+        case .guests:
             [ConsoleDetent.peek.presentationDetent, ConsoleDetent.full.presentationDetent]
         case .tasks:
             [ConsoleDetent.full.presentationDetent]
@@ -261,6 +275,19 @@ struct WeddingAppShell: View {
         } message: {
             Text("You can sign back in with Apple or Google at any time.")
         }
+        .confirmationDialog("Venue options", isPresented: isVenueActionMenuPresented, titleVisibility: .visible) {
+            if let venue = venueActionMenu {
+                Button("See Details") {
+                    openVenueDetails(venue)
+                }
+                Button("Open in Maps") {
+                    openInMaps(venue)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(venueActionMenu?.name ?? "")
+        }
         // Creation sheets present from *inside* the console, not from the
         // shell around it. The console is itself a permanently-presented
         // sheet, so a second sheet attached to the shell has no free
@@ -287,6 +314,16 @@ struct WeddingAppShell: View {
     /// lens rail. Pushed venue/guest details and venue-note editing suppress it.
     private var showsConsoleFAB: Bool {
         currentDetent != .peek && isConsoleAtRoot && !isVenueNoteEditing
+    }
+
+    /// Focused lenses use an in-header icon at peek, where a floating action
+    /// obscures the map and competes with the horizontal rail. Overview is no
+    /// longer in the visible rail, but retains its legacy quick-add path for
+    /// any internal route that still opens it.
+    private var showsPeekFAB: Bool {
+        currentDetent == .peek
+            && navigation.selectedLens == .overview
+            && !isVenueNoteEditing
     }
 
     /// Overview keeps the multi-action quick-add menu. Each focused lens uses
@@ -339,8 +376,36 @@ struct WeddingAppShell: View {
         )
     }
 
+    private var isVenueActionMenuPresented: Binding<Bool> {
+        Binding(
+            get: { venueActionMenu != nil },
+            set: { isPresented in
+                if !isPresented {
+                    venueActionMenu = nil
+                }
+            }
+        )
+    }
+
     private var venuesPathBinding: Binding<NavigationPath> {
-        Binding(get: { navigation.venuesPath }, set: { navigation.venuesPath = $0 })
+        Binding(
+            get: { navigation.venuesPath },
+            set: { newPath in
+                let wasShowingDetail = !navigation.venuesPath.isEmpty
+                if !wasShowingDetail, !newPath.isEmpty {
+                    // A detail can also be opened from the expanded venue
+                    // list, which mutates this binding rather than calling
+                    // `openVenueDetails(_:)`. Capture that full detent too.
+                    venueDetailReturnDetent = currentDetent
+                    lensDetents[.venues] = .full
+                }
+                navigation.venuesPath = newPath
+                guard wasShowingDetail, newPath.isEmpty else { return }
+
+                lensDetents[.venues] = venueDetailReturnDetent ?? defaultDetent(for: .venues)
+                venueDetailReturnDetent = nil
+            }
+        )
     }
 
     private var guestsPathBinding: Binding<NavigationPath> {
@@ -356,9 +421,15 @@ struct WeddingAppShell: View {
             // three modules at half/full would just waste vertical space.
             EmptyView()
         case .venues:
-            ConsoleHeader(venues: store.venues)
+            ConsoleHeader(
+                venues: store.venues,
+                addAction: currentDetent == .peek ? { quickAdd = .venue } : nil
+            )
         case .guests:
-            ConsoleHeader(guests: store.allGuestRecords)
+            ConsoleHeader(
+                guests: store.allGuestRecords,
+                addAction: currentDetent == .peek ? { quickAdd = .guest } : nil
+            )
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
         }
@@ -410,7 +481,7 @@ struct WeddingAppShell: View {
                 .padding(.bottom, 12)
             }
         case .venues:
-            if currentDetent == .peek {
+            if currentDetent == .peek && navigation.venuesPath.isEmpty {
                 VenueRailContent(store: store, onSelect: selectVenue)
             } else {
                 VenuesView(
@@ -454,7 +525,7 @@ struct WeddingAppShell: View {
     private func selectVenue(_ venue: MVPVenue) {
         navigation.selectedGuestID = nil
         if store.selectedVenueID == venue.id {
-            openVenueDetails(venue)
+            venueActionMenu = venue
         } else {
             store.selectedVenueID = venue.id
         }
@@ -466,9 +537,23 @@ struct WeddingAppShell: View {
     }
 
     private func openVenueDetails(_ venue: MVPVenue) {
+        store.selectedVenueID = venue.id
+        if navigation.venuesPath.isEmpty {
+            venueDetailReturnDetent = currentDetent
+        }
         lensDetents[.venues] = .full
         navigation.venuesPath = NavigationPath()
         navigation.venuesPath.append(venue)
+    }
+
+    private func openInMaps(_ venue: MVPVenue) {
+        let location = venue.mapSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !location.isEmpty else { return }
+
+        var components = URLComponents(string: "https://maps.apple.com/")
+        components?.queryItems = [URLQueryItem(name: "q", value: location)]
+        guard let url = components?.url else { return }
+        UIApplication.shared.open(url)
     }
 
     private func clearMapFocus() {
@@ -523,7 +608,7 @@ private struct LensRail: View {
 
     private var railContent: some View {
         HStack(spacing: 4) {
-            ForEach(PlanLens.allCases) { lens in
+            ForEach(PlanLens.visibleRailCases) { lens in
                 Button {
                     select(lens)
                 } label: {

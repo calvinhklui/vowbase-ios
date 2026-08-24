@@ -322,7 +322,7 @@ private struct VenueMapAnnotation: View {
             Image(systemName: "mappin.circle.fill")
                 .font(.system(size: selected ? 30 : 25))
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, VowbaseTheme.rose)
+                .foregroundStyle(.white, venue.status.badgeColor)
             if selected {
                 Text(venue.name)
                     .font(.system(size: 13, weight: .semibold))
@@ -330,7 +330,7 @@ private struct VenueMapAnnotation: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
                     .background(.thinMaterial, in: Capsule())
-                    .overlay(Capsule().stroke(VowbaseTheme.rose.opacity(0.45), lineWidth: 1))
+                    .overlay(Capsule().stroke(venue.status.badgeColor.opacity(0.45), lineWidth: 1))
             }
         }
         .shadow(color: .black.opacity(0.16), radius: 4, y: 2)

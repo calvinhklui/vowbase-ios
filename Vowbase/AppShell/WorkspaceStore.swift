@@ -122,6 +122,9 @@ struct MVPVenue: Identifiable, Hashable {
     let name: String
     let status: VenueStatus
     let location: String
+    /// The most specific stored address available for handing this venue to Maps.
+    /// Keep this separate from `location`, whose shorter display copy is useful in UI.
+    let mapSearchQuery: String
     let capacityMin: Int?
     let capacityMax: Int?
     let capacityTextOverride: String?
@@ -215,6 +218,16 @@ final class VowbaseWorkspaceStore {
     private var venueGalleries = [UUID: [VenuePhoto]]()
     private var signedCoverPhotoURLs = [UUID: URL]()
     private var signedGalleryPhotoURLs = [UUID: URL]()
+    /// Coordinates recovered for legacy or free-form venue addresses. These are
+    /// deliberately session-only: the recovery must never replace a user's
+    /// entered address with a provider label, and the Venue repository has no
+    /// established background-write pattern for this best-effort repair.
+    private var recoveredVenueCoordinates = [UUID: VenueCoordinateRecovery]()
+    /// A failed forward-geocode is still a result for this app session. Keep the
+    /// attempted query so repeated loads cannot turn one unresolved venue into
+    /// an unbounded stream of identical requests. A changed address naturally
+    /// produces a new query and may be tried once.
+    private var venueCoordinateRecoveryAttempts = [UUID: String]()
     private var guestRecords = [Guest]()
     private var customColumnRecords = [GuestCustomColumn]()
 
@@ -400,6 +413,7 @@ final class VowbaseWorkspaceStore {
                 gallery: venueGalleries[venue.id] ?? [],
                 galleryPhotoURLs: signedGalleryPhotoURLs,
                 coverPhotoURL: signedCoverPhotoURLs[venue.id],
+                recoveredCoordinate: recoveredCoordinate(for: venue),
                 travelText: travelText(for: venue.id)
             )
         }
@@ -530,9 +544,12 @@ final class VowbaseWorkspaceStore {
             let currentVenueIDs = Set(venueRecords.map(\.id))
             venueGalleries = venueGalleries.filter { currentVenueIDs.contains($0.key) }
             signedCoverPhotoURLs = signedCoverPhotoURLs.filter { currentVenueIDs.contains($0.key) }
+            recoveredVenueCoordinates = recoveredVenueCoordinates.filter { currentVenueIDs.contains($0.key) }
+            venueCoordinateRecoveryAttempts = venueCoordinateRecoveryAttempts.filter { currentVenueIDs.contains($0.key) }
             let currentPhotoIDs = Set(venueGalleries.values.flatMap { $0.map(\.id) })
             signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { currentPhotoIDs.contains($0.key) }
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
+            recoverVenueCoordinates(for: venueRecords, repositories: repositories)
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
             }
@@ -626,7 +643,7 @@ final class VowbaseWorkspaceStore {
             travelImpact = .idle
             return
         }
-        guard let latitude = venue.latitude, let longitude = venue.longitude else {
+        guard let coordinate = coordinate(for: venue) else {
             travelImpact = .unavailable(.venueMissingCoordinate)
             return
         }
@@ -643,7 +660,7 @@ final class VowbaseWorkspaceStore {
             }
             let results = try await repositories.maps.travelTimes(
                 weddingID: venue.weddingID,
-                origin: Coordinate(latitude: latitude, longitude: longitude),
+                origin: coordinate,
                 destinations: destinations
             )
             guard !Task.isCancelled, venueID == selectedVenueID else { return }
@@ -670,17 +687,21 @@ final class VowbaseWorkspaceStore {
     ) async -> Bool {
         guard let repositories, let weddingID = wedding?.id else { return unavailable() }
         do {
-            let location = await resolvedLocation(for: location, repositories: repositories)
-            let savedAddress = selectedAddress?.nilIfBlank ?? location.displayName
+            // An Apple Maps selection is a more specific, durable lookup value
+            // than whatever free-form text happened to be in the field when the
+            // user tapped it. Use it for both geocoding and persistence.
+            let locationQuery = selectedAddress?.nilIfBlank ?? location
+            let resolvedLocation = await resolvedLocation(for: locationQuery, repositories: repositories)
+            let savedAddress = selectedAddress?.nilIfBlank ?? resolvedLocation.displayName
             let venue = try await repositories.venues.createVenue(
                 VenueDraft(
                     name: name.trimmed,
                     status: status,
                     location: savedAddress,
                     address: savedAddress,
-                    city: location.city,
-                    state: location.region,
-                    country: location.country,
+                    city: resolvedLocation.city,
+                    state: resolvedLocation.region,
+                    country: resolvedLocation.country,
                     contactName: nil,
                     contactEmail: nil,
                     contactPhone: nil,
@@ -690,13 +711,19 @@ final class VowbaseWorkspaceStore {
                     priceEstimate: nil,
                     priceNotes: nil,
                     ourNotes: nil,
-                    latitude: location.latitude,
-                    longitude: location.longitude,
+                    latitude: resolvedLocation.latitude,
+                    longitude: resolvedLocation.longitude,
                     photoURL: nil
                 ),
                 weddingID: weddingID
             )
             venueRecords.insert(venue, at: 0)
+            if venue.latitude == nil || venue.longitude == nil,
+               let recoveryQuery = VenueCoordinateRecovery.query(for: venue) {
+                // `resolvedLocation` already gave this exact stored query one
+                // chance. Do not immediately repeat it in the recovery task.
+                venueCoordinateRecoveryAttempts[venue.id] = recoveryQuery
+            }
             selectedVenueID = venue.id
             return true
         } catch {
@@ -733,6 +760,15 @@ final class VowbaseWorkspaceStore {
         do {
             let updated = try await repositories.venues.updateVenue(id: id, patch: patch)
             replace(updated, in: &venueRecords)
+            if patch.location != .unchanged || patch.address != .unchanged
+                || patch.latitude != .unchanged || patch.longitude != .unchanged {
+                // A typed location intentionally clears its server coordinate.
+                // Discard an old, address-specific fallback before resolving the
+                // newly stored text once.
+                recoveredVenueCoordinates[id] = nil
+                venueCoordinateRecoveryAttempts[id] = nil
+                recoverVenueCoordinates(for: [updated], repositories: repositories)
+            }
             return updated
         } catch {
             return nil
@@ -1198,6 +1234,64 @@ final class VowbaseWorkspaceStore {
         }
     }
 
+    /// Returns persisted coordinates when available, otherwise an address-bound
+    /// in-memory recovery. The address match makes a delayed old lookup harmless
+    /// if the venue's location changes while it is in flight.
+    private func recoveredCoordinate(for venue: Venue) -> Coordinate? {
+        guard venue.latitude == nil || venue.longitude == nil,
+              let recovery = recoveredVenueCoordinates[venue.id],
+              let query = VenueCoordinateRecovery.query(for: venue),
+              recovery.query == query else {
+            return nil
+        }
+        return recovery.coordinate
+    }
+
+    private func coordinate(for venue: Venue) -> Coordinate? {
+        if let latitude = venue.latitude, let longitude = venue.longitude {
+            return .init(latitude: latitude, longitude: longitude)
+        }
+        return recoveredCoordinate(for: venue)
+    }
+
+    /// Repairs only the current app session for venues that already have useful
+    /// location text but lack one or both stored coordinate values. This remains
+    /// asynchronous so a workspace load is never blocked on an external map
+    /// lookup, and is serial to be kind to the geocoding endpoint.
+    private func recoverVenueCoordinates(
+        for venues: [Venue],
+        repositories: RepositoryContainer
+    ) {
+        Task { [weak self] in
+            for venue in venues {
+                guard !Task.isCancelled,
+                      let query = VenueCoordinateRecovery.query(for: venue) else {
+                    continue
+                }
+                guard let self,
+                      self.venueCoordinateRecoveryAttempts[venue.id] != query else {
+                    continue
+                }
+
+                // Record the attempt before awaiting so a pull-to-refresh or a
+                // concurrent location save cannot start a duplicate lookup.
+                self.venueCoordinateRecoveryAttempts[venue.id] = query
+                guard let result = try? await repositories.maps.geocode(query: query).first,
+                      VenueCoordinateRecovery.isUsable(latitude: result.latitude, longitude: result.longitude),
+                      !Task.isCancelled,
+                      let currentVenue = self.venueRecords.first(where: { $0.id == venue.id }),
+                      VenueCoordinateRecovery.query(for: currentVenue) == query,
+                      currentVenue.latitude == nil || currentVenue.longitude == nil else {
+                    continue
+                }
+                self.recoveredVenueCoordinates[venue.id] = .init(
+                    query: query,
+                    coordinate: .init(latitude: result.latitude, longitude: result.longitude)
+                )
+            }
+        }
+    }
+
     private func resolvedLocation(
         for input: String,
         repositories: RepositoryContainer
@@ -1251,18 +1345,63 @@ private struct ResolvedLocation {
     )
 }
 
+/// A best-effort map coordinate associated with the exact text that produced
+/// it. It intentionally lives only in `VowbaseWorkspaceStore`: a geocoder's
+/// result is useful for this map session, but should not silently mutate the
+/// address a couple chose to keep on their venue record.
+struct VenueCoordinateRecovery: Equatable {
+    let query: String
+    let coordinate: Coordinate
+
+    init(query: String, coordinate: Coordinate) {
+        self.query = query
+        self.coordinate = coordinate
+    }
+
+    static func query(for venue: Venue) -> String? {
+        let regionalFallback = [venue.city, venue.state, venue.country]
+            .compactMap { $0?.nilIfBlank }
+            .joined(separator: ", ")
+            .nilIfBlank
+        let candidates = [venue.address, venue.locationText, venue.location, regionalFallback]
+        return candidates
+            .compactMap { $0?.nilIfBlank }
+            .first(where: isMeaningfulLocationText)
+    }
+
+    static func isUsable(latitude: Double, longitude: Double) -> Bool {
+        CLLocationCoordinate2DIsValid(.init(latitude: latitude, longitude: longitude))
+    }
+
+    private static func isMeaningfulLocationText(_ text: String) -> Bool {
+        guard text.localizedCaseInsensitiveCompare("Location not added") != .orderedSame else {
+            return false
+        }
+        return text.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.count >= 3
+    }
+}
+
 private extension MVPVenue {
     init(
         _ venue: Venue,
         gallery: [VenuePhoto] = [],
         galleryPhotoURLs: [UUID: URL] = [:],
         coverPhotoURL: URL? = nil,
+        recoveredCoordinate: Coordinate? = nil,
         travelText: String? = nil
     ) {
         id = venue.id
         name = venue.name
         status = venue.status
         location = venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? venue.address ?? "Location not added"
+        mapSearchQuery = venue.address?.nilIfBlank
+            ?? venue.locationText?.nilIfBlank
+            ?? venue.location?.nilIfBlank
+            ?? [venue.city, venue.state, venue.country]
+                .compactMap { $0?.nilIfBlank }
+                .joined(separator: ", ")
+                .nilIfBlank
+            ?? location
         capacityMin = venue.capacityMin
         capacityMax = venue.capacityMax
         capacityTextOverride = venue.capacityText?.nilIfBlank
@@ -1276,8 +1415,8 @@ private extension MVPVenue {
         contactName = venue.contactName?.nilIfBlank
         contactEmail = venue.contactEmail?.nilIfBlank
         contactPhone = venue.contactPhone?.nilIfBlank
-        latitude = venue.latitude
-        longitude = venue.longitude
+        latitude = recoveredCoordinate?.latitude ?? venue.latitude
+        longitude = recoveredCoordinate?.longitude ?? venue.longitude
         // The store resolves the cover URL asynchronously; falling back to a direct parse
         // here avoids a blank-image flash on the first render for plain https URLs, which
         // is exactly what the async resolver would settle on anyway.

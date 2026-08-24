@@ -20,6 +20,11 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
+    /// Overview remains a routing destination for internal workflows, but is
+    /// intentionally not an end-user lens while the venue-first workspace is
+    /// active.
+    static let visibleRailCases: [PlanLens] = [.venues, .guests, .tasks]
+
     var title: LocalizedStringKey {
         switch self {
         case .overview: "Overview"

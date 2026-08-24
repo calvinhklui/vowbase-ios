@@ -17,6 +17,9 @@ struct VenueDetailView: View {
     @Binding var isNoteEditing: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingDeletion = false
+    /// `nil` keeps the cover photo as the hero. A gallery selection is local to this
+    /// detail presentation, so navigating to a different venue always starts at its cover.
+    @State private var selectedHeroPhotoURL: URL?
 
     /// Which row currently shows a TextField. Kept separate from `focusedField`: a
     /// TextField conditionally mounted in the same instant its own `@FocusState` target
@@ -50,8 +53,8 @@ struct VenueDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VowbaseVenueImage(
-                    url: currentVenue.photoURL,
-                    cacheKey: currentVenue.coverPhotoCacheKey
+                    url: selectedHeroPhotoURL ?? currentVenue.photoURL,
+                    cacheKey: selectedHeroPhotoURL == nil ? currentVenue.coverPhotoCacheKey : nil
                 )
                     .frame(height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -59,9 +62,22 @@ struct VenueDetailView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(currentVenue.photoURLs.dropFirst(), id: \.absoluteString) { photoURL in
-                                VowbaseVenueImage(url: photoURL)
-                                    .frame(width: 108, height: 76)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                Button {
+                                    selectedHeroPhotoURL = photoURL
+                                } label: {
+                                    VowbaseVenueImage(url: photoURL)
+                                        .frame(width: 108, height: 76)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .stroke(
+                                                    selectedHeroPhotoURL == photoURL ? VowbaseTheme.rose : .clear,
+                                                    lineWidth: 2
+                                                )
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Show photo")
                             }
                         }
                     }
@@ -132,13 +148,7 @@ struct VenueDetailView: View {
                         Button {
                             beginEditingSimple(.notes)
                         } label: {
-                            Text(value.isEmpty ? "Add notes" : value)
-                                .foregroundStyle(
-                                    flashingFields.contains(.notes) ? VowbaseTheme.rose :
-                                        value.isEmpty ? VowbaseTheme.mutedInk : VowbaseTheme.ink
-                                )
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .multilineTextAlignment(.leading)
+                            noteDisplay(value)
                         }
                         .buttonStyle(.plain)
                     }
@@ -156,10 +166,20 @@ struct VenueDetailView: View {
         .vowbaseScrollClearance(includesQuickAdd: editingField != .notes)
         .navigationTitle(currentVenue.name)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(editingField == .notes)
         .toolbar {
+            if editingField == .notes {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        finishNotesEditing()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Delete venue", role: .destructive) { isConfirmingDeletion = true }
+                    Button("Delete Venue", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
                     Image(systemName: "ellipsis")
                 }
@@ -167,10 +187,10 @@ struct VenueDetailView: View {
             ToolbarItem(placement: .keyboard) {
                 if editingField == .notes {
                     Button("Save") {
-                        focusedField = nil
+                        finishNotesEditing()
                     }
                     .fontWeight(.semibold)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 16)
                 }
             }
         }
@@ -418,6 +438,37 @@ struct VenueDetailView: View {
         optimisticValues[field] ?? rawStringValue(for: field)
     }
 
+    @ViewBuilder
+    private func noteDisplay(_ value: String) -> some View {
+        let foreground = flashingFields.contains(.notes) ? VowbaseTheme.rose :
+            value.isEmpty ? VowbaseTheme.mutedInk : VowbaseTheme.ink
+
+        if value.isEmpty {
+            Text("Add notes")
+                .foregroundStyle(foreground)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(value.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
+                    let formattedLine = NoteDisplayLine(line)
+                    if formattedLine.isBullet {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("•")
+                            Text(formattedLine.content)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    } else {
+                        Text(formattedLine.content)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .foregroundStyle(foreground)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .multilineTextAlignment(.leading)
+        }
+    }
+
     private func rawStringValue(for field: VenueEditableField) -> String {
         switch field {
         case .name: currentVenue.name
@@ -438,6 +489,18 @@ struct VenueDetailView: View {
         draftText = rawStringValue(for: field)
         fieldErrors[field] = nil
         editingField = field
+    }
+
+    /// The detail screen keeps ownership of a notes edit. Its Back action ends the
+    /// edit instead of allowing the containing NavigationStack to pop the venue.
+    private func finishNotesEditing() {
+        guard editingField == .notes else { return }
+        if focusedField == .notes {
+            focusedField = nil
+        } else {
+            editingField = nil
+            dispatchCommit(.notes)
+        }
     }
 
     private func beginEditingCapacity() {
@@ -629,6 +692,25 @@ struct VenueDetailView: View {
                 flash(.location)
             }
         }
+    }
+}
+
+private struct NoteDisplayLine {
+    let content: String
+    let isBullet: Bool
+
+    init(_ rawValue: String) {
+        let leadingWhitespaceTrimmed = rawValue.drop(while: \.isWhitespace)
+        guard let marker = leadingWhitespaceTrimmed.first,
+              marker == "-" || marker == "*" || marker == "•"
+        else {
+            content = rawValue
+            isBullet = false
+            return
+        }
+
+        content = String(leadingWhitespaceTrimmed.dropFirst().drop(while: \.isWhitespace))
+        isBullet = true
     }
 }
 
