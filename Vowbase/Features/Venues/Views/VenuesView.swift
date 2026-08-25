@@ -28,26 +28,26 @@ struct VenuesView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    if !store.venues.isEmpty {
+                        VenueMetricPills(venues: store.venues, selectedStatus: $selectedStatus)
+                    }
+                    toolRow
+
                     if store.venues.isEmpty {
                         VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
+                    } else if visibleVenues.isEmpty {
+                        noResults
                     } else {
-                        VenueMetricCards(venues: store.venues, selectedStatus: $selectedStatus)
-                        toolRow
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
+                                NavigationLink(value: venue) {
+                                    CompactVenueRow(venue: venue)
+                                }
+                                .buttonStyle(.plain)
 
-                        if visibleVenues.isEmpty {
-                            noResults
-                        } else {
-                            LazyVStack(spacing: 0) {
-                                ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
-                                    NavigationLink(value: venue) {
-                                        CompactVenueRow(venue: venue)
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if index < visibleVenues.count - 1 {
-                                        Divider()
-                                            .padding(.leading, 86)
-                                    }
+                                if index < visibleVenues.count - 1 {
+                                    Divider()
+                                        .padding(.leading, 86)
                                 }
                             }
                         }
@@ -75,28 +75,23 @@ struct VenuesView: View {
     // MARK: Controls
 
     private var toolRow: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                TextField("Search venues", text: $query)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(VowbaseTheme.mutedInk)
+        HStack(spacing: 4) {
+            CompactConsoleSearchField(placeholder: "Search venues", text: $query)
+
+            Menu {
+                Picker("Filter by status", selection: $selectedStatus) {
+                    Text("All statuses").tag(VenueStatus?.none)
+                    ForEach(VenueStatus.compactLifecycleOrder, id: \.self) { status in
+                        Text(status.title).tag(Optional(status))
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear search")
                 }
+            } label: {
+                CompactConsoleCircleControl(
+                    systemImage: "line.3.horizontal.decrease",
+                    isActive: selectedStatus != nil
+                )
             }
-            .padding(.horizontal, 16)
-            .frame(minHeight: 52)
-            .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+            .accessibilityLabel(selectedStatus.map { "Filter, \($0.title)" } ?? "Filter")
 
             Menu {
                 Picker("Sort", selection: $sort) {
@@ -105,15 +100,11 @@ struct VenuesView: View {
                     }
                 }
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(VowbaseTheme.ink)
-                    .frame(width: 52, height: 52)
-                    .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+                CompactConsoleCircleControl(systemImage: "ellipsis")
             }
-            .accessibilityLabel("Sort venues")
+            .accessibilityLabel("More")
         }
+        .padding(.trailing, VowbaseControlMetric.fabDiameter + VowbaseSpace.xSmall)
     }
 
     private var noResults: some View {
@@ -149,13 +140,13 @@ private extension VenueStatus {
     ]
 }
 
-private struct VenueMetricCards: View {
+private struct VenueMetricPills: View {
     let venues: [MVPVenue]
     @Binding var selectedStatus: VenueStatus?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: VowbaseSpace.small) {
+            HStack(spacing: 8) {
                 ForEach(VenueStatus.compactLifecycleOrder, id: \.self) { status in
                     let isSelected = selectedStatus == status
                     let count = venues.count(where: { $0.status == status })
@@ -163,52 +154,21 @@ private struct VenueMetricCards: View {
                     Button {
                         selectedStatus = isSelected ? nil : status
                     } label: {
-                        VenueMetricCard(status: status, venueCount: count, isSelected: isSelected)
+                        CompactMetricFilterPill(
+                            count: count,
+                            title: status.title,
+                            isSelected: isSelected
+                        )
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(status.title), \(count) venue\(count == 1 ? "" : "s")")
                     .accessibilityHint(isSelected ? "Double tap to show all venues" : "Double tap to filter the venue list")
                 }
             }
-            .padding(.vertical, VowbaseSpace.small)
+            .padding(.vertical, 4)
         }
         .contentMargins(.horizontal, 1, for: .scrollContent)
         .animation(.easeInOut(duration: 0.18), value: selectedStatus)
-    }
-}
-
-private struct VenueMetricCard: View {
-    let status: VenueStatus
-    let venueCount: Int
-    let isSelected: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
-            Text("\(venueCount)")
-                .font(.system(.title2, design: .serif, weight: .regular))
-                .foregroundStyle(isSelected ? VowbaseTheme.rose : VowbaseTheme.ink)
-                .monospacedDigit()
-            Spacer(minLength: 0)
-            Text(status.title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(isSelected ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(.horizontal, VowbaseSpace.medium)
-        .padding(.vertical, 10)
-        .frame(width: 88, height: 76, alignment: .leading)
-        .background(
-            isSelected ? VowbaseTheme.blush : VowbaseDesign.surface,
-            in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
-        )
-        .overlay {
-            if !isSelected {
-                RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
-                    .stroke(VowbaseTheme.border.opacity(0.3), lineWidth: 1)
-            }
-        }
     }
 }
 

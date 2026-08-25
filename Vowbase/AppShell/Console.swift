@@ -582,7 +582,10 @@ struct GuestRailContent: View {
     }
 }
 
-private struct CompactMetricFilterPill: View {
+/// The compact count-and-label capsule shared by the console rails and the
+/// full Venues and Guests roots. Selection stays outside this view so every
+/// host can use the same presentation with its own filtering state.
+struct CompactMetricFilterPill: View {
     let count: Int
     let title: String
     let isSelected: Bool
@@ -608,6 +611,58 @@ private struct CompactMetricFilterPill: View {
             Capsule()
                 .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.65), lineWidth: isSelected ? 2 : 1)
         }
+        .frame(minHeight: VowbaseControlMetric.minimumTapTarget)
+        .contentShape(Capsule())
+    }
+}
+
+/// A 36 pt visual control contained in a 44 pt hit target. Keeping the hit
+/// target separate lets the root tool row stay compact without reducing its
+/// accessibility or touch size.
+struct CompactConsoleCircleControl: View {
+    let systemImage: String
+    var isActive = false
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(isActive ? .white : VowbaseTheme.ink)
+            .frame(width: 36, height: 36)
+            .background(isActive ? VowbaseTheme.rose : VowbaseTheme.background, in: Circle())
+            .overlay(Circle().stroke(VowbaseTheme.border, lineWidth: 1))
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
+    }
+}
+
+struct CompactConsoleSearchField: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(VowbaseTheme.mutedInk)
+            TextField(placeholder, text: $text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 13)
+        .frame(height: 36)
+        .background(VowbaseTheme.background, in: Capsule())
+        .overlay(Capsule().stroke(VowbaseTheme.border, lineWidth: 1))
+        .frame(minHeight: 44)
     }
 }
 

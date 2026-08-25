@@ -94,48 +94,23 @@ struct GuestsView: View {
     // MARK: Controls
 
     private var toolRow: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                TextField("Search guests", text: $query)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(VowbaseTheme.mutedInk)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear search")
-                }
-            }
-            .padding(.horizontal, 16)
-            .frame(minHeight: 52)
-            .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+        HStack(spacing: 4) {
+            CompactConsoleSearchField(placeholder: "Search guests", text: $query)
 
             filtersButton
             overflowMenu
         }
+        .padding(.trailing, VowbaseControlMetric.fabDiameter + VowbaseSpace.xSmall)
     }
 
     private var filtersButton: some View {
         Button {
             showsFilter = true
         } label: {
-            Label("Filters", systemImage: "slider.horizontal.3")
-                .labelStyle(.iconOnly)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(filters.conditionCount > 0 ? .white : VowbaseTheme.ink)
-                .frame(width: 52, height: 52)
-                .background(
-                    filters.conditionCount > 0 ? VowbaseTheme.rose : VowbaseTheme.background,
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                )
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+            CompactConsoleCircleControl(
+                systemImage: "line.3.horizontal.decrease",
+                isActive: filters.conditionCount > 0
+            )
                 .overlay(alignment: .topTrailing) {
                     if filters.conditionCount > 0 {
                         Text("\(filters.conditionCount)")
@@ -151,8 +126,8 @@ struct GuestsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(
             filters.conditionCount > 0
-                ? "Filters, \(filters.conditionCount) active"
-                : "Filters"
+                ? "Filter, \(filters.conditionCount) active"
+                : "Filter"
         )
     }
 
@@ -175,18 +150,13 @@ struct GuestsView: View {
                 Label("Customize metrics", systemImage: "slider.horizontal.3")
             }
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(VowbaseTheme.ink)
-                .frame(width: 52, height: 52)
-                .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+            CompactConsoleCircleControl(systemImage: "ellipsis")
         }
-        .accessibilityLabel("Sort, manage fields, and customize metrics")
+        .accessibilityLabel("More")
     }
 
     private var metricCards: some View {
-        GuestMetricCards(
+        GuestMetricPills(
             configuration: metricConfiguration,
             guests: records,
             selectedMetricID: $selectedMetricID
@@ -322,23 +292,23 @@ enum GuestMetricConfigurationStorage {
 /// Shared metric filter control for the full Guests list and the console's
 /// compact guest rail. Its selection is intentionally binding-driven so each
 /// host decides how the selected metric filters or orders its own guest list.
-struct GuestMetricCards: View {
+struct GuestMetricPills: View {
     let configuration: GuestMetricConfiguration
     let guests: [Guest]
     @Binding var selectedMetricID: String?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: VowbaseSpace.small) {
+            HStack(spacing: 8) {
                 ForEach(configuration.shownMetrics) { metric in
                     let isSelected = selectedMetricID == metric.id
 
                     Button {
                         selectedMetricID = isSelected ? nil : metric.id
                     } label: {
-                        GuestMetricCard(
-                            metric: metric,
-                            guestCount: metric.count(in: guests),
+                        CompactMetricFilterPill(
+                            count: metric.count(in: guests),
+                            title: metric.cardTitle,
                             isSelected: isSelected
                         )
                     }
@@ -347,45 +317,10 @@ struct GuestMetricCards: View {
                     .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest list")
                 }
             }
-            .padding(.vertical, VowbaseSpace.small)
+            .padding(.vertical, 4)
         }
         .contentMargins(.horizontal, 1, for: .scrollContent)
         .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
-    }
-}
-
-private struct GuestMetricCard: View {
-    let metric: GuestMetric
-    let guestCount: Int
-    let isSelected: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
-            Text("\(guestCount)")
-                .font(.system(.title2, design: .serif, weight: .regular))
-                .foregroundStyle(isSelected ? VowbaseTheme.rose : VowbaseTheme.ink)
-                .monospacedDigit()
-            Spacer(minLength: 0)
-            Text(metric.cardTitle)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(isSelected ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(.horizontal, VowbaseSpace.medium)
-        .padding(.vertical, 10)
-        .frame(width: 88, height: 76, alignment: .leading)
-        .background(
-            isSelected ? VowbaseTheme.blush : VowbaseDesign.surface,
-            in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
-        )
-        .overlay {
-            if !isSelected {
-                RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
-                    .stroke(VowbaseTheme.border.opacity(0.3), lineWidth: 1)
-            }
-        }
     }
 }
 
