@@ -30,15 +30,13 @@ struct GuestDetailView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .vowbaseScrollClearance()
         .navigationTitle("Guest")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    NavigationLink(value: GuestsRoute.customFields) {
-                        Label("Manage fields", systemImage: "list.bullet.rectangle")
-                    }
-                    Button("Delete guest", role: .destructive) { isConfirmingDeletion = true }
+                    Button("Delete Guest", role: .destructive) { isConfirmingDeletion = true }
                 } label: {
                     Image(systemName: "ellipsis")
                 }
@@ -73,7 +71,7 @@ struct GuestDetailView: View {
                     .frame(width: 76, height: 76)
                     .background(VowbaseTheme.blush, in: Circle())
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         GuestInlineField(
                             stored: record.firstName,
                             placeholder: "First",
@@ -136,8 +134,6 @@ struct GuestDetailView: View {
             }
         } header: {
             Text("RSVP")
-        } footer: {
-            Text("The response date is set by the server when the status changes.")
         }
     }
 
@@ -224,7 +220,18 @@ struct GuestDetailView: View {
                 }
             }
         } header: {
-            Text("Custom fields")
+            HStack {
+                Text("Custom Fields")
+                Spacer()
+                NavigationLink(value: GuestsRoute.customFields) {
+                    Image(systemName: "list.bullet.rectangle")
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(VowbaseTheme.rose)
+                .accessibilityLabel("Manage fields")
+            }
+            .textCase(nil)
         } footer: {
             if !columns.isEmpty {
                 Text("Fields appear in the order set on Manage fields. Hidden fields keep their data.")

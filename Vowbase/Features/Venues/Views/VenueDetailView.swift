@@ -161,19 +161,22 @@ struct VenueDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    inlineTextField(.name, placeholder: "Venue name", font: VowbaseType.screenDisplay, autocapitalization: .words)
-                    errorCaption(.name)
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        inlineTextField(.name, placeholder: "Venue name", font: VowbaseType.screenDisplay, autocapitalization: .words)
+                            .layoutPriority(1)
 
-                    Menu {
-                        ForEach([
-                            VenueStatus.suggested, .considering, .contacted, .toured,
-                            .shortlisted, .negotiating, .booked, .passed,
-                        ], id: \.self) { status in
-                            Button(status.title) { commitStatus(status) }
+                        Menu {
+                            ForEach([
+                                VenueStatus.suggested, .considering, .contacted, .toured,
+                                .shortlisted, .negotiating, .booked, .passed,
+                            ], id: \.self) { status in
+                                Button(status.title) { commitStatus(status) }
+                            }
+                        } label: {
+                            StatusCapsule(status: displayStatus)
                         }
-                    } label: {
-                        StatusCapsule(status: displayStatus)
                     }
+                    errorCaption(.name)
                     errorCaption(.status)
 
                     locationRow
@@ -643,11 +646,10 @@ struct VenueDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(VowbaseTheme.mutedInk)
             } else if documents.isEmpty {
-                ContentUnavailableView(
-                    "No documents yet",
-                    systemImage: "doc",
-                    description: Text("Upload contracts, proposals, PDFs, or other venue files."))
-                    .frame(maxWidth: .infinity)
+                Label("No documents yet", systemImage: "doc")
+                    .font(.subheadline)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                    .padding(.vertical, 4)
             } else {
                 List {
                     ForEach(documents) { document in
