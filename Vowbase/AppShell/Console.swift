@@ -29,11 +29,14 @@ enum ConsoleDetent: CaseIterable {
     ///
     /// Anything added to the console's resting stack has to be paid for here.
     static let peekHeight: CGFloat = 331
+    /// The default focused-lens stop is intentionally taller than the system
+    /// medium detent so Venues and Guests have room for their metrics and list.
+    static let halfFraction: CGFloat = 0.6
 
     var presentationDetent: PresentationDetent {
         switch self {
         case .peek: .height(Self.peekHeight)
-        case .half: .fraction(0.5)
+        case .half: .fraction(Self.halfFraction)
         // Deliberately not .large: that system detent reserves a visible
         // gap at the top as an affordance. There's nothing under the
         // console worth keeping visible once you've dragged this far, so
@@ -47,7 +50,7 @@ enum ConsoleDetent: CaseIterable {
     func pointHeight(in screenHeight: CGFloat) -> CGFloat {
         switch self {
         case .peek: Self.peekHeight
-        case .half: screenHeight * 0.5
+        case .half: screenHeight * Self.halfFraction
         case .full: screenHeight
         }
     }
@@ -138,9 +141,7 @@ struct ConsoleHeader: View {
                     .lineLimit(1)
             }
         }
-        // Keep each root lens's header block the same height even when it has
-        // no supporting copy. The shell supplies the shared 16 pt inset.
-        .frame(minHeight: 60, alignment: .leading)
+        .frame(minHeight: subline == nil ? 38 : 60, alignment: .leading)
     }
 }
 
@@ -662,7 +663,7 @@ struct CompactConsoleSearchField: View {
         .frame(height: 36)
         .background(VowbaseTheme.background, in: Capsule())
         .overlay(Capsule().stroke(VowbaseTheme.border, lineWidth: 1))
-        .frame(minHeight: 44)
+        .frame(maxWidth: .infinity, minHeight: VowbaseControlMetric.minimumTapTarget)
     }
 }
 

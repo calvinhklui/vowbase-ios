@@ -33,13 +33,22 @@ struct GuestsView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ConsoleHeader(guests: store.allGuestRecords)
+                        .padding(.bottom, 10)
+
                     metricCards
+
                     toolRow
+                        .padding(.top, 10)
+
                     if filters.conditionCount > 0 {
                         activeFilterTokens
+                            .padding(.top, 18)
                     }
+
                     guestList
+                        .padding(.top, 18)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
@@ -100,7 +109,6 @@ struct GuestsView: View {
             filtersButton
             overflowMenu
         }
-        .padding(.trailing, VowbaseControlMetric.fabDiameter + VowbaseSpace.xSmall)
     }
 
     private var filtersButton: some View {
@@ -317,7 +325,6 @@ struct GuestMetricPills: View {
                     .accessibilityHint(isSelected ? "Double tap to show all guests" : "Double tap to filter the guest list")
                 }
             }
-            .padding(.vertical, 4)
         }
         .contentMargins(.horizontal, 1, for: .scrollContent)
         .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
@@ -1053,16 +1060,24 @@ private struct GuestLedger: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
+        HStack(alignment: .top, spacing: 0) {
+            nameColumn
+                .frame(width: nameColumnWidth)
+                .overlay(alignment: .trailing) {
+                    Rectangle()
+                        .fill(VowbaseTheme.border)
+                        .frame(width: 1)
+                }
+                .accessibilityHidden(true)
+
             ScrollView(.horizontal, showsIndicators: false) {
                 VStack(spacing: 0) {
-                    fullWidthHeaders
+                    attributeHeaders
                     ForEach(rows) { row in
                         NavigationLink(value: row.guest) {
                             GuestLedgerAttributeRow(
                                 row: row,
                                 columns: columns,
-                                nameColumnWidth: nameColumnWidth,
                                 rowHeight: rowHeight
                             )
                         }
@@ -1074,23 +1089,12 @@ private struct GuestLedger: View {
                 }
             }
             .accessibilityLabel("Guest details columns")
-
-            nameColumnOverlay
-                .frame(width: nameColumnWidth)
-                .background(VowbaseTheme.background)
-                .overlay(alignment: .trailing) {
-                    Rectangle()
-                        .fill(VowbaseTheme.border)
-                        .frame(width: 1)
-                }
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
         }
         .overlay(alignment: .top) { Divider() }
         .overlay(alignment: .bottom) { Divider() }
     }
 
-    private var nameColumnOverlay: some View {
+    private var nameColumn: some View {
         VStack(spacing: 0) {
             Text("Name")
                 .font(.system(size: 14, weight: .semibold))
@@ -1100,21 +1104,24 @@ private struct GuestLedger: View {
                 .frame(height: headerHeight)
 
             ForEach(rows) { row in
-                Text(row.guest.name)
-                    .font(.system(size: 16, weight: .regular, design: .serif))
-                    .foregroundStyle(VowbaseTheme.ink)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
-                    .frame(height: rowHeight)
+                NavigationLink(value: row.guest) {
+                    Text(row.guest.name)
+                        .font(.system(size: 16, weight: .regular, design: .serif))
+                        .foregroundStyle(VowbaseTheme.ink)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 8)
+                        .frame(height: rowHeight)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 Divider()
             }
         }
     }
 
-    private var fullWidthHeaders: some View {
+    private var attributeHeaders: some View {
         HStack(spacing: 0) {
-            Color.clear.frame(width: nameColumnWidth)
             ForEach(columns) { column in
                 Text(column.title)
                     .font(.system(size: 14, weight: .semibold))
@@ -1188,12 +1195,10 @@ private enum GuestLedgerColumn: Identifiable {
 private struct GuestLedgerAttributeRow: View {
     let row: GuestLedgerRowModel
     let columns: [GuestLedgerColumn]
-    let nameColumnWidth: CGFloat
     let rowHeight: CGFloat
 
     var body: some View {
         HStack(spacing: 0) {
-            Color.clear.frame(width: nameColumnWidth)
             ForEach(columns) { column in
                 cell(for: column)
                     .frame(width: column.width, alignment: .leading)

@@ -216,9 +216,9 @@ struct WeddingAppShell: View {
     /// inside the sheet's own content to stay visible at every detent —
     /// as an overlay on the presenting canvas, the sheet would cover it.
     ///
-    /// The grabber and header are the console's own chrome for *its* root
-    /// content (the Overview modules or a focused lens's list). Venues and
-    /// Guests each own an
+    /// The grabber is console chrome. Venues and Guests place their titles
+    /// inside their root scroll views so those titles move with the metrics,
+    /// controls, and list. Each focused lens owns an
     /// inner `NavigationStack`; once one has pushed to a detail screen, that
     /// screen's own toolbar is the header, and stacking the console's chrome
     /// above it just wastes vertical space on a second, redundant header.
@@ -426,9 +426,9 @@ struct WeddingAppShell: View {
             // three modules at half/full would just waste vertical space.
             EmptyView()
         case .venues:
-            ConsoleHeader(venues: store.venues)
+            EmptyView()
         case .guests:
-            ConsoleHeader(guests: store.allGuestRecords)
+            EmptyView()
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
         }

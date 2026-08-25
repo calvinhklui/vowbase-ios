@@ -27,31 +27,39 @@ struct VenuesView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ConsoleHeader(venues: store.venues)
+                        .padding(.bottom, 10)
+
                     if !store.venues.isEmpty {
                         VenueMetricPills(venues: store.venues, selectedStatus: $selectedStatus)
                     }
+
                     toolRow
+                        .padding(.top, 10)
 
-                    if store.venues.isEmpty {
-                        VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
-                    } else if visibleVenues.isEmpty {
-                        noResults
-                    } else {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
-                                NavigationLink(value: venue) {
-                                    CompactVenueRow(venue: venue)
-                                }
-                                .buttonStyle(.plain)
+                    Group {
+                        if store.venues.isEmpty {
+                            VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
+                        } else if visibleVenues.isEmpty {
+                            noResults
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
+                                    NavigationLink(value: venue) {
+                                        CompactVenueRow(venue: venue)
+                                    }
+                                    .buttonStyle(.plain)
 
-                                if index < visibleVenues.count - 1 {
-                                    Divider()
-                                        .padding(.leading, 86)
+                                    if index < visibleVenues.count - 1 {
+                                        Divider()
+                                            .padding(.leading, 86)
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding(.top, 18)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
@@ -104,7 +112,6 @@ struct VenuesView: View {
             }
             .accessibilityLabel("More")
         }
-        .padding(.trailing, VowbaseControlMetric.fabDiameter + VowbaseSpace.xSmall)
     }
 
     private var noResults: some View {
@@ -165,7 +172,6 @@ private struct VenueMetricPills: View {
                     .accessibilityHint(isSelected ? "Double tap to show all venues" : "Double tap to filter the venue list")
                 }
             }
-            .padding(.vertical, 4)
         }
         .contentMargins(.horizontal, 1, for: .scrollContent)
         .animation(.easeInOut(duration: 0.18), value: selectedStatus)
