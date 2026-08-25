@@ -176,12 +176,20 @@ struct VenueDetailView: View {
                     .disabled(isSavingDetails)
                 }
             } else {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button("Delete Venue", role: .destructive) { isConfirmingDeletion = true }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        beginDetailsEditing()
                     } label: {
-                        Image(systemName: "ellipsis")
+                        Image(systemName: "pencil")
                     }
+                    .accessibilityLabel("Edit venue details and notes")
+
+                    Button {
+                        isConfirmingDeletion = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityLabel("Delete Venue")
                 }
             }
         }
@@ -280,21 +288,8 @@ struct VenueDetailView: View {
     @ViewBuilder
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Details")
-                    .font(.title2.weight(.semibold))
-                Spacer()
-                if !isDetailsEditing {
-                    Button {
-                        beginDetailsEditing()
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.body.weight(.semibold))
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel("Edit venue details and notes")
-                }
-            }
+            Text("Details")
+                .font(.title2.weight(.semibold))
 
             if isDetailsEditing {
                 detailsEditor
@@ -365,13 +360,8 @@ struct VenueDetailView: View {
                     .lineLimit(3...)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Button {
-                    beginDetailsEditing()
-                } label: {
-                    noteDisplay(displayValue(for: .notes))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Edit venue notes")
+                noteDisplay(displayValue(for: .notes))
+                    .textSelection(.enabled)
             }
 
             if let detailsSaveError {
@@ -415,6 +405,15 @@ struct VenueDetailView: View {
             }
         }
         .font(.subheadline)
+        .contextMenu {
+            if let value = value?.nilIfBlank {
+                Button {
+                    UIPasteboard.general.string = value
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+            }
+        }
     }
 
     private func detailEditorRow(
