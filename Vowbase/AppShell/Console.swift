@@ -53,6 +53,24 @@ enum ConsoleDetent: CaseIterable {
     }
 }
 
+/// A single adaptive material sits behind every console root and pushed
+/// detail. Feature hosts keep their scroll backgrounds transparent so this
+/// remains visible as the presentation resizes between detents.
+struct ConsolePresentationBackground: View {
+    var body: some View {
+        Group {
+            if #available(iOS 26, *) {
+                Color.clear
+                    .glassEffect(.regular, in: .rect(cornerRadius: 28))
+            } else {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
 // MARK: - Selection-aware header
 
 /// The console's header, two lines, 16 pt insets. Shows the lens's state at a

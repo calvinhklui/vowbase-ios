@@ -30,7 +30,6 @@ struct GuestDetailView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(VowbaseTheme.background)
         .navigationTitle("Guest")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

@@ -43,16 +43,17 @@ struct WeddingAppShell: View {
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
     @State private var mapFocusToken = 0
-    /// Opening a venue from the peek rail needs a full-height navigation
-    /// host, but Back should return the couple to the exact detent they were
-    /// using rather than permanently promoting the Venues console to full.
+    /// A pushed detail needs a full-height navigation host, but Back should
+    /// return the couple to the exact detent they were using rather than
+    /// permanently promoting its console to full.
     @State private var venueDetailReturnDetent: ConsoleDetent?
+    @State private var guestDetailReturnDetent: ConsoleDetent?
 
     /// Each lens remembers its own detent for the session — spec §7.1.
     @State private var lensDetents: [PlanLens: ConsoleDetent] = [
         .overview: .peek,
-        .venues: .peek,
-        .guests: .peek,
+        .venues: .half,
+        .guests: .half,
         .tasks: .full,
     ]
 
@@ -168,7 +169,14 @@ struct WeddingAppShell: View {
     }
 
     private func defaultDetent(for lens: PlanLens) -> ConsoleDetent {
-        lens == .tasks ? .full : .peek
+        switch lens {
+        case .overview:
+            .peek
+        case .venues, .guests:
+            .half
+        case .tasks:
+            .full
+        }
     }
 
     private func availableDetents(for lens: PlanLens) -> Set<PresentationDetent> {
@@ -176,16 +184,17 @@ struct WeddingAppShell: View {
         case .overview:
             Set(ConsoleDetent.allCases.map(\.presentationDetent))
         case .venues:
-            // A NavigationStack cannot safely swap its destination for the
-            // peek rail while a detail is pushed. Keep the pushed screen at
-            // full height; the Back action restores its saved launch detent.
             if !navigation.venuesPath.isEmpty {
                 [ConsoleDetent.full.presentationDetent]
             } else {
-                [ConsoleDetent.peek.presentationDetent, ConsoleDetent.full.presentationDetent]
+                Set(ConsoleDetent.allCases.map(\.presentationDetent))
             }
         case .guests:
-            [ConsoleDetent.peek.presentationDetent, ConsoleDetent.full.presentationDetent]
+            if !navigation.guestsPath.isEmpty {
+                [ConsoleDetent.full.presentationDetent]
+            } else {
+                Set(ConsoleDetent.allCases.map(\.presentationDetent))
+            }
         case .tasks:
             [ConsoleDetent.full.presentationDetent]
         }
@@ -208,7 +217,8 @@ struct WeddingAppShell: View {
     /// as an overlay on the presenting canvas, the sheet would cover it.
     ///
     /// The grabber and header are the console's own chrome for *its* root
-    /// content (the rail, or a lens's list). Venues and Guests each own an
+    /// content (the Overview modules or a focused lens's list). Venues and
+    /// Guests each own an
     /// inner `NavigationStack`; once one has pushed to a detail screen, that
     /// screen's own toolbar is the header, and stacking the console's chrome
     /// above it just wastes vertical space on a second, redundant header.
@@ -262,6 +272,9 @@ struct WeddingAppShell: View {
         }
         .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
         .presentationDragIndicator(.hidden)
+        .presentationBackground {
+            ConsolePresentationBackground()
+        }
         .presentationBackgroundInteraction(.enabled)
         .interactiveDismissDisabled(true)
         // The console is the persistent presentation context. Keeping this
@@ -305,14 +318,14 @@ struct WeddingAppShell: View {
         currentDetent != .peek && isConsoleAtRoot && !isVenueNoteEditing
     }
 
-    /// Focused lenses use an in-header icon at peek, where a floating action
-    /// obscures the map and competes with the horizontal rail. Overview is no
-    /// longer in the visible rail, but retains its legacy quick-add path for
-    /// any internal route that still opens it.
+    /// At peek, focused-lens actions float above the map just like they do at
+    /// taller detents inside the console. Overview keeps its legacy quick-add
+    /// placement because it is the only multi-action entry point.
     private var showsPeekFAB: Bool {
         currentDetent == .peek
-            && navigation.selectedLens == .overview
+            && isConsoleAtRoot
             && !isVenueNoteEditing
+            && navigation.selectedLens != .tasks
     }
 
     /// Overview keeps the multi-action quick-add menu. Each focused lens uses
@@ -343,7 +356,7 @@ struct WeddingAppShell: View {
     }
 
     /// Whether the active lens's console is showing its own root content
-    /// (rail or list) rather than something it pushed to internally.
+    /// rather than something it pushed to internally.
     /// Overview and Tasks never push from the console, so they're always
     /// "at root" — Overview's rail has no detail destination, and Tasks
     /// edits via a sheet (`taskEditor`), not a push.
@@ -387,7 +400,21 @@ struct WeddingAppShell: View {
     }
 
     private var guestsPathBinding: Binding<NavigationPath> {
-        Binding(get: { navigation.guestsPath }, set: { navigation.guestsPath = $0 })
+        Binding(
+            get: { navigation.guestsPath },
+            set: { newPath in
+                let wasShowingDetail = !navigation.guestsPath.isEmpty
+                if !wasShowingDetail, !newPath.isEmpty {
+                    guestDetailReturnDetent = currentDetent
+                    lensDetents[.guests] = .full
+                }
+                navigation.guestsPath = newPath
+                guard wasShowingDetail, newPath.isEmpty else { return }
+
+                lensDetents[.guests] = guestDetailReturnDetent ?? defaultDetent(for: .guests)
+                guestDetailReturnDetent = nil
+            }
+        )
     }
 
     @ViewBuilder
@@ -399,15 +426,9 @@ struct WeddingAppShell: View {
             // three modules at half/full would just waste vertical space.
             EmptyView()
         case .venues:
-            ConsoleHeader(
-                venues: store.venues,
-                addAction: currentDetent == .peek ? { quickAdd = .venue } : nil
-            )
+            ConsoleHeader(venues: store.venues)
         case .guests:
-            ConsoleHeader(
-                guests: store.allGuestRecords,
-                addAction: currentDetent == .peek ? { quickAdd = .guest } : nil
-            )
+            ConsoleHeader(guests: store.allGuestRecords)
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
         }
@@ -459,32 +480,16 @@ struct WeddingAppShell: View {
                 .padding(.bottom, 12)
             }
         case .venues:
-            if currentDetent == .peek && navigation.venuesPath.isEmpty {
-                VenueRailContent(
-                    store: store,
-                    onSelect: selectVenue,
-                    onOpenDetails: openVenueDetails
-                )
-            } else {
-                VenuesView(
-                    store: store,
-                    onAddVenue: { quickAdd = .venue },
-                    onReturnToMap: { navigation.selectedLens = .overview },
-                    onViewOnMap: showVenueOnMap,
-                    isNoteEditing: $isVenueNoteEditing,
-                    path: venuesPathBinding
-                )
-            }
+            VenuesView(
+                store: store,
+                onAddVenue: { quickAdd = .venue },
+                onReturnToMap: { navigation.selectedLens = .overview },
+                onViewOnMap: showVenueOnMap,
+                isNoteEditing: $isVenueNoteEditing,
+                path: venuesPathBinding
+            )
         case .guests:
-            if currentDetent == .peek {
-                GuestRailContent(
-                    store: store,
-                    selectedGuestID: navigation.selectedGuestID,
-                    onSelect: selectGuest
-                )
-            } else {
-                GuestsView(store: store, path: guestsPathBinding)
-            }
+            GuestsView(store: store, path: guestsPathBinding)
         case .tasks:
             TasksView(store: store, taskStore: taskStore, editor: $taskEditor)
         }
@@ -510,21 +515,6 @@ struct WeddingAppShell: View {
         store.selectedVenueID = venue.id
     }
 
-    private func selectGuest(_ guest: MVPGuest) {
-        store.selectedVenueID = nil
-        navigation.selectedGuestID = guest.id
-    }
-
-    private func openVenueDetails(_ venue: MVPVenue) {
-        store.selectedVenueID = venue.id
-        if navigation.venuesPath.isEmpty {
-            venueDetailReturnDetent = currentDetent
-        }
-        lensDetents[.venues] = .full
-        navigation.venuesPath = NavigationPath()
-        navigation.venuesPath.append(venue)
-    }
-
     private func openInMaps(_ venue: MVPVenue) {
         let location = venue.mapSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !location.isEmpty else { return }
@@ -536,8 +526,8 @@ struct WeddingAppShell: View {
     }
 
     /// Returns from a venue detail to the focused map state. Resetting the
-    /// path first makes the compact rail the active content; the focus token
-    /// makes MapKit recenter even if this venue was already selected.
+    /// path first makes the root venue list the active content; the focus
+    /// token makes MapKit recenter even if this venue was already selected.
     private func showVenueOnMap(_ venue: MVPVenue) {
         navigation.selectedGuestID = nil
         navigation.venuesPath = NavigationPath()

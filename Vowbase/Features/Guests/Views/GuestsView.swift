@@ -2,9 +2,8 @@ import SwiftUI
 
 // MARK: - Guests
 
-/// The Guests lens's half/full console content — see `VenuesView`'s doc
-/// comment for how this fits into the console. Its own header is gone; the
-/// shared `ConsoleHeader` covers it now.
+/// The Guests lens content stays mounted as the console moves through its
+/// detents. Its own header is gone; the shared `ConsoleHeader` covers it.
 @MainActor
 struct GuestsView: View {
     let store: VowbaseWorkspaceStore

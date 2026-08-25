@@ -2,11 +2,9 @@ import SwiftUI
 
 // MARK: - Venues
 
-/// The Venues lens's half/full console content. Reached by dragging the
-/// console up from its peek rail (`VenueRailContent`), not by a tab — see
-/// `docs/vowbase-ios-map-command-center-ux-spec.md` §7.4. Its own header is
-/// gone; the console's shared, selection-aware header (`ConsoleHeader`)
-/// covers it now.
+/// The Venues lens content stays mounted as the console moves through its
+/// detents. Its own header is gone; the console's shared, selection-aware
+/// header (`ConsoleHeader`) covers it instead.
 @MainActor
 struct VenuesView: View {
     let store: VowbaseWorkspaceStore
