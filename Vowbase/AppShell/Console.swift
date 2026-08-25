@@ -62,10 +62,10 @@ enum ConsoleDetent: CaseIterable {
 /// The impact readout (§8) isn't wired yet — Phase 4 — so a selected venue's
 /// second line shows its location rather than a fabricated travel figure.
 struct ConsoleHeader: View {
-    /// 22 pt was visually too close to the supporting header text. 26 pt is
-    /// the nearest readable step to a 20% increase. It scales with the
-    /// existing title-sized Dynamic Type category.
-    @ScaledMetric(relativeTo: .title2) private var tabTitlePointSize: CGFloat = 26
+    /// Root lens titles share one editorial scale across Venues, Guests, and
+    /// Tasks. 30 pt is roughly 15% larger than the former Guests baseline and
+    /// continues to follow the title-sized Dynamic Type category.
+    @ScaledMetric(relativeTo: .title2) private var tabTitlePointSize: CGFloat = 30
 
     let title: String
     let trailing: String?
@@ -73,16 +73,13 @@ struct ConsoleHeader: View {
     let addAction: (() -> Void)?
     let addAccessibilityLabel: String?
     let addSystemImage: String
-    let titlePointSize: CGFloat?
-
     init(
         title: String,
         trailing: String?,
         subline: String?,
         addAction: (() -> Void)? = nil,
         addAccessibilityLabel: String? = nil,
-        addSystemImage: String = "plus",
-        titlePointSize: CGFloat? = nil
+        addSystemImage: String = "plus"
     ) {
         self.title = title
         self.trailing = trailing
@@ -90,14 +87,13 @@ struct ConsoleHeader: View {
         self.addAction = addAction
         self.addAccessibilityLabel = addAccessibilityLabel
         self.addSystemImage = addSystemImage
-        self.titlePointSize = titlePointSize
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.system(size: titlePointSize ?? tabTitlePointSize, weight: .regular, design: .serif))
+                    .font(.system(size: tabTitlePointSize, weight: .regular, design: .serif))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 if let trailing {
@@ -124,6 +120,9 @@ struct ConsoleHeader: View {
                     .lineLimit(1)
             }
         }
+        // Keep each root lens's header block the same height even when it has
+        // no supporting copy. The shell supplies the shared 16 pt inset.
+        .frame(minHeight: 60, alignment: .leading)
     }
 }
 
@@ -131,9 +130,8 @@ extension ConsoleHeader {
     /// The Venues lens always keeps its own title, including when a venue is
     /// selected on the map. Status counts live in the compact metric rail.
     init(
-        venues: [MVPVenue],
-        addAction: (() -> Void)? = nil,
-        titlePointSize: CGFloat? = nil
+        venues _: [MVPVenue],
+        addAction: (() -> Void)? = nil
     ) {
         title = "Venues"
         trailing = nil
@@ -141,7 +139,6 @@ extension ConsoleHeader {
         self.addAction = addAction
         addAccessibilityLabel = "Add Venue"
         addSystemImage = "plus"
-        self.titlePointSize = titlePointSize
     }
 
     /// No selection: the Guests lens's own state at a glance.
@@ -152,7 +149,6 @@ extension ConsoleHeader {
         self.addAction = addAction
         addAccessibilityLabel = "Add Guest"
         addSystemImage = "plus"
-        titlePointSize = nil
     }
 
     /// Tasks has no map selection to reflect — always its own state at a glance.
@@ -163,7 +159,6 @@ extension ConsoleHeader {
         self.addAction = addAction
         addAccessibilityLabel = "Add Task"
         addSystemImage = "plus"
-        titlePointSize = nil
     }
 }
 

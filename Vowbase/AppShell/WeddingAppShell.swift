@@ -401,8 +401,7 @@ struct WeddingAppShell: View {
         case .venues:
             ConsoleHeader(
                 venues: store.venues,
-                addAction: currentDetent == .peek ? { quickAdd = .venue } : nil,
-                titlePointSize: currentDetent == .full ? 21 : nil
+                addAction: currentDetent == .peek ? { quickAdd = .venue } : nil
             )
         case .guests:
             ConsoleHeader(

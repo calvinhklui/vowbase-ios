@@ -19,35 +19,25 @@ struct VenuesView: View {
     /// console's own header and grabber for the pushed detail screen.
     @Binding var path: NavigationPath
     @State private var selectedStatus: VenueStatus?
+    @State private var query = ""
+    @State private var sort: VenueSortOrder = .lastUpdated
 
     private var visibleVenues: [MVPVenue] {
-        store.venues.filter { selectedStatus == nil || $0.status == selectedStatus }
+        store.filteredVenues(searchText: query, status: selectedStatus, sort: sort)
     }
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 24) {
                     if store.venues.isEmpty {
                         VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
                     } else {
                         VenueMetricCards(venues: store.venues, selectedStatus: $selectedStatus)
+                        toolRow
 
                         if visibleVenues.isEmpty {
-                            VStack(spacing: 12) {
-                                ContentUnavailableView(
-                                    "No venues match this status",
-                                    systemImage: "line.3.horizontal.decrease.circle",
-                                    description: Text("Try a different lifecycle status.")
-                                )
-                                Button("Clear filter") {
-                                    selectedStatus = nil
-                                }
-                                .font(.system(size: 16, weight: .semibold))
-                                .tint(VowbaseTheme.rose)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 36)
+                            noResults
                         } else {
                             LazyVStack(spacing: 0) {
                                 ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
@@ -82,6 +72,75 @@ struct VenuesView: View {
                 )
             }
         }
+    }
+
+    // MARK: Controls
+
+    private var toolRow: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+                TextField("Search venues", text: $query)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 52)
+            .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+
+            Menu {
+                Picker("Sort", selection: $sort) {
+                    ForEach(VenueSortOrder.allCases) { order in
+                        Text(order.title).tag(order)
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .frame(width: 52, height: 52)
+                    .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+            }
+            .accessibilityLabel("Sort venues")
+        }
+    }
+
+    private var noResults: some View {
+        VStack(spacing: 12) {
+            ContentUnavailableView(
+                selectedStatus == nil ? "No venues match \u{201c}\(query)\u{201d}" : "No venues match these filters",
+                systemImage: selectedStatus == nil ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
+                description: Text(noResultsDescription)
+            )
+            Button("Clear filters") {
+                query = ""
+                selectedStatus = nil
+            }
+            .font(.system(size: 16, weight: .semibold))
+            .tint(VowbaseTheme.rose)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 36)
+    }
+
+    private var noResultsDescription: String {
+        if selectedStatus != nil {
+            return "Try a different lifecycle status or search."
+        }
+        return "Search covers venue names, status, locations, and contact details."
     }
 }
 

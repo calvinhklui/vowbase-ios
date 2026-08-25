@@ -1,6 +1,8 @@
 import SwiftUI
 import UIKit
 import QuickLook
+import PhotosUI
+import UniformTypeIdentifiers
 
 /// Fields the Venue Detail screen edits inline. `status` never becomes `focusedField`
 /// (it commits synchronously from a `Menu`) but shares the same saving/error dictionaries
@@ -31,8 +33,19 @@ struct VenueDetailView: View {
     @State private var detailsSaveError: String?
     @State private var isSavingDetails = false
     @State private var documentPreview: VenueDocumentPreview?
-    @State private var downloadingAttachmentID: UUID?
+    @State private var documentPreviewTemporaryURL: URL?
+    @State private var downloadingDocumentID: UUID?
     @State private var documentDownloadError: String?
+    @State private var isImportingDocument = false
+    @State private var isUploadingDocument = false
+    @State private var deletingDocumentID: UUID?
+    @State private var pendingDocumentDeletion: VenueDocument?
+
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isUploadingPhoto = false
+    @State private var deletingPhotoID: String?
+    @State private var pendingPhotoDeletion: VenuePhotoDeletionTarget?
+    @State private var photoOperationError: String?
 
     /// Which row currently shows a TextField. Kept separate from `focusedField`: a
     /// TextField conditionally mounted in the same instant its own `@FocusState` target
@@ -74,39 +87,77 @@ struct VenueDetailView: View {
 
     private var displayStatus: VenueStatus { optimisticStatus ?? currentVenue.status }
     private var heroPhotoURL: URL? { selectedHeroPhotoURL ?? currentVenue.photoURL }
+    private var displayedPhotoItems: [VenuePhotoItem] {
+        var items = [VenuePhotoItem]()
+        var seen = Set<URL>()
+        if let coverURL = currentVenue.coverPhotoURL, seen.insert(coverURL).inserted {
+            items.append(.init(
+                id: "cover-\(currentVenue.id.uuidString)",
+                url: coverURL,
+                deletionTarget: .cover(venueID: currentVenue.id)
+            ))
+        }
+        for display in currentVenue.photos {
+            guard let url = display.url, seen.insert(url).inserted else { continue }
+            items.append(.init(
+                id: display.id.uuidString,
+                url: url,
+                deletionTarget: .gallery(display.photo)
+            ))
+        }
+        return items
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                VowbaseVenueImage(
-                    url: heroPhotoURL,
-                    cacheKey: selectedHeroPhotoURL == nil ? currentVenue.coverPhotoCacheKey : nil
-                )
-                    .frame(height: 270)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                if !currentVenue.photoURLs.isEmpty {
+                heroPhoto
+                if !displayedPhotoItems.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
-                            ForEach(currentVenue.photoURLs, id: \.absoluteString) { photoURL in
+                            ForEach(displayedPhotoItems) { photo in
                                 Button {
-                                    selectedHeroPhotoURL = photoURL == currentVenue.photoURL ? nil : photoURL
+                                    selectedHeroPhotoURL = photo.url == currentVenue.photoURL ? nil : photo.url
                                 } label: {
-                                    VowbaseVenueImage(url: photoURL)
+                                    VowbaseVenueImage(url: photo.url)
                                         .frame(width: 108, height: 76)
                                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                         .overlay {
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                                 .stroke(
-                                                    heroPhotoURL == photoURL ? VowbaseTheme.rose : .clear,
+                                                    heroPhotoURL == photo.url ? VowbaseTheme.rose : .clear,
                                                     lineWidth: 2
                                                 )
+                                        }
+                                        .overlay {
+                                            if deletingPhotoID == photo.deletionTarget.id {
+                                                ProgressView()
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .background(.ultraThinMaterial)
+                                            }
                                         }
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Show photo")
+                                .contextMenu {
+                                    Button("Delete", systemImage: "trash", role: .destructive) {
+                                        pendingPhotoDeletion = photo.deletionTarget
+                                    }
+                                }
                             }
+                            addPhotoPicker(width: 74, height: 76)
                         }
                     }
+                }
+
+                if isUploadingPhoto {
+                    Label("Uploading photo…", systemImage: "arrow.up.circle")
+                        .font(.caption)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                } else if let error = store.venuePhotoError(for: currentVenue.id) ?? photoOperationError {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(VowbaseTheme.rose)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -201,8 +252,39 @@ struct VenueDetailView: View {
         } message: {
             Text("This removes the venue from your wedding workspace.")
         }
-        .sheet(item: $documentPreview) { preview in
+        .sheet(item: $documentPreview, onDismiss: {
+            if let documentPreviewTemporaryURL {
+                try? FileManager.default.removeItem(at: documentPreviewTemporaryURL)
+            }
+            documentPreviewTemporaryURL = nil
+        }) { preview in
             VenueDocumentQuickLookPreview(url: preview.url)
+        }
+        .fileImporter(
+            isPresented: $isImportingDocument,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: false,
+            onCompletion: importDocument
+        )
+        .onChange(of: selectedPhotoItem) { _, item in
+            guard let item else { return }
+            importPhoto(item)
+        }
+        .alert(item: $pendingDocumentDeletion) { document in
+            Alert(
+                title: Text("Delete \(document.fileName)?"),
+                message: Text("This permanently removes the document from this venue."),
+                primaryButton: .destructive(Text("Delete")) { deleteDocument(document) },
+                secondaryButton: .cancel()
+            )
+        }
+        .alert(item: $pendingPhotoDeletion) { target in
+            Alert(
+                title: Text("Delete photo?"),
+                message: Text("This permanently removes the photo from this venue."),
+                primaryButton: .destructive(Text("Delete")) { deletePhoto(target) },
+                secondaryButton: .cancel()
+            )
         }
         .onChange(of: focusedField) { oldValue, newValue in
             guard let oldValue else { return }
@@ -226,6 +308,9 @@ struct VenueDetailView: View {
             isDetailsEditing = false
             isNoteEditing = false
             locationSearchTask?.cancel()
+            if let documentPreviewTemporaryURL {
+                try? FileManager.default.removeItem(at: documentPreviewTemporaryURL)
+            }
         }
     }
 
@@ -236,6 +321,102 @@ struct VenueDetailView: View {
                 return
             }
             dismiss()
+        }
+    }
+
+    @ViewBuilder
+    private var heroPhoto: some View {
+        if displayedPhotoItems.isEmpty {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                VowbaseVenueImage(
+                    url: nil,
+                    placeholderSystemImage: "photo.badge.plus"
+                )
+                .frame(height: 270)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay {
+                    if isUploadingPhoto {
+                        ProgressView()
+                            .controlSize(.large)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(.ultraThinMaterial)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(isUploadingPhoto)
+            .accessibilityLabel("Add venue photo")
+        } else {
+            VowbaseVenueImage(
+                url: heroPhotoURL,
+                cacheKey: selectedHeroPhotoURL == nil ? currentVenue.coverPhotoCacheKey : nil
+            )
+            .frame(height: 270)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+    }
+
+    private func addPhotoPicker(width: CGFloat, height: CGFloat) -> some View {
+        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+            VowbaseVenueImage(
+                url: nil,
+                placeholderSystemImage: "photo.badge.plus"
+            )
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(VowbaseTheme.border, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isUploadingPhoto)
+        .accessibilityLabel("Add venue photo")
+    }
+
+    private func importPhoto(_ item: PhotosPickerItem) {
+        guard !isUploadingPhoto else { return }
+        isUploadingPhoto = true
+        photoOperationError = nil
+        Task { @MainActor in
+            defer {
+                isUploadingPhoto = false
+                selectedPhotoItem = nil
+            }
+            do {
+                guard let sourceData = try await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: sourceData),
+                      let jpegData = image.jpegData(compressionQuality: 0.9) else {
+                    throw VenueDetailImportError.invalidPhoto
+                }
+                guard await store.uploadVenuePhoto(data: jpegData, venueID: currentVenue.id) else {
+                    return
+                }
+                selectedHeroPhotoURL = nil
+            } catch is CancellationError {
+                return
+            } catch {
+                photoOperationError = "Couldn’t add that photo. Try another image."
+            }
+        }
+    }
+
+    private func deletePhoto(_ target: VenuePhotoDeletionTarget) {
+        guard deletingPhotoID == nil else { return }
+        deletingPhotoID = target.id
+        photoOperationError = nil
+        Task { @MainActor in
+            let deleted: Bool
+            switch target {
+            case let .cover(venueID):
+                deleted = await store.deleteVenueCoverPhoto(venueID: venueID)
+            case let .gallery(photo):
+                deleted = await store.deleteVenuePhoto(photo)
+            }
+            if deleted {
+                selectedHeroPhotoURL = nil
+            }
+            deletingPhotoID = nil
         }
     }
 
@@ -435,64 +616,65 @@ struct VenueDetailView: View {
     @ViewBuilder
     private var documentsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Documents")
-                .font(.title2.weight(.semibold))
-
-            let attachments = currentVenue.attachments.filter {
-                $0.parent == .venue && $0.parentID == currentVenue.id
+            HStack {
+                Text("Documents")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button {
+                    isImportingDocument = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 32, height: 32)
+                        .background(VowbaseTheme.blush, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(VowbaseTheme.rose)
+                .disabled(isUploadingDocument)
+                .accessibilityLabel("Upload venue document")
             }
-            if store.isLoadingVenueAttachments(for: currentVenue.id), attachments.isEmpty {
+
+            let documents = currentVenue.documents
+            if store.isLoadingVenueDocuments(for: currentVenue.id), documents.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView()
                     Text("Loading documents…")
                 }
                 .font(.subheadline)
                 .foregroundStyle(VowbaseTheme.mutedInk)
-            } else if attachments.isEmpty {
+            } else if documents.isEmpty {
                 ContentUnavailableView(
                     "No documents yet",
                     systemImage: "doc",
-                    description: Text("Contracts, proposals, and PDFs for this venue will appear here."))
+                    description: Text("Upload contracts, proposals, PDFs, or other venue files."))
                     .frame(maxWidth: .infinity)
             } else {
-                ForEach(attachments) { attachment in
-                    Button {
-                        downloadAndPreview(attachment)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: documentIcon(for: attachment))
-                                .font(.title3)
-                                .foregroundStyle(VowbaseTheme.rose)
-                                .frame(width: 28)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(attachment.fileName)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(VowbaseTheme.ink)
-                                    .lineLimit(1)
-                                Text(documentSubtitle(for: attachment))
-                                    .font(.caption)
-                                    .foregroundStyle(VowbaseTheme.mutedInk)
+                List {
+                    ForEach(documents) { document in
+                        documentRow(document)
+                            .listRowInsets(.init(top: 8, leading: 0, bottom: 8, trailing: 0))
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                    pendingDocumentDeletion = document
+                                }
                             }
-                            Spacer(minLength: 0)
-                            if downloadingAttachmentID == attachment.id {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "arrow.down.circle")
-                                    .foregroundStyle(VowbaseTheme.mutedInk)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(downloadingAttachmentID != nil)
-
-                    if attachment.id != attachments.last?.id {
-                        Divider()
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
+                .environment(\.defaultMinListRowHeight, 1)
+                .frame(height: CGFloat(documents.count) * 64)
             }
 
-            if let error = store.venueAttachmentError(for: currentVenue.id) ?? documentDownloadError {
+            if isUploadingDocument {
+                Label("Uploading document…", systemImage: "arrow.up.circle")
+                    .font(.caption)
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+
+            if let error = store.venueDocumentError(for: currentVenue.id) ?? documentDownloadError {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(VowbaseTheme.rose)
@@ -504,6 +686,38 @@ struct VenueDetailView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(VowbaseTheme.border, lineWidth: 1)
         }
+    }
+
+    private func documentRow(_ document: VenueDocument) -> some View {
+        Button {
+            downloadAndPreview(document)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: documentIcon(for: document))
+                    .font(.title3)
+                    .foregroundStyle(VowbaseTheme.rose)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(document.fileName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(VowbaseTheme.ink)
+                        .lineLimit(1)
+                    Text(documentSubtitle(for: document))
+                        .font(.caption)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+                Spacer(minLength: 0)
+                if downloadingDocumentID == document.id || deletingDocumentID == document.id {
+                    ProgressView()
+                } else {
+                    Image(systemName: "arrow.down.circle")
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(downloadingDocumentID != nil || deletingDocumentID != nil)
     }
 
     @ViewBuilder
@@ -718,34 +932,83 @@ struct VenueDetailView: View {
         return URL(string: "tel:\(dialing)")
     }
 
-    private func documentIcon(for attachment: Attachment) -> String {
-        let isPDF = attachment.mimeType?.lowercased() == "application/pdf"
-            || attachment.fileName.lowercased().hasSuffix(".pdf")
+    private func documentIcon(for document: VenueDocument) -> String {
+        let isPDF = document.mimeType?.lowercased() == "application/pdf"
+            || document.fileName.lowercased().hasSuffix(".pdf")
         return isPDF ? "doc.richtext" : "doc"
     }
 
-    private func documentSubtitle(for attachment: Attachment) -> String {
-        let type = attachment.mimeType?.nilIfBlank ?? "Document"
-        guard let sizeBytes = attachment.sizeBytes else { return type }
+    private func documentSubtitle(for document: VenueDocument) -> String {
+        let type = document.mimeType?.nilIfBlank ?? "Document"
+        guard let sizeBytes = document.sizeBytes else { return type }
         return "\(type) · \(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))"
     }
 
-    private func downloadAndPreview(_ attachment: Attachment) {
-        guard attachment.parent == .venue, attachment.parentID == currentVenue.id else { return }
-        downloadingAttachmentID = attachment.id
+    private func downloadAndPreview(_ document: VenueDocument) {
+        guard document.venueID == currentVenue.id else { return }
+        downloadingDocumentID = document.id
         documentDownloadError = nil
-        Task {
+        Task { @MainActor in
             do {
-                let data = try await store.downloadVenueAttachment(attachment)
-                let fileName = URL(fileURLWithPath: attachment.fileName).lastPathComponent
+                let data = try await store.downloadVenueDocument(document)
+                let fileName = URL(fileURLWithPath: document.fileName).lastPathComponent
                 let destination = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("\(attachment.id.uuidString)-\(fileName)")
+                    .appendingPathComponent("\(document.id.uuidString)-\(fileName)")
                 try data.write(to: destination, options: .atomic)
-                documentPreview = VenueDocumentPreview(id: attachment.id, url: destination)
+                documentPreviewTemporaryURL = destination
+                documentPreview = VenueDocumentPreview(id: document.id, url: destination)
             } catch {
-                documentDownloadError = "Couldn't download \(attachment.fileName). Try again."
+                documentDownloadError = "Couldn’t download \(document.fileName). Try again."
             }
-            downloadingAttachmentID = nil
+            downloadingDocumentID = nil
+        }
+    }
+
+    private func importDocument(_ result: Result<[URL], any Error>) {
+        guard !isUploadingDocument else { return }
+        switch result {
+        case let .failure(error):
+            if (error as? CocoaError)?.code != .userCancelled {
+                documentDownloadError = "Couldn’t open that file. Try again."
+            }
+        case let .success(urls):
+            guard let url = urls.first else { return }
+            isUploadingDocument = true
+            documentDownloadError = nil
+            Task { @MainActor in
+                defer { isUploadingDocument = false }
+                let didAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if didAccess { url.stopAccessingSecurityScopedResource() }
+                }
+                do {
+                    let values = try url.resourceValues(forKeys: [.contentTypeKey])
+                    let mimeType = values.contentType?.preferredMIMEType ?? "application/octet-stream"
+                    let data = try Data(contentsOf: url, options: .mappedIfSafe)
+                    guard await store.uploadVenueDocument(
+                        data: data,
+                        fileName: url.lastPathComponent,
+                        mimeType: mimeType,
+                        venueID: currentVenue.id
+                    ) else {
+                        return
+                    }
+                } catch is CancellationError {
+                    return
+                } catch {
+                    documentDownloadError = "Couldn’t upload that file. Try again."
+                }
+            }
+        }
+    }
+
+    private func deleteDocument(_ document: VenueDocument) {
+        guard deletingDocumentID == nil else { return }
+        deletingDocumentID = document.id
+        documentDownloadError = nil
+        Task { @MainActor in
+            _ = await store.deleteVenueDocument(document)
+            deletingDocumentID = nil
         }
     }
 
@@ -1037,6 +1300,28 @@ private struct VenueDetailsDraft {
 private struct VenueDocumentPreview: Identifiable {
     let id: UUID
     let url: URL
+}
+
+private struct VenuePhotoItem: Identifiable {
+    let id: String
+    let url: URL
+    let deletionTarget: VenuePhotoDeletionTarget
+}
+
+private enum VenuePhotoDeletionTarget: Identifiable {
+    case cover(venueID: UUID)
+    case gallery(VenuePhoto)
+
+    var id: String {
+        switch self {
+        case let .cover(venueID): "cover-\(venueID.uuidString)"
+        case let .gallery(photo): "gallery-\(photo.id.uuidString)"
+        }
+    }
+}
+
+private enum VenueDetailImportError: Error {
+    case invalidPhoto
 }
 
 private struct VenueDocumentQuickLookPreview: UIViewControllerRepresentable {

@@ -12,6 +12,8 @@ import Testing
         #expect(container.maps is APIMapWorkflowRepository)
         #expect(container.venueResearch is APIVenueResearchRepository)
         #expect(container.venuePhotos is VenuePhotoService)
+        #expect(container.venuePhotoMutations is VenuePhotoMutationService)
+        #expect(container.venueDocuments is APIVenueDocumentRepository)
     }
 }
 private struct ContainerAPI: VowbaseAPIClientProtocol { func send<Response>(_ request: APIRequest<Response>) async throws -> Response where Response : Decodable, Response : Sendable { throw BackendError.invalidResponse } }

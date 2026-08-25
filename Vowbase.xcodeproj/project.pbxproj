@@ -49,6 +49,16 @@
 		BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */; };
 		BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */; };
 		BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */; };
+		B0A67F1A91E1448CA67E0001 /* VenueFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A67F1A91E1448CA67E1001 /* VenueFiltering.swift */; };
+		B0A67F1A91E1448CA67E0002 /* VenueFilteringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A67F1A91E1448CA67E1002 /* VenueFilteringTests.swift */; };
+		C0FFEE000000000000000001 /* VenuePhotoMutationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE000000000000000101 /* VenuePhotoMutationService.swift */; };
+		C0FFEE000000000000000002 /* SupabaseVenuePhotoStorageAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE000000000000000102 /* SupabaseVenuePhotoStorageAdapter.swift */; };
+		C0FFEE000000000000000003 /* VenuePhotoMutationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE000000000000000103 /* VenuePhotoMutationServiceTests.swift */; };
+		D0C000000000000000000001 /* VenueDocumentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000101 /* VenueDocumentModels.swift */; };
+		D0C000000000000000000002 /* VenueDocumentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000102 /* VenueDocumentRepository.swift */; };
+		D0C000000000000000000003 /* VenueDocumentBinaryTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000103 /* VenueDocumentBinaryTransfer.swift */; };
+		D0C000000000000000000004 /* APIVenueDocumentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000104 /* APIVenueDocumentRepository.swift */; };
+		D0C000000000000000000005 /* VenueDocumentRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000105 /* VenueDocumentRepositoryTests.swift */; };
 		BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000017 /* venue-research-run.json */; };
 		C1D2E3F4A5B6000000000001 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000011 /* APIRequest.swift */; };
 		C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */; };
@@ -141,6 +151,16 @@
 /* Begin PBXFileReference section */
 		00C6542E2737CDCD45AAED91 /* VowbaseVenueImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VowbaseVenueImage.swift; path = Components/VowbaseVenueImage.swift; sourceTree = "<group>"; };
 		36697F493ADC8C7948BE3C3F /* VenuesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VenuesView.swift; path = Features/Venues/Views/VenuesView.swift; sourceTree = "<group>"; };
+		B0A67F1A91E1448CA67E1001 /* VenueFiltering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueFiltering.swift; sourceTree = "<group>"; };
+		B0A67F1A91E1448CA67E1002 /* VenueFilteringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueFilteringTests.swift; sourceTree = "<group>"; };
+		C0FFEE000000000000000101 /* VenuePhotoMutationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenuePhotoMutationService.swift; sourceTree = "<group>"; };
+		C0FFEE000000000000000102 /* SupabaseVenuePhotoStorageAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/SupabaseVenuePhotoStorageAdapter.swift; sourceTree = "<group>"; };
+		C0FFEE000000000000000103 /* VenuePhotoMutationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenuePhotoMutationServiceTests.swift; sourceTree = "<group>"; };
+		D0C000000000000000000101 /* VenueDocumentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueDocumentModels.swift; sourceTree = "<group>"; };
+		D0C000000000000000000102 /* VenueDocumentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueDocumentRepository.swift; sourceTree = "<group>"; };
+		D0C000000000000000000103 /* VenueDocumentBinaryTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueDocumentBinaryTransfer.swift; sourceTree = "<group>"; };
+		D0C000000000000000000104 /* APIVenueDocumentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/APIVenueDocumentRepository.swift; sourceTree = "<group>"; };
+		D0C000000000000000000105 /* VenueDocumentRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueDocumentRepositoryTests.swift; sourceTree = "<group>"; };
 		3E232CC73018715C003E5C26 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3E232CCB30187209003E5C26 /* VowbaseIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = VowbaseIcon.icon; sourceTree = "<group>"; };
 		3F9A952AB1A727D38CCF8B75 /* ContextBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContextBar.swift; sourceTree = "<group>"; };
@@ -319,12 +339,19 @@
 				F6A3B4C5D6E7000000000015 /* BudgetRepository.swift */,
 				F6A3B4C5D6E7000000000016 /* SupabaseBudgetRepository.swift */,
 				F6A3B4C5D6E7000000000017 /* VenueModels.swift */,
+				B0A67F1A91E1448CA67E1001 /* VenueFiltering.swift */,
 				F6A3B4C5D6E7000000000018 /* VenueRepository.swift */,
 				F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
 				BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */,
 				BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */,
 				BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */,
 				BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */,
+				C0FFEE000000000000000101 /* VenuePhotoMutationService.swift */,
+				C0FFEE000000000000000102 /* SupabaseVenuePhotoStorageAdapter.swift */,
+				D0C000000000000000000101 /* VenueDocumentModels.swift */,
+				D0C000000000000000000102 /* VenueDocumentRepository.swift */,
+				D0C000000000000000000103 /* VenueDocumentBinaryTransfer.swift */,
+				D0C000000000000000000104 /* APIVenueDocumentRepository.swift */,
 				F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */,
 				F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */,
 				F5A3B4C5D6E7000000000015 /* SupabaseScheduleRepository.swift */,
@@ -380,6 +407,9 @@
 				FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */,
 				BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */,
 				BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */,
+				B0A67F1A91E1448CA67E1002 /* VenueFilteringTests.swift */,
+				C0FFEE000000000000000103 /* VenuePhotoMutationServiceTests.swift */,
+				D0C000000000000000000105 /* VenueDocumentRepositoryTests.swift */,
 				A1B2C3D4E5F6000000000036 /* Fixtures */,
 				C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */,
 				C1D2E3F4A5B6000000000014 /* VowbaseAPIClientTests.swift */,
@@ -720,6 +750,7 @@
 				F6A3B4C5D6E7000000000007 /* VenueModels.swift in Sources */,
 				F6A3B4C5D6E7000000000008 /* VenueRepository.swift in Sources */,
 				F6A3B4C5D6E7000000000009 /* SupabaseVenueRepository.swift in Sources */,
+				B0A67F1A91E1448CA67E0001 /* VenueFiltering.swift in Sources */,
 				F7A3B4C5D6E7000000000001 /* InspirationModels.swift in Sources */,
 				F7A3B4C5D6E7000000000002 /* InspirationRepository.swift in Sources */,
 				F7A3B4C5D6E7000000000003 /* SupabaseInspirationRepository.swift in Sources */,
@@ -734,6 +765,12 @@
 				BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */,
 				BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */,
 				BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */,
+				C0FFEE000000000000000001 /* VenuePhotoMutationService.swift in Sources */,
+				C0FFEE000000000000000002 /* SupabaseVenuePhotoStorageAdapter.swift in Sources */,
+				D0C000000000000000000001 /* VenueDocumentModels.swift in Sources */,
+				D0C000000000000000000002 /* VenueDocumentRepository.swift in Sources */,
+				D0C000000000000000000003 /* VenueDocumentBinaryTransfer.swift in Sources */,
+				D0C000000000000000000004 /* APIVenueDocumentRepository.swift in Sources */,
 				15E1A7A14A9B72A0EBC4C436 /* WeddingAppShell.swift in Sources */,
 				6DAB94EA72FE5E2A600F3611 /* WorkspaceStore.swift in Sources */,
 				CA3683C7F5F53F3AF2771D3C /* MapWorkspaceView.swift in Sources */,
@@ -772,6 +809,9 @@
 				A1B2C3D4E5F6000000000004 /* VowbaseTests.swift in Sources */,
 				A1B2C3D4E5F6000000000022 /* GuestFieldEditingTests.swift in Sources */,
 				A1B2C3D4E5F6000000000024 /* GuestFilteringTests.swift in Sources */,
+				B0A67F1A91E1448CA67E0002 /* VenueFilteringTests.swift in Sources */,
+				C0FFEE000000000000000003 /* VenuePhotoMutationServiceTests.swift in Sources */,
+				D0C000000000000000000005 /* VenueDocumentRepositoryTests.swift in Sources */,
 				F8A3B4C5D6E7000000000001 /* ScheduleTaskRepositoryTests.swift in Sources */,
 				F8A3B4C5D6E7000000000002 /* VendorBudgetVenueRepositoryTests.swift in Sources */,
 				F8A3B4C5D6E7000000000003 /* TaskModelsTests.swift in Sources */,

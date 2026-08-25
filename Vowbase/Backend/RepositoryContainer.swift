@@ -17,6 +17,8 @@ struct RepositoryContainer: Sendable {
     let maps: any MapWorkflowRepository
     let venueResearch: any VenueResearchRepository
     let venuePhotos: any VenuePhotoServicing
+    let venuePhotoMutations: any VenuePhotoMutationServicing
+    let venueDocuments: any VenueDocumentRepository
 
     init(supabase: SupabaseProvider, api: any VowbaseAPIClientProtocol) {
         workspace = SupabaseWorkspaceRepository(provider: supabase, api: api)
@@ -27,7 +29,8 @@ struct RepositoryContainer: Sendable {
         tasks = SupabaseTaskRepository(provider: supabase)
         vendors = SupabaseVendorRepository(provider: supabase)
         budget = SupabaseBudgetRepository(provider: supabase)
-        venues = SupabaseVenueRepository(provider: supabase)
+        let venueRepository = SupabaseVenueRepository(provider: supabase)
+        venues = venueRepository
         inspiration = SupabaseInspirationRepository(provider: supabase)
         attachments = SupabaseAttachmentRepository(provider: supabase)
         maps = APIMapWorkflowRepository(api: api)
@@ -37,5 +40,13 @@ struct RepositoryContainer: Sendable {
                 .from("venue-photos")
                 .createSignedURL(path: path, expiresIn: 60 * 60)
         }
+        venuePhotoMutations = VenuePhotoMutationService(
+            metadata: SupabaseVenuePhotoMetadataAdapter(
+                provider: supabase,
+                repository: venueRepository
+            ),
+            storage: SupabaseVenuePhotoStorageAdapter(provider: supabase)
+        )
+        venueDocuments = APIVenueDocumentRepository(api: api)
     }
 }

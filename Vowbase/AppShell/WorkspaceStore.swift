@@ -152,9 +152,8 @@ struct MVPVenue: Identifiable, Hashable {
     let coverPhotoURL: URL?
     let coverPhotoCacheKey: String
     let photos: [VenuePhotoDisplay]
-    /// Metadata for files attached through the authoritative polymorphic
-    /// `attachments` relation (`parent_type = venue`, `parent_id = id`).
-    let attachments: [Attachment]
+    /// Venue-scoped metadata returned by the dedicated v1 document API.
+    let documents: [VenueDocument]
     let ourNotes: String?
 
     var capacity: String {
@@ -222,9 +221,10 @@ final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
     private var venueGalleries = [UUID: [VenuePhoto]]()
-    private var venueAttachments = [UUID: [Attachment]]()
-    private var loadingVenueAttachmentIDs = Set<UUID>()
-    private var venueAttachmentErrors = [UUID: String]()
+    private var venueDocuments = [UUID: [VenueDocument]]()
+    private var loadingVenueDocumentIDs = Set<UUID>()
+    private var venueDocumentErrors = [UUID: String]()
+    private var venuePhotoErrors = [UUID: String]()
     private var signedCoverPhotoURLs = [UUID: URL]()
     private var signedGalleryPhotoURLs = [UUID: URL]()
     /// Coordinates recovered for legacy or free-form venue addresses. These are
@@ -416,17 +416,32 @@ final class VowbaseWorkspaceStore {
 #endif
 
     var venues: [MVPVenue] {
-        venueRecords.map { venue in
-            MVPVenue(
-                venue,
-                gallery: venueGalleries[venue.id] ?? [],
-                attachments: venueAttachments[venue.id] ?? [],
-                galleryPhotoURLs: signedGalleryPhotoURLs,
-                coverPhotoURL: signedCoverPhotoURLs[venue.id],
-                recoveredCoordinate: recoveredCoordinate(for: venue),
-                travelText: travelText(for: venue.id)
-            )
-        }
+        venueRecords.map(venueDisplay(for:))
+    }
+
+    /// Search and ordering stay local because every listed venue is already
+    /// loaded for the workspace. The metric-card selection is deliberately
+    /// passed through as a status filter so it combines with search.
+    func filteredVenues(
+        searchText: String,
+        status: VenueStatus?,
+        sort: VenueSortOrder
+    ) -> [MVPVenue] {
+        VenueQuery
+            .apply(to: venueRecords, searchText: searchText, status: status, sort: sort)
+            .map(venueDisplay(for:))
+    }
+
+    private func venueDisplay(for venue: Venue) -> MVPVenue {
+        MVPVenue(
+            venue,
+            gallery: venueGalleries[venue.id] ?? [],
+            documents: venueDocuments[venue.id] ?? [],
+            galleryPhotoURLs: signedGalleryPhotoURLs,
+            coverPhotoURL: signedCoverPhotoURLs[venue.id],
+            recoveredCoordinate: recoveredCoordinate(for: venue),
+            travelText: travelText(for: venue.id)
+        )
     }
 
     /// The plain-duration value venue cards and other planning surfaces show
@@ -446,14 +461,18 @@ final class VowbaseWorkspaceStore {
         return guestRecords.map { MVPGuest($0, columns: columns) }
     }
     var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
-    var isVenueAttachmentsLoading: Bool { !loadingVenueAttachmentIDs.isEmpty }
+    var isVenueDocumentsLoading: Bool { !loadingVenueDocumentIDs.isEmpty }
 
-    func isLoadingVenueAttachments(for venueID: UUID) -> Bool {
-        loadingVenueAttachmentIDs.contains(venueID)
+    func isLoadingVenueDocuments(for venueID: UUID) -> Bool {
+        loadingVenueDocumentIDs.contains(venueID)
     }
 
-    func venueAttachmentError(for venueID: UUID) -> String? {
-        venueAttachmentErrors[venueID]
+    func venueDocumentError(for venueID: UUID) -> String? {
+        venueDocumentErrors[venueID]
+    }
+
+    func venuePhotoError(for venueID: UUID) -> String? {
+        venuePhotoErrors[venueID]
     }
 
     /// Columns offered for editing and filtering, in their configured order.
@@ -562,16 +581,17 @@ final class VowbaseWorkspaceStore {
             }
             let currentVenueIDs = Set(venueRecords.map(\.id))
             venueGalleries = venueGalleries.filter { currentVenueIDs.contains($0.key) }
-            venueAttachments = venueAttachments.filter { currentVenueIDs.contains($0.key) }
-            loadingVenueAttachmentIDs.formIntersection(currentVenueIDs)
-            venueAttachmentErrors = venueAttachmentErrors.filter { currentVenueIDs.contains($0.key) }
+            venueDocuments = venueDocuments.filter { currentVenueIDs.contains($0.key) }
+            loadingVenueDocumentIDs.formIntersection(currentVenueIDs)
+            venueDocumentErrors = venueDocumentErrors.filter { currentVenueIDs.contains($0.key) }
+            venuePhotoErrors = venuePhotoErrors.filter { currentVenueIDs.contains($0.key) }
             signedCoverPhotoURLs = signedCoverPhotoURLs.filter { currentVenueIDs.contains($0.key) }
             recoveredVenueCoordinates = recoveredVenueCoordinates.filter { currentVenueIDs.contains($0.key) }
             venueCoordinateRecoveryAttempts = venueCoordinateRecoveryAttempts.filter { currentVenueIDs.contains($0.key) }
             let currentPhotoIDs = Set(venueGalleries.values.flatMap { $0.map(\.id) })
             signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { currentPhotoIDs.contains($0.key) }
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
-            resolveVenueAttachments(for: venueRecords, repositories: repositories)
+            resolveVenueDocuments(for: venueRecords, repositories: repositories)
             recoverVenueCoordinates(for: venueRecords, repositories: repositories)
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
@@ -762,9 +782,10 @@ final class VowbaseWorkspaceStore {
             venueRecords.removeAll { $0.id == venue.id }
             let orphanedPhotoIDs = Set((venueGalleries[venue.id] ?? []).map(\.id))
             venueGalleries[venue.id] = nil
-            venueAttachments[venue.id] = nil
-            loadingVenueAttachmentIDs.remove(venue.id)
-            venueAttachmentErrors[venue.id] = nil
+            venueDocuments[venue.id] = nil
+            loadingVenueDocumentIDs.remove(venue.id)
+            venueDocumentErrors[venue.id] = nil
+            venuePhotoErrors[venue.id] = nil
             signedCoverPhotoURLs[venue.id] = nil
             signedGalleryPhotoURLs = signedGalleryPhotoURLs.filter { !orphanedPhotoIDs.contains($0.key) }
             if selectedVenueID == venue.id {
@@ -801,22 +822,137 @@ final class VowbaseWorkspaceStore {
         }
     }
 
-    /// Retrieves one venue attachment only after confirming that it belongs to
-    /// a venue still loaded in this workspace. The view owns presentation (for
-    /// example Quick Look for a PDF); the repository remains the sole storage
-    /// transport.
-    func downloadVenueAttachment(_ attachment: Attachment) async throws -> Data {
+    func uploadVenueDocument(
+        data: Data,
+        fileName: String,
+        mimeType: String,
+        venueID: UUID
+    ) async -> Bool {
         guard let repositories,
-              attachment.parent == .venue,
+              venueRecords.contains(where: { $0.id == venueID }) else {
+            return unavailable()
+        }
+        venueDocumentErrors[venueID] = nil
+        do {
+            let document = try await repositories.venueDocuments.upload(
+                data: data,
+                fileName: fileName,
+                mimeType: mimeType,
+                venueID: venueID
+            )
+            var documents = venueDocuments[venueID] ?? []
+            documents.removeAll { $0.id == document.id }
+            documents.append(document)
+            venueDocuments[venueID] = documents.sorted { $0.createdAt < $1.createdAt }
+            return true
+        } catch {
+            venueDocumentErrors[venueID] = userMessage(for: error)
+            return false
+        }
+    }
+
+    /// Retrieves one venue document only after confirming that it belongs to
+    /// a venue still loaded in this workspace. The view owns Quick Look.
+    func downloadVenueDocument(_ document: VenueDocument) async throws -> Data {
+        guard let repositories,
               venueRecords.contains(where: {
-                  $0.id == attachment.parentID && $0.weddingID == attachment.weddingID
+                  $0.id == document.venueID && $0.weddingID == document.weddingID
               }) else {
             throw BackendError.validation(
                 message: "This document is not available in the current venue workspace.",
                 requestID: nil
             )
         }
-        return try await repositories.attachments.download(attachment)
+        return try await repositories.venueDocuments.download(document)
+    }
+
+    func deleteVenueDocument(_ document: VenueDocument) async -> Bool {
+        guard let repositories,
+              venueRecords.contains(where: {
+                  $0.id == document.venueID && $0.weddingID == document.weddingID
+              }) else {
+            return unavailable()
+        }
+        venueDocumentErrors[document.venueID] = nil
+        do {
+            _ = try await repositories.venueDocuments.delete(documentID: document.id)
+            venueDocuments[document.venueID]?.removeAll { $0.id == document.id }
+            return true
+        } catch {
+            venueDocumentErrors[document.venueID] = userMessage(for: error)
+            return false
+        }
+    }
+
+    func uploadVenuePhoto(data: Data, venueID: UUID) async -> Bool {
+        guard let repositories,
+              let venue = venueRecords.first(where: { $0.id == venueID }) else {
+            return unavailable()
+        }
+        venuePhotoErrors[venueID] = nil
+        do {
+            let nextSortOrder = (venueGalleries[venueID] ?? [])
+                .compactMap(\.sortOrder)
+                .max()
+                .map { $0 + 1 } ?? 0
+            let photo = try await repositories.venuePhotoMutations.upload(
+                data: data,
+                mimeType: "image/jpeg",
+                venueID: venueID,
+                weddingID: venue.weddingID,
+                sortOrder: nextSortOrder
+            )
+            var gallery = venueGalleries[venueID] ?? []
+            gallery.removeAll { $0.id == photo.id }
+            gallery.append(photo)
+            venueGalleries[venueID] = gallery.sorted {
+                ($0.sortOrder ?? .max, $0.createdAt) < ($1.sortOrder ?? .max, $1.createdAt)
+            }
+            let resolver = VenuePhotoURLResolver(photoService: repositories.venuePhotos)
+            if let url = await resolver.resolve(venueID: venueID, photoURL: photo.url) {
+                signedGalleryPhotoURLs[photo.id] = url
+            }
+            return true
+        } catch {
+            venuePhotoErrors[venueID] = userMessage(for: error)
+            return false
+        }
+    }
+
+    func deleteVenuePhoto(_ photo: VenuePhoto) async -> Bool {
+        guard let repositories,
+              venueRecords.contains(where: {
+                  $0.id == photo.venueID && $0.weddingID == photo.weddingID
+              }) else {
+            return unavailable()
+        }
+        venuePhotoErrors[photo.venueID] = nil
+        do {
+            try await repositories.venuePhotoMutations.delete(photo)
+            venueGalleries[photo.venueID]?.removeAll { $0.id == photo.id }
+            signedGalleryPhotoURLs[photo.id] = nil
+            return true
+        } catch {
+            venuePhotoErrors[photo.venueID] = userMessage(for: error)
+            return false
+        }
+    }
+
+    func deleteVenueCoverPhoto(venueID: UUID) async -> Bool {
+        guard let repositories,
+              let venue = venueRecords.first(where: { $0.id == venueID }) else {
+            return unavailable()
+        }
+        venuePhotoErrors[venueID] = nil
+        do {
+            let updated = try await repositories.venuePhotoMutations.deleteCoverPhoto(for: venue)
+            replace(updated, in: &venueRecords)
+            signedCoverPhotoURLs[venueID] = nil
+            return true
+        } catch {
+            venuePhotoErrors[venueID] = userMessage(for: error)
+            return false
+        }
     }
 
     /// Address suggestions for the location autocomplete row. Empty input and lookup
@@ -1278,45 +1414,40 @@ final class VowbaseWorkspaceStore {
         }
     }
 
-    /// Attachment metadata is stored in the existing polymorphic `attachments`
-    /// table, not in a venue-specific document model. Loading it separately
-    /// keeps a slow file listing from delaying the workspace's core venues.
-    private func resolveVenueAttachments(
+    /// Document metadata is loaded separately so a slow file listing never
+    /// delays the workspace's core venue and guest records.
+    private func resolveVenueDocuments(
         for venues: [Venue],
         repositories: RepositoryContainer
     ) {
-        let venuesToResolve = venues.filter { loadingVenueAttachmentIDs.insert($0.id).inserted }
+        let venuesToResolve = venues.filter { loadingVenueDocumentIDs.insert($0.id).inserted }
         guard !venuesToResolve.isEmpty else { return }
         Task { [weak self] in
             defer {
                 if Task.isCancelled {
                     for venue in venuesToResolve {
-                        self?.loadingVenueAttachmentIDs.remove(venue.id)
+                        self?.loadingVenueDocumentIDs.remove(venue.id)
                     }
                 }
             }
             for venue in venuesToResolve {
                 guard !Task.isCancelled else { return }
                 do {
-                    let attachments = try await repositories.attachments.attachments(
-                        weddingID: venue.weddingID,
-                        parent: .venue,
-                        parentID: venue.id
-                    )
+                    let documents = try await repositories.venueDocuments.documents(venueID: venue.id)
                     guard !Task.isCancelled,
                           self?.venueRecords.contains(where: {
                               $0.id == venue.id && $0.weddingID == venue.weddingID
                           }) == true else {
                         continue
                     }
-                    self?.venueAttachments[venue.id] = attachments
-                    self?.venueAttachmentErrors[venue.id] = nil
-                    self?.loadingVenueAttachmentIDs.remove(venue.id)
+                    self?.venueDocuments[venue.id] = documents
+                    self?.venueDocumentErrors[venue.id] = nil
+                    self?.loadingVenueDocumentIDs.remove(venue.id)
                 } catch is CancellationError {
-                    self?.loadingVenueAttachmentIDs.remove(venue.id)
+                    self?.loadingVenueDocumentIDs.remove(venue.id)
                 } catch {
-                    self?.venueAttachmentErrors[venue.id] = self?.userMessage(for: error)
-                    self?.loadingVenueAttachmentIDs.remove(venue.id)
+                    self?.venueDocumentErrors[venue.id] = self?.userMessage(for: error)
+                    self?.loadingVenueDocumentIDs.remove(venue.id)
                 }
             }
         }
@@ -1482,7 +1613,7 @@ private extension MVPVenue {
     init(
         _ venue: Venue,
         gallery: [VenuePhoto] = [],
-        attachments: [Attachment] = [],
+        documents: [VenueDocument] = [],
         galleryPhotoURLs: [UUID: URL] = [:],
         coverPhotoURL: URL? = nil,
         recoveredCoordinate: Coordinate? = nil,
@@ -1515,7 +1646,7 @@ private extension MVPVenue {
         self.coverPhotoURL = coverPhotoURL ?? VenuePhotoURLResolver.directPhotoURL(from: venue.photoURL)
         coverPhotoCacheKey = "venue-cover-\(venue.id)|\(venue.photoURL ?? "none")"
         photos = gallery.map { VenuePhotoDisplay(photo: $0, url: galleryPhotoURLs[$0.id]) }
-        self.attachments = attachments
+        self.documents = documents
         ourNotes = venue.ourNotes?.nilIfBlank
     }
 }

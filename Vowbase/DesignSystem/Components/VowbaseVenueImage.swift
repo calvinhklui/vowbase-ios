@@ -5,6 +5,7 @@ import UIKit
 struct VowbaseVenueImage: View {
     let url: URL?
     var cacheKey: String? = nil
+    var placeholderSystemImage: String = "building.2"
 
     @State private var image: UIImage?
 
@@ -55,7 +56,7 @@ struct VowbaseVenueImage: View {
     }
 
     private var venueImagePlaceholder: some View {
-        Image(systemName: "building.2")
+        Image(systemName: placeholderSystemImage)
             .font(.system(size: 36, weight: .light))
             .foregroundStyle(VowbaseTheme.rose.opacity(0.65))
             .frame(maxWidth: .infinity, maxHeight: .infinity)

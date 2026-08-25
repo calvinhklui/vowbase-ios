@@ -36,6 +36,8 @@ struct AppDependenciesTests {
         #expect((dependencies.api as? AppDependenciesAPIClientSpy) === api)
         #expect(dependencies.repositories.workspace is SupabaseWorkspaceRepository)
         #expect(dependencies.repositories.attachments is SupabaseAttachmentRepository)
+        #expect(dependencies.repositories.venueDocuments is APIVenueDocumentRepository)
+        #expect(dependencies.repositories.venuePhotoMutations is VenuePhotoMutationService)
     }
 
     @Test("auth callback handler accepts only the exact callback route")
