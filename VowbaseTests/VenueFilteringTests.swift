@@ -14,7 +14,9 @@ struct VenueFilteringTests {
         contactName: String? = nil,
         email: String? = nil,
         phone: String? = nil,
-        updated: TimeInterval = 0
+        updated: TimeInterval = 0,
+        latitude: Double? = nil,
+        longitude: Double? = nil
     ) -> Venue {
         Venue(
             id: UUID(),
@@ -41,8 +43,8 @@ struct VenueFilteringTests {
             availableDatesText: nil,
             ourNotes: nil,
             summary: nil,
-            latitude: nil,
-            longitude: nil,
+            latitude: latitude,
+            longitude: longitude,
             photoURL: nil,
             rawResearch: nil,
             createdAt: .distantPast,
@@ -90,5 +92,58 @@ struct VenueFilteringTests {
     func statusAndSearchCombine() {
         let result = VenueQuery.apply(to: venues, searchText: "house", status: .shortlisted, sort: .lastUpdated)
         #expect(result.map(\.name) == ["Alder House"])
+    }
+
+    @Test("Nearest-first uses only available local distances and keeps unknown venues last")
+    func nearestFirstSortsKnownDistancesBeforeUnknownVenues() {
+        let nearby = venue("Nearby", latitude: 40, longitude: -73)
+        let farther = venue("Farther", latitude: 41, longitude: -73)
+        let unlocated = venue("Unlocated")
+        let origin = Coordinate(latitude: 40, longitude: -74)
+        let distances = [
+            nearby.id: VenueDistance.miles(
+                from: origin,
+                to: Coordinate(latitude: 40, longitude: -73)
+            ),
+            farther.id: VenueDistance.miles(
+                from: origin,
+                to: Coordinate(latitude: 41, longitude: -73)
+            ),
+        ]
+
+        let result = VenueQuery.apply(
+            to: [unlocated, farther, nearby],
+            searchText: "",
+            status: nil,
+            sort: .nearestFirst,
+            distances: distances
+        )
+
+        #expect(result.map(\.name) == ["Nearby", "Farther", "Unlocated"])
+    }
+
+    @Test("Row location text uses coarse city and state with a one-decimal mile distance")
+    func rowLocationTextFormatsCoarseDistance() {
+        #expect(
+            VenueRowLocationText.string(
+                city: "Portland",
+                state: "or",
+                distanceMiles: 12.34
+            ) == "Portland, OR • 12.3mi away"
+        )
+        #expect(
+            VenueRowLocationText.string(
+                city: "Portland",
+                state: "Oregon",
+                distanceMiles: nil
+            ) == "Portland, OR"
+        )
+        #expect(
+            VenueRowLocationText.string(
+                city: nil,
+                state: nil,
+                distanceMiles: 12.34
+            ) == "Location unavailable"
+        )
     }
 }

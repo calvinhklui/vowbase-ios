@@ -6,6 +6,7 @@ enum VenueSortOrder: String, CaseIterable, Identifiable, Sendable {
     case lastUpdated
     case nameAscending
     case status
+    case nearestFirst
 
     var id: String { rawValue }
 
@@ -14,6 +15,7 @@ enum VenueSortOrder: String, CaseIterable, Identifiable, Sendable {
         case .lastUpdated: "Last updated"
         case .nameAscending: "Name A–Z"
         case .status: "Status"
+        case .nearestFirst: "Nearest first"
         }
     }
 }
@@ -26,7 +28,8 @@ enum VenueQuery {
         to venues: [Venue],
         searchText: String,
         status: VenueStatus?,
-        sort: VenueSortOrder
+        sort: VenueSortOrder,
+        distances: [UUID: Double] = [:]
     ) -> [Venue] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let matched = venues.filter { venue in
@@ -35,7 +38,7 @@ enum VenueQuery {
             return searchHaystack(for: venue)
                 .localizedCaseInsensitiveContains(query)
         }
-        return sorted(matched, by: sort)
+        return sorted(matched, by: sort, distances: distances)
     }
 
     static func searchHaystack(for venue: Venue) -> String {
@@ -60,7 +63,11 @@ enum VenueQuery {
         .joined(separator: " ")
     }
 
-    static func sorted(_ venues: [Venue], by sort: VenueSortOrder) -> [Venue] {
+    static func sorted(
+        _ venues: [Venue],
+        by sort: VenueSortOrder,
+        distances: [UUID: Double] = [:]
+    ) -> [Venue] {
         venues.sorted { left, right in
             switch sort {
             case .lastUpdated:
@@ -73,6 +80,17 @@ enum VenueQuery {
                 let rightRank = lifecycleRank(right.status)
                 if leftRank != rightRank { return leftRank < rightRank }
                 return name(left).localizedCaseInsensitiveCompare(name(right)) == .orderedAscending
+            case .nearestFirst:
+                switch (distances[left.id], distances[right.id]) {
+                case let (leftDistance?, rightDistance?) where leftDistance != rightDistance:
+                    return leftDistance < rightDistance
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                default:
+                    return name(left).localizedCaseInsensitiveCompare(name(right)) == .orderedAscending
+                }
             }
         }
     }
@@ -90,5 +108,84 @@ enum VenueQuery {
         case .booked: 6
         case .passed: 7
         }
+    }
+}
+
+/// Straight-line distance between two known coordinates, calculated locally
+/// after the saved wedding location has been resolved once.
+enum VenueDistance {
+    private static let earthRadiusMiles = 3_958.7613
+
+    static func miles(from origin: Coordinate, to destination: Coordinate) -> Double {
+        let latitudeDelta = radians(destination.latitude - origin.latitude)
+        let longitudeDelta = radians(destination.longitude - origin.longitude)
+        let originLatitude = radians(origin.latitude)
+        let destinationLatitude = radians(destination.latitude)
+        let a = sin(latitudeDelta / 2) * sin(latitudeDelta / 2)
+            + cos(originLatitude) * cos(destinationLatitude)
+            * sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
+        return earthRadiusMiles * 2 * atan2(sqrt(a), sqrt(1 - a))
+    }
+
+    private static func radians(_ degrees: Double) -> Double {
+        degrees * .pi / 180
+    }
+}
+
+enum VenueRowLocationText {
+    static func string(
+        city: String?,
+        state: String?,
+        distanceMiles: Double?
+    ) -> String {
+        let cityStateText = [
+            nonblank(city),
+            nonblank(state).map(VenueStateAbbreviation.display)
+        ]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+        let cityState = cityStateText.isEmpty ? nil : cityStateText
+        let location = cityState ?? "Location unavailable"
+        // Distances are intentionally paired only with city/state copy. Do not
+        // present a distance when normalized geography is absent from the
+        // venue record.
+        guard cityState != nil, let distanceMiles, distanceMiles.isFinite else { return location }
+        let distance = String(
+            format: "%.1fmi away",
+            locale: Locale(identifier: "en_US_POSIX"),
+            distanceMiles
+        )
+        return "\(location) • \(distance)"
+    }
+
+    private static func nonblank(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private enum VenueStateAbbreviation {
+    private static let unitedStates = [
+        "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+        "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+        "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+        "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+        "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+        "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+        "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+        "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+        "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+        "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+        "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+        "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+        "wisconsin": "WI", "wyoming": "WY", "district of columbia": "DC"
+    ]
+
+    static func display(_ state: String) -> String {
+        if state.count == 2 {
+            return state.uppercased()
+        }
+        return unitedStates[state.lowercased()] ?? state
     }
 }

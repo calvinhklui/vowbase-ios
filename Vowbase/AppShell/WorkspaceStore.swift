@@ -122,6 +122,11 @@ struct MVPVenue: Identifiable, Hashable {
     let name: String
     let status: VenueStatus
     let location: String
+    let city: String?
+    let state: String?
+    /// Straight-line distance from the saved wedding location. `nil` means
+    /// either side has no usable coordinate, not that the venue is far.
+    let distanceMiles: Double?
     /// The most specific stored address available for handing this venue to Maps.
     /// Keep this separate from `location`, whose shorter display copy is useful in UI.
     let mapSearchQuery: String
@@ -170,6 +175,14 @@ struct MVPVenue: Identifiable, Hashable {
     }
 
     var photoURL: URL? { photoURLs.first }
+
+    var rowSecondaryText: String {
+        VenueRowLocationText.string(
+            city: city,
+            state: state,
+            distanceMiles: distanceMiles
+        )
+    }
 
     var coordinate: CLLocationCoordinate2D? {
         guard let latitude, let longitude else { return nil }
@@ -237,6 +250,10 @@ final class VowbaseWorkspaceStore {
     /// an unbounded stream of identical requests. A changed address naturally
     /// produces a new query and may be tried once.
     private var venueCoordinateRecoveryAttempts = [UUID: String]()
+    /// A session-only coordinate recovered from the couple's saved wedding
+    /// location through Vowbase's authenticated geocode proxy.
+    private var venueDistanceOrigin: VenueDistanceOrigin?
+    private var venueDistanceOriginAttemptedQuery: String?
     private var guestRecords = [Guest]()
     private var customColumnRecords = [GuestCustomColumn]()
 
@@ -416,7 +433,7 @@ final class VowbaseWorkspaceStore {
 #endif
 
     var venues: [MVPVenue] {
-        venueRecords.map(venueDisplay(for:))
+        venueDisplays(for: venueRecords)
     }
 
     /// Search and ordering stay local because every listed venue is already
@@ -427,12 +444,36 @@ final class VowbaseWorkspaceStore {
         status: VenueStatus?,
         sort: VenueSortOrder
     ) -> [MVPVenue] {
-        VenueQuery
-            .apply(to: venueRecords, searchText: searchText, status: status, sort: sort)
-            .map(venueDisplay(for:))
+        let distances = venueDistances
+        return VenueQuery
+            .apply(
+                to: venueRecords,
+                searchText: searchText,
+                status: status,
+                sort: sort,
+                distances: distances
+            )
+            .map { venueDisplay(for: $0, distanceMiles: distances[$0.id]) }
     }
 
-    private func venueDisplay(for venue: Venue) -> MVPVenue {
+    private func venueDisplays(for venueRecords: [Venue]) -> [MVPVenue] {
+        let distances = venueDistances
+        return venueRecords.map { venue in
+            venueDisplay(for: venue, distanceMiles: distances[venue.id])
+        }
+    }
+
+    private var venueDistances: [UUID: Double] {
+        guard let origin = venueDistanceOrigin?.coordinate else { return [:] }
+        return Dictionary(
+            uniqueKeysWithValues: venueRecords.compactMap { venue in
+                guard let coordinate = coordinate(for: venue) else { return nil }
+                return (venue.id, VenueDistance.miles(from: origin, to: coordinate))
+            }
+        )
+    }
+
+    private func venueDisplay(for venue: Venue, distanceMiles: Double? = nil) -> MVPVenue {
         MVPVenue(
             venue,
             gallery: venueGalleries[venue.id] ?? [],
@@ -440,6 +481,7 @@ final class VowbaseWorkspaceStore {
             galleryPhotoURLs: signedGalleryPhotoURLs,
             coverPhotoURL: signedCoverPhotoURLs[venue.id],
             recoveredCoordinate: recoveredCoordinate(for: venue),
+            distanceMiles: distanceMiles,
             travelText: travelText(for: venue.id)
         )
     }
@@ -594,6 +636,7 @@ final class VowbaseWorkspaceStore {
             resolveVenuePhotoURLs(for: venueRecords, repositories: repositories)
             resolveVenueDocuments(for: venueRecords, repositories: repositories)
             recoverVenueCoordinates(for: venueRecords, repositories: repositories)
+            recoverVenueDistanceOrigin(for: membership.wedding, repositories: repositories)
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
             }
@@ -1514,6 +1557,43 @@ final class VowbaseWorkspaceStore {
         }
     }
 
+    /// Resolves the workspace's saved city/region once per value, using the
+    /// existing first-party geocode proxy. A lookup failure simply leaves
+    /// venue distances absent.
+    private func recoverVenueDistanceOrigin(
+        for wedding: WeddingSummary,
+        repositories: RepositoryContainer
+    ) {
+        guard let query = VenueDistanceOrigin.query(for: wedding) else {
+            venueDistanceOrigin = nil
+            venueDistanceOriginAttemptedQuery = nil
+            return
+        }
+        guard venueDistanceOrigin?.query != query,
+              venueDistanceOriginAttemptedQuery != query else {
+            return
+        }
+
+        venueDistanceOrigin = nil
+        venueDistanceOriginAttemptedQuery = query
+        Task { [weak self] in
+            guard let result = try? await repositories.maps.geocode(query: query).first,
+                  VenueCoordinateRecovery.isUsable(
+                    latitude: result.latitude,
+                    longitude: result.longitude
+                  ),
+                  !Task.isCancelled,
+                  let self,
+                  VenueDistanceOrigin.query(for: self.wedding) == query else {
+                return
+            }
+            self.venueDistanceOrigin = .init(
+                query: query,
+                coordinate: .init(latitude: result.latitude, longitude: result.longitude)
+            )
+        }
+    }
+
     private func resolvedLocation(
         for input: String,
         repositories: RepositoryContainer
@@ -1612,6 +1692,21 @@ struct VenueCoordinateRecovery: Equatable {
     }
 }
 
+/// Coarse venue-list distance starts from the location the couple saved for the
+/// wedding. The resolved coordinate lasts only for this app session.
+private struct VenueDistanceOrigin: Equatable {
+    let query: String
+    let coordinate: Coordinate
+
+    static func query(for wedding: WeddingSummary?) -> String? {
+        wedding?.location?.nilIfBlank.flatMap {
+            $0.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.count >= 3
+                ? $0
+                : nil
+        }
+    }
+}
+
 private extension MVPVenue {
     init(
         _ venue: Venue,
@@ -1620,6 +1715,7 @@ private extension MVPVenue {
         galleryPhotoURLs: [UUID: URL] = [:],
         coverPhotoURL: URL? = nil,
         recoveredCoordinate: Coordinate? = nil,
+        distanceMiles: Double? = nil,
         travelText: String? = nil
     ) {
         id = venue.id
@@ -1628,6 +1724,9 @@ private extension MVPVenue {
         location = venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? venue.address ?? "Location not added"
         fullAddress = VenueCoordinateRecovery.fullAddress(for: venue)
         mapSearchQuery = fullAddress ?? location
+        city = venue.city?.nilIfBlank
+        state = venue.state?.nilIfBlank
+        self.distanceMiles = distanceMiles
         capacityMin = venue.capacityMin
         capacityMax = venue.capacityMax
         capacityTextOverride = venue.capacityText?.nilIfBlank

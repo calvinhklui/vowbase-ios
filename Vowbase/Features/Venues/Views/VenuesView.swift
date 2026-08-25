@@ -189,7 +189,7 @@ private struct CompactVenueRow: View {
 
                 HStack(spacing: 6) {
                     CompactVenueStatus(status: venue.status)
-                    Text(venue.location)
+                    Text(venue.rowSecondaryText)
                         .font(.system(size: 13))
                         .foregroundStyle(VowbaseTheme.mutedInk)
                         .lineLimit(1)
