@@ -363,28 +363,30 @@ private struct GuestMetricCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: VowbaseSpace.xSmall) {
             Text("\(guestCount)")
-                .font(.system(.title2, design: .default, weight: .semibold))
-                .foregroundStyle(VowbaseTheme.rose)
+                .font(.system(.title2, design: .serif, weight: .regular))
+                .foregroundStyle(isSelected ? VowbaseTheme.rose : VowbaseTheme.ink)
                 .monospacedDigit()
             Spacer(minLength: 0)
             Text(metric.cardTitle)
-                .font(.system(size: 13, weight: .semibold, design: .serif))
-                .foregroundStyle(VowbaseTheme.ink)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
                 .multilineTextAlignment(.leading)
         }
-        .padding(VowbaseSpace.medium)
-        .frame(width: 104, height: 88, alignment: .leading)
+        .padding(.horizontal, VowbaseSpace.medium)
+        .padding(.vertical, 10)
+        .frame(width: 88, height: 76, alignment: .leading)
         .background(
             isSelected ? VowbaseTheme.blush : VowbaseDesign.surface,
-            in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
+            in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
         )
         .overlay {
-            RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous)
-                .stroke(isSelected ? VowbaseTheme.rose : VowbaseTheme.border.opacity(0.55), lineWidth: isSelected ? 2 : 1)
+            if !isSelected {
+                RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
+                    .stroke(VowbaseTheme.border.opacity(0.3), lineWidth: 1)
+            }
         }
-        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
     }
 }
 
