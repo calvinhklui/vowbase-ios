@@ -52,7 +52,7 @@ struct GuestDetailView: View {
         }
         .animation(.snappy(duration: 0.22), value: undo?.id)
         .alert("Delete \(guest.name)?", isPresented: $isConfirmingDeletion) {
-            Button("Delete", role: .destructive) {
+            Button("Delete Guest", role: .destructive) {
                 deleteGuest()
             }
             Button("Cancel", role: .cancel) {}

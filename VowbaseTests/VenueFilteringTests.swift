@@ -122,6 +122,13 @@ struct VenueFilteringTests {
         #expect(result.map(\.name) == ["Nearby", "Farther", "Unlocated"])
     }
 
+    @Test("Venue distance coordinates reject malformed persisted values")
+    func venueDistanceCoordinatesRequireValidLatitudeAndLongitude() {
+        #expect(VenueCoordinateRecovery.isUsable(latitude: 45.5, longitude: -122.6))
+        #expect(!VenueCoordinateRecovery.isUsable(latitude: 100, longitude: -122.6))
+        #expect(!VenueCoordinateRecovery.isUsable(latitude: 45.5, longitude: -200))
+    }
+
     @Test("Row location text uses coarse city and state with a one-decimal mile distance")
     func rowLocationTextFormatsCoarseDistance() {
         #expect(

@@ -1513,7 +1513,9 @@ final class VowbaseWorkspaceStore {
     }
 
     private func coordinate(for venue: Venue) -> Coordinate? {
-        if let latitude = venue.latitude, let longitude = venue.longitude {
+        if let latitude = venue.latitude,
+           let longitude = venue.longitude,
+           VenueCoordinateRecovery.isUsable(latitude: latitude, longitude: longitude) {
             return .init(latitude: latitude, longitude: longitude)
         }
         return recoveredCoordinate(for: venue)
