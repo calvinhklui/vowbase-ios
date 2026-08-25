@@ -545,8 +545,9 @@ final class VowbaseWorkspaceStore {
             .sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
     }
 
-    func load() async {
-        guard let repositories else { return }
+    @discardableResult
+    func load(presentsFailure: Bool = true) async -> Bool {
+        guard let repositories else { return wedding != nil }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -559,8 +560,8 @@ final class VowbaseWorkspaceStore {
                 wedding = nil
                 activeMembership = nil
                 errorMessage = "This account is not a member of a wedding workspace yet."
-                presentLoadFailure()
-                return
+                if presentsFailure { presentLoadFailure() }
+                return false
             }
 
             wedding = membership.wedding
@@ -596,11 +597,13 @@ final class VowbaseWorkspaceStore {
             if !venueRecords.contains(where: { $0.id == selectedVenueID }) {
                 selectedVenueID = venueRecords.first?.id
             }
+            return true
         } catch is CancellationError {
-            return
+            return false
         } catch {
             errorMessage = userMessage(for: error)
-            presentLoadFailure()
+            if presentsFailure { presentLoadFailure() }
+            return false
         }
     }
 

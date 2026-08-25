@@ -186,7 +186,10 @@ struct VowbaseAppRoot: View {
                 onSignOut: coordinator.signOut
             )
         } else if coordinator.state == .loading {
-            AuthenticationLoadingView()
+            VowbaseLoadingView(
+                title: "Opening Vowbase",
+                detail: "Getting everything ready"
+            )
         } else {
 #if DEBUG
             AuthenticationSignInView(coordinator: coordinator)
@@ -197,19 +200,87 @@ struct VowbaseAppRoot: View {
     }
 }
 
-private struct AuthenticationLoadingView: View {
+struct VowbaseLoadingView: View {
+    let title: String
+    let detail: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ZStack {
-            VowbaseTheme.background.ignoresSafeArea()
-            VStack(spacing: 18) {
-                VowbaseMark(size: 78)
-                ProgressView()
-                    .tint(VowbaseTheme.rose)
-                Text("Opening Vowbase")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
+            RadialGradient(
+                colors: [VowbaseTheme.blush.opacity(0.78), VowbaseTheme.background],
+                center: .center,
+                startRadius: 16,
+                endRadius: 310
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 28) {
+                TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: reduceMotion)) { context in
+                    let cycle = context.date.timeIntervalSinceReferenceDate
+                        .truncatingRemainder(dividingBy: 1.8) / 1.8
+                    let pulse = reduceMotion ? 0.0 : sin(cycle * .pi * 2)
+
+                    ZStack {
+                        Circle()
+                            .fill(VowbaseTheme.blush.opacity(0.86))
+                            .frame(width: 142, height: 142)
+                            .scaleEffect(1 + pulse * 0.025)
+
+                        Circle()
+                            .stroke(VowbaseTheme.rose.opacity(0.14), lineWidth: 1)
+                            .frame(width: 116, height: 116)
+
+                        Circle()
+                            .trim(from: 0.04, to: 0.7)
+                            .stroke(
+                                AngularGradient(
+                                    colors: [VowbaseTheme.rose.opacity(0.08), VowbaseTheme.rose],
+                                    center: .center
+                                ),
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                            )
+                            .frame(width: 116, height: 116)
+                            .rotationEffect(.degrees(reduceMotion ? 32 : cycle * 360))
+
+                        Circle()
+                            .fill(VowbaseTheme.rose)
+                            .frame(width: 8, height: 8)
+                            .offset(y: -58)
+                            .rotationEffect(.degrees(reduceMotion ? 32 : cycle * 360))
+                            .shadow(color: VowbaseTheme.rose.opacity(0.35), radius: 5)
+
+                        VowbaseMark(size: 78)
+                            .shadow(color: VowbaseTheme.rose.opacity(0.12), radius: 18, y: 8)
+                    }
+                    .frame(width: 150, height: 150)
+                }
+
+                VStack(spacing: 8) {
+                    Text(title)
+                        .font(.system(size: 28, weight: .regular, design: .serif))
+                        .foregroundStyle(VowbaseTheme.ink)
+
+                    Text(detail)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+                .multilineTextAlignment(.center)
             }
+            .padding(32)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(title)
+            .accessibilityValue(detail)
         }
+    }
+}
+
+private struct AuthenticationLoadingView: View {
+    var body: some View {
+        VowbaseLoadingView(
+            title: "Opening Vowbase",
+            detail: "Getting everything ready"
+        )
     }
 }
 
@@ -385,7 +456,7 @@ private struct AuthenticationButtonStyle: ButtonStyle {
     }
 }
 
-private struct VowbaseMark: View {
+struct VowbaseMark: View {
     let size: CGFloat
     @Environment(\.colorScheme) private var colorScheme
 
