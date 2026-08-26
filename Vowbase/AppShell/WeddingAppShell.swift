@@ -183,18 +183,8 @@ struct WeddingAppShell: View {
         switch lens {
         case .overview:
             Set(ConsoleDetent.allCases.map(\.presentationDetent))
-        case .venues:
-            if !navigation.venuesPath.isEmpty {
-                [ConsoleDetent.full.presentationDetent]
-            } else {
-                Set(ConsoleDetent.allCases.map(\.presentationDetent))
-            }
-        case .guests:
-            if !navigation.guestsPath.isEmpty {
-                [ConsoleDetent.full.presentationDetent]
-            } else {
-                Set(ConsoleDetent.allCases.map(\.presentationDetent))
-            }
+        case .venues, .guests:
+            Set(ConsoleDetent.allCases.map(\.presentationDetent))
         case .tasks:
             [ConsoleDetent.full.presentationDetent]
         }
@@ -271,6 +261,10 @@ struct WeddingAppShell: View {
             }
         }
         .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
+        // Let vertical swipes resize through peek/half before the root content
+        // scrolls. At full height SwiftUI hands gestures to the ScrollView;
+        // pulling down again from its top edge collapses back to half.
+        .presentationContentInteraction(.resizes)
         .presentationDragIndicator(.hidden)
         .presentationBackground {
             ConsolePresentationBackground()
@@ -485,11 +479,20 @@ struct WeddingAppShell: View {
                 onAddVenue: { quickAdd = .venue },
                 onReturnToMap: { navigation.selectedLens = .overview },
                 onViewOnMap: showVenueOnMap,
+                allowsVerticalScrolling: currentDetent == .full,
+                onRequestExpansion: expandCurrentConsole,
+                onRequestCollapse: collapseCurrentConsole,
                 isNoteEditing: $isVenueNoteEditing,
                 path: venuesPathBinding
             )
         case .guests:
-            GuestsView(store: store, path: guestsPathBinding)
+            GuestsView(
+                store: store,
+                allowsVerticalScrolling: currentDetent == .full,
+                onRequestExpansion: expandCurrentConsole,
+                onRequestCollapse: collapseCurrentConsole,
+                path: guestsPathBinding
+            )
         case .tasks:
             TasksView(store: store, taskStore: taskStore, editor: $taskEditor)
         }
@@ -497,6 +500,25 @@ struct WeddingAppShell: View {
 
     private var openTaskCount: Int {
         taskStore.tasks.filter { $0.effectiveStatus != .done }.count
+    }
+
+    private func expandCurrentConsole() {
+        let nextDetent: ConsoleDetent? = switch currentDetent {
+        case .peek: .half
+        case .half: .full
+        case .full: nil
+        }
+        guard let nextDetent else { return }
+        withAnimation(.snappy(duration: 0.28)) {
+            lensDetents[navigation.selectedLens] = nextDetent
+        }
+    }
+
+    private func collapseCurrentConsole() {
+        guard currentDetent == .full else { return }
+        withAnimation(.snappy(duration: 0.28)) {
+            lensDetents[navigation.selectedLens] = .half
+        }
     }
 
     private var dueSoonTaskCount: Int {

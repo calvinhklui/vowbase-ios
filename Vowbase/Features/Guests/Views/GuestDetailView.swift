@@ -9,9 +9,26 @@ import UIKit
 struct GuestDetailView: View {
     let guest: MVPGuest
     let store: VowbaseWorkspaceStore
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingDeletion = false
     @State private var undo: GuestUndo?
+
+    init(
+        guest: MVPGuest,
+        store: VowbaseWorkspaceStore,
+        allowsVerticalScrolling: Bool = true,
+        onRequestExpansion: @escaping () -> Void = {},
+        onRequestCollapse: @escaping () -> Void = {}
+    ) {
+        self.guest = guest
+        self.store = store
+        self.allowsVerticalScrolling = allowsVerticalScrolling
+        self.onRequestExpansion = onRequestExpansion
+        self.onRequestCollapse = onRequestCollapse
+    }
 
     /// The server-confirmed record. Rows read through this so a successful save
     /// adopts whatever the server actually stored.
@@ -29,6 +46,11 @@ struct GuestDetailView: View {
                 metadataSection(record)
             }
         }
+        .consoleVerticalScrollHandoff(
+            allowsVerticalScrolling: allowsVerticalScrolling,
+            onExpand: onRequestExpansion,
+            onCollapse: onRequestCollapse
+        )
         .scrollContentBackground(.hidden)
         .vowbaseScrollClearance()
         .navigationTitle("Guest")

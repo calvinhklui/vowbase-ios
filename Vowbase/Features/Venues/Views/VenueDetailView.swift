@@ -19,6 +19,9 @@ struct VenueDetailView: View {
     let store: VowbaseWorkspaceStore
     @Binding var isNoteEditing: Bool
     let onViewOnMap: () -> Void
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingDeletion = false
     /// `nil` keeps the cover photo as the hero. A gallery selection is local to this
@@ -71,12 +74,18 @@ struct VenueDetailView: View {
         venue: MVPVenue,
         store: VowbaseWorkspaceStore,
         isNoteEditing: Binding<Bool>,
-        onViewOnMap: @escaping () -> Void = {}
+        onViewOnMap: @escaping () -> Void = {},
+        allowsVerticalScrolling: Bool = true,
+        onRequestExpansion: @escaping () -> Void = {},
+        onRequestCollapse: @escaping () -> Void = {}
     ) {
         self.venue = venue
         self.store = store
         self._isNoteEditing = isNoteEditing
         self.onViewOnMap = onViewOnMap
+        self.allowsVerticalScrolling = allowsVerticalScrolling
+        self.onRequestExpansion = onRequestExpansion
+        self.onRequestCollapse = onRequestCollapse
     }
 
     /// The screen must read live data by id — `venue` is a snapshot captured at
@@ -202,6 +211,11 @@ struct VenueDetailView: View {
             }
             .padding(16)
         }
+        .consoleVerticalScrollHandoff(
+            allowsVerticalScrolling: allowsVerticalScrolling,
+            onExpand: onRequestExpansion,
+            onCollapse: onRequestCollapse
+        )
         .scrollDismissesKeyboard(.never)
         .safeAreaInset(edge: .top, spacing: 0) {
             if !savingFields.isEmpty {

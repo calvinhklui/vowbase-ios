@@ -11,6 +11,9 @@ struct VenuesView: View {
     let onAddVenue: () -> Void
     let onReturnToMap: () -> Void
     let onViewOnMap: (MVPVenue) -> Void
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
     @Binding var isNoteEditing: Bool
     /// Owned by `WeddingAppShell`, not this view — the shell needs to know
     /// when this stack has drilled past its root so it can hide the
@@ -64,6 +67,11 @@ struct VenuesView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             }
+            .consoleVerticalScrollHandoff(
+                allowsVerticalScrolling: allowsVerticalScrolling,
+                onExpand: onRequestExpansion,
+                onCollapse: onRequestCollapse
+            )
             .vowbaseScrollClearance()
             .refreshable {
                 await store.load()
@@ -74,7 +82,10 @@ struct VenuesView: View {
                     venue: venue,
                     store: store,
                     isNoteEditing: $isNoteEditing,
-                    onViewOnMap: { onViewOnMap(venue) }
+                    onViewOnMap: { onViewOnMap(venue) },
+                    allowsVerticalScrolling: allowsVerticalScrolling,
+                    onRequestExpansion: onRequestExpansion,
+                    onRequestCollapse: onRequestCollapse
                 )
             }
         }
@@ -173,6 +184,7 @@ private struct VenueMetricPills: View {
                 }
             }
         }
+        .scrollDisabled(false)
         .contentMargins(.horizontal, 1, for: .scrollContent)
         .animation(.easeInOut(duration: 0.18), value: selectedStatus)
     }

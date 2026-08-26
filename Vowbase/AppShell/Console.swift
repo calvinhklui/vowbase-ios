@@ -56,6 +56,68 @@ enum ConsoleDetent: CaseIterable {
     }
 }
 
+// MARK: - Console scroll handoff
+
+/// Gives the focused-lens roots a Flighty-style vertical gesture handoff.
+/// Before full height, vertical content scrolling is disabled and an upward
+/// flick advances the sheet by one detent. At full height the ScrollView owns
+/// vertical movement; only a downward flick from its measured top edge asks
+/// the sheet to collapse.
+private struct ConsoleVerticalScrollHandoff: ViewModifier {
+    let allowsVerticalScrolling: Bool
+    let onExpand: () -> Void
+    let onCollapse: () -> Void
+
+    @State private var contentOffset: CGFloat = 0
+
+    private let flickThreshold: CGFloat = 36
+    private let topTolerance: CGFloat = 1
+
+    func body(content: Content) -> some View {
+        content
+            .scrollDisabled(!allowsVerticalScrolling)
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top
+            } action: { _, newOffset in
+                contentOffset = newOffset
+            }
+            .simultaneousGesture(verticalHandoffGesture)
+    }
+
+    private var verticalHandoffGesture: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onEnded { value in
+                let vertical = value.predictedEndTranslation.height
+                let horizontal = value.predictedEndTranslation.width
+                guard abs(vertical) > abs(horizontal) else { return }
+
+                if !allowsVerticalScrolling, vertical < -flickThreshold {
+                    onExpand()
+                } else if allowsVerticalScrolling,
+                          contentOffset <= topTolerance,
+                          vertical > flickThreshold {
+                    onCollapse()
+                }
+            }
+    }
+}
+
+extension View {
+    func consoleVerticalScrollHandoff(
+        allowsVerticalScrolling: Bool,
+        onExpand: @escaping () -> Void,
+        onCollapse: @escaping () -> Void
+    ) -> some View {
+        modifier(
+            ConsoleVerticalScrollHandoff(
+                allowsVerticalScrolling: allowsVerticalScrolling,
+                onExpand: onExpand,
+                onCollapse: onCollapse
+            )
+        )
+    }
+}
+
 /// A single adaptive material sits behind every console root and pushed
 /// detail. Feature hosts keep their scroll backgrounds transparent so this
 /// remains visible as the presentation resizes between detents.

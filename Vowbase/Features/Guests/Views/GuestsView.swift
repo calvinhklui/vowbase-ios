@@ -7,6 +7,9 @@ import SwiftUI
 @MainActor
 struct GuestsView: View {
     let store: VowbaseWorkspaceStore
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
     /// Owned by `WeddingAppShell` — see `VenuesView.path`'s doc comment.
     @Binding var path: NavigationPath
     @State private var query = ""
@@ -53,13 +56,24 @@ struct GuestsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
             }
+            .consoleVerticalScrollHandoff(
+                allowsVerticalScrolling: allowsVerticalScrolling,
+                onExpand: onRequestExpansion,
+                onCollapse: onRequestCollapse
+            )
             .vowbaseScrollClearance()
             .refreshable {
                 await store.load()
             }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPGuest.self) { guest in
-                GuestDetailView(guest: guest, store: store)
+                GuestDetailView(
+                    guest: guest,
+                    store: store,
+                    allowsVerticalScrolling: allowsVerticalScrolling,
+                    onRequestExpansion: onRequestExpansion,
+                    onRequestCollapse: onRequestCollapse
+                )
             }
             .navigationDestination(for: GuestsRoute.self) { route in
                 switch route {
@@ -67,10 +81,18 @@ struct GuestsView: View {
                     CustomizeGuestMetricsView(
                         configuration: $metricConfiguration,
                         columns: store.visibleCustomColumns,
-                        guests: records
+                        guests: records,
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onRequestExpansion: onRequestExpansion,
+                        onRequestCollapse: onRequestCollapse
                     )
                 case .customFields:
-                    GuestFieldListView(store: store)
+                    GuestFieldListView(
+                        store: store,
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onRequestExpansion: onRequestExpansion,
+                        onRequestCollapse: onRequestCollapse
+                    )
                 }
             }
             .sheet(isPresented: $showsFilter) {
@@ -203,6 +225,7 @@ struct GuestsView: View {
                 .tint(VowbaseTheme.mutedInk)
             }
         }
+        .scrollDisabled(false)
     }
 
     private var tokens: [GuestFilterToken] {
@@ -326,6 +349,7 @@ struct GuestMetricPills: View {
                 }
             }
         }
+        .scrollDisabled(false)
         .contentMargins(.horizontal, 1, for: .scrollContent)
         .animation(.easeInOut(duration: 0.18), value: selectedMetricID)
     }
@@ -336,6 +360,9 @@ private struct CustomizeGuestMetricsView: View {
     @Binding var configuration: GuestMetricConfiguration
     let columns: [GuestCustomColumn]
     let guests: [Guest]
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: GuestMetricConfiguration
@@ -344,11 +371,17 @@ private struct CustomizeGuestMetricsView: View {
     init(
         configuration: Binding<GuestMetricConfiguration>,
         columns: [GuestCustomColumn],
-        guests: [Guest]
+        guests: [Guest],
+        allowsVerticalScrolling: Bool,
+        onRequestExpansion: @escaping () -> Void,
+        onRequestCollapse: @escaping () -> Void
     ) {
         _configuration = configuration
         self.columns = columns
         self.guests = guests
+        self.allowsVerticalScrolling = allowsVerticalScrolling
+        self.onRequestExpansion = onRequestExpansion
+        self.onRequestCollapse = onRequestCollapse
         _draft = State(initialValue: configuration.wrappedValue.normalized(columns: columns))
     }
 
@@ -386,6 +419,11 @@ private struct CustomizeGuestMetricsView: View {
             }
         }
         .environment(\.editMode, .constant(.active))
+        .consoleVerticalScrollHandoff(
+            allowsVerticalScrolling: allowsVerticalScrolling,
+            onExpand: onRequestExpansion,
+            onCollapse: onRequestCollapse
+        )
         .scrollContentBackground(.hidden)
         .background(VowbaseTheme.groupedBackground)
         .tint(VowbaseTheme.rose)
@@ -1088,6 +1126,7 @@ private struct GuestLedger: View {
                     }
                 }
             }
+            .scrollDisabled(false)
             .accessibilityLabel("Guest details columns")
         }
         .overlay(alignment: .top) { Divider() }

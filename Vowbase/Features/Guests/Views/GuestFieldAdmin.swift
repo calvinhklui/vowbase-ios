@@ -37,11 +37,26 @@ private extension GuestCustomColumnKind {
 @MainActor
 struct GuestFieldListView: View {
     let store: VowbaseWorkspaceStore
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
     @State private var editingColumn: GuestCustomColumn?
     @State private var isCreating = false
     @State private var pendingDeletion: GuestCustomColumn?
 
     private var columns: [GuestCustomColumn] { store.allCustomColumns }
+
+    init(
+        store: VowbaseWorkspaceStore,
+        allowsVerticalScrolling: Bool = true,
+        onRequestExpansion: @escaping () -> Void = {},
+        onRequestCollapse: @escaping () -> Void = {}
+    ) {
+        self.store = store
+        self.allowsVerticalScrolling = allowsVerticalScrolling
+        self.onRequestExpansion = onRequestExpansion
+        self.onRequestCollapse = onRequestCollapse
+    }
 
     var body: some View {
         List {
@@ -101,6 +116,11 @@ struct GuestFieldListView: View {
                 }
             }
         }
+        .consoleVerticalScrollHandoff(
+            allowsVerticalScrolling: allowsVerticalScrolling,
+            onExpand: onRequestExpansion,
+            onCollapse: onRequestCollapse
+        )
         .scrollContentBackground(.hidden)
         .background(VowbaseTheme.groupedBackground)
         .tint(VowbaseTheme.rose)
