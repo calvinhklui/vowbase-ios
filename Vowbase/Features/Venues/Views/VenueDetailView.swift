@@ -169,21 +169,7 @@ struct VenueDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        inlineTextField(.name, placeholder: "Venue name", font: VowbaseType.screenDisplay, autocapitalization: .words)
-                            .layoutPriority(1)
-
-                        Menu {
-                            ForEach([
-                                VenueStatus.suggested, .considering, .contacted, .toured,
-                                .shortlisted, .negotiating, .booked, .passed,
-                            ], id: \.self) { status in
-                                Button(status.title) { commitStatus(status) }
-                            }
-                        } label: {
-                            StatusCapsule(status: displayStatus)
-                        }
-                    }
+                    venueHeader
                     errorCaption(.name)
                     errorCaption(.status)
 
@@ -437,6 +423,44 @@ struct VenueDetailView: View {
 
     // MARK: - Shared field editing
 
+    private var venueHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                venueTitle(prefersIntrinsicWidth: true)
+                statusMenu
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                venueTitle(prefersIntrinsicWidth: false)
+                statusMenu
+            }
+        }
+    }
+
+    private func venueTitle(prefersIntrinsicWidth: Bool) -> some View {
+        inlineTextField(
+            .name,
+            placeholder: "Venue name",
+            font: VowbaseType.screenDisplay,
+            autocapitalization: .words
+        )
+        .fixedSize(horizontal: prefersIntrinsicWidth, vertical: true)
+    }
+
+    private var statusMenu: some View {
+        Menu {
+            ForEach([
+                VenueStatus.suggested, .considering, .contacted, .toured,
+                .shortlisted, .negotiating, .booked, .passed,
+            ], id: \.self) { status in
+                Button(status.title) { commitStatus(status) }
+            }
+        } label: {
+            StatusCapsule(status: displayStatus)
+                .fixedSize()
+        }
+    }
+
     @ViewBuilder
     private func inlineTextField(
         _ field: VenueEditableField,
@@ -466,7 +490,8 @@ struct VenueDetailView: View {
                         flashingFields.contains(field) ? VowbaseTheme.rose :
                             value.isEmpty ? VowbaseTheme.mutedInk : VowbaseTheme.ink
                     )
-                    .lineLimit(1)
+                    .lineLimit(field == .name ? nil : 1)
+                    .multilineTextAlignment(.leading)
             }
             .buttonStyle(.plain)
         }
