@@ -8,7 +8,7 @@ struct AddVenueSheet: View {
     @FocusState private var isNameFocused: Bool
     @State private var name = ""
     @State private var location = ""
-    @State private var selectedAddress: String?
+    @State private var selection: AppleMapsAddressSelection?
     @State private var status: VenueStatus = .considering
     @State private var isSaving = false
 
@@ -21,7 +21,7 @@ struct AddVenueSheet: View {
                         .textInputAutocapitalization(.words)
                     AppleMapsAddressField(
                         text: $location,
-                        selectedAddress: $selectedAddress,
+                        selection: $selection,
                         placeholder: "Address or location (optional)"
                     )
                     Picker("Status", selection: $status) {
@@ -56,7 +56,7 @@ struct AddVenueSheet: View {
             let didSave = await store.createVenue(
                 name: name,
                 location: location,
-                selectedAddress: selectedAddress,
+                selection: selection,
                 status: status
             )
             isSaving = false

@@ -1,5 +1,18 @@
 import Foundation
 
+/// Structured administrative fields are authoritative for new records. The
+/// legacy origin label remains a read-only fallback while older rows migrate.
+enum GuestLocationLabel {
+    static func display(for guest: Guest) -> String? {
+        let parts = [guest.city, guest.state]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !parts.isEmpty { return parts.joined(separator: ", ") }
+        let legacy = guest.originLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return legacy?.isEmpty == false ? legacy : nil
+    }
+}
+
 /// Where a guest's coarse origin places them in the Location filter.
 ///
 /// Guests with no resolved origin are a real bucket people filter on, not an
@@ -112,7 +125,8 @@ struct GuestFilterSet: Equatable, Sendable {
         }
         // Mappable means the address resolved to city precision, which is all
         // the map ever receives.
-        if mappableOnly, guest.originPrecision != "city" {
+        if mappableOnly,
+           (guest.originPrecision != "city" || guest.originLatitude == nil || guest.originLongitude == nil) {
             return false
         }
         guard email.matches(guest.email), phone.matches(guest.phone) else { return false }
@@ -138,8 +152,7 @@ struct GuestFilterSet: Equatable, Sendable {
     }
 
     static func bucket(for guest: Guest) -> GuestLocationBucket {
-        guard let label = guest.originLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !label.isEmpty else {
+        guard let label = GuestLocationLabel.display(for: guest) else {
             return .none
         }
         return .named(label)
@@ -187,7 +200,7 @@ enum GuestQuery {
             guest.lastName,
             guest.email,
             guest.phone,
-            guest.originLabel,
+            GuestLocationLabel.display(for: guest),
             guest.address
         ].compactMap { $0 }
 

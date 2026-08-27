@@ -12,6 +12,8 @@ struct GuestFilteringTests {
         email: String? = nil,
         phone: String? = nil,
         origin: String? = nil,
+        city: String? = nil,
+        state: String? = nil,
         precision: String? = nil,
         custom: [String: JSONValue] = [:],
         created: TimeInterval = 0
@@ -24,12 +26,14 @@ struct GuestFilteringTests {
             email: email,
             phone: phone,
             address: origin,
+            city: city,
+            state: state,
             customFields: .object(custom),
             rsvpStatus: rsvp,
             rsvpDate: nil,
             originLabel: origin,
-            originLatitude: nil,
-            originLongitude: nil,
+            originLatitude: precision == "city" ? 45 : nil,
+            originLongitude: precision == "city" ? -122 : nil,
             originPrecision: precision,
             geocodeStatus: nil,
             createdAt: Date(timeIntervalSince1970: created)
@@ -89,6 +93,43 @@ struct GuestFilteringTests {
 
         filters.locations = [.named("Northvale"), .none]
         #expect(roster.filter(filters.matches).count == 3)
+    }
+
+    @Test("Structured city and state take precedence over the legacy origin label")
+    func structuredLocationLabelsTakePrecedence() {
+        let guest = guest("Avery", origin: "Old label", city: "Portland", state: "OR")
+        #expect(GuestLocationLabel.display(for: guest) == "Portland, OR")
+        #expect(GuestFilterSet.bucket(for: guest) == .named("Portland, OR"))
+    }
+
+    @Test("guest origin privacy uses a disambiguated city query and a 0.1-degree grid")
+    func guestOriginPrivacyPolicy() {
+        #expect(GuestOriginPrivacy.cityQuery(city: "Portland", state: "OR", country: "United States") == "Portland, OR, United States")
+        let origin = GuestOriginPrivacy.coordinate(
+            city: "Portland",
+            location: .init(
+                displayName: "123 Exact Street", city: "Portland", region: "OR", country: "United States",
+                latitude: 45.523456, longitude: -122.676789
+            )
+        )
+        #expect(origin == .init(latitude: 45.5, longitude: -122.7))
+        #expect(GuestOriginPrivacy.coordinate(city: nil, location: .init(
+            displayName: "123 Exact Street", city: nil, region: nil, country: nil, latitude: 45.5, longitude: -122.7
+        )) == nil)
+        #expect(GuestOriginPrivacy.geocodeStatus(address: nil, origin: nil) == "missing")
+        #expect(GuestOriginPrivacy.geocodeStatus(address: "123 Exact Street", origin: nil) == "failed")
+        #expect(GuestOriginPrivacy.geocodeStatus(address: "123 Exact Street", origin: origin) == "resolved")
+    }
+
+    @Test("guest address blur saving defers to an Apple Maps selection")
+    func guestAddressBlurCommitPolicy() {
+        #expect(GuestAddressCommitPolicy.shouldCommitTypedAddress(selection: nil))
+        let selection = AppleMapsAddressSelection(
+            address: "1 Apple Park Way, Cupertino, CA 95014, United States",
+            city: "Cupertino", state: "CA", country: "United States",
+            latitude: 37.3349, longitude: -122.0090
+        )
+        #expect(!GuestAddressCommitPolicy.shouldCommitTypedAddress(selection: selection))
     }
 
     @Test("Mappable-only keeps just city-precision origins")

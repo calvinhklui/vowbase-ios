@@ -19,4 +19,32 @@ import Testing
         let unchanged = try JSONSerialization.jsonObject(with: encoder.encode(VenuePatch(name: "Riverside Pavilion"))) as! [String: Any]
         #expect(unchanged["our_notes"] == nil)
     }
+
+    @Test("venue writes use the canonical address and never legacy location fields") func venueAddressPatchEncoding() throws {
+        let encoded = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(VenuePatch(address: .value("1 Apple Park Way"), city: .value("Cupertino")))
+        ) as! [String: Any]
+        #expect(encoded["address"] as? String == "1 Apple Park Way")
+        #expect(encoded["city"] as? String == "Cupertino")
+        #expect(encoded["location"] == nil)
+        #expect(encoded["location_text"] == nil)
+    }
+
+    @Test("venue address updates replace coordinate pairs atomically and manual text clears them") func venueCoordinateInvalidation() throws {
+        let encoder = JSONEncoder()
+        let selected = try JSONSerialization.jsonObject(with: encoder.encode(VenuePatch(
+            address: .value("1 Apple Park Way, Cupertino, CA 95014, United States"),
+            city: .value("Cupertino"), state: .value("CA"), country: .value("United States"),
+            latitude: .value(37.3349), longitude: .value(-122.0090)
+        ))) as! [String: Any]
+        #expect(selected["latitude"] as? Double == 37.3349)
+        #expect(selected["longitude"] as? Double == -122.0090)
+
+        let manual = try JSONSerialization.jsonObject(with: encoder.encode(VenuePatch(
+            address: .value("Manually entered venue"), city: .null, state: .null, country: .null,
+            latitude: .null, longitude: .null
+        ))) as! [String: Any]
+        #expect(manual["latitude"] is NSNull)
+        #expect(manual["longitude"] is NSNull)
+    }
 }

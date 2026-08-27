@@ -25,6 +25,9 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
     let plusLimit: Int
     let plusOfGuestID: UUID?
     let address: String?
+    let city: String?
+    let state: String?
+    let country: String?
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
     let rsvpDate: Date?
@@ -45,6 +48,9 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         plusLimit: Int = 0,
         plusOfGuestID: UUID? = nil,
         address: String? = nil,
+        city: String? = nil,
+        state: String? = nil,
+        country: String? = nil,
         customFields: JSONValue = .object([:]),
         rsvpStatus: RSVPStatus? = nil,
         rsvpDate: Date? = nil,
@@ -64,6 +70,9 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         self.plusLimit = plusLimit
         self.plusOfGuestID = plusOfGuestID
         self.address = address
+        self.city = city
+        self.state = state
+        self.country = country
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
         self.rsvpDate = rsvpDate
@@ -85,6 +94,7 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         case plusLimit = "plus_limit"
         case plusOfGuestID = "plus_of_guest_id"
         case address
+        case city, state, country
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
         case rsvpDate = "rsvp_date"
@@ -105,6 +115,9 @@ struct GuestDraft: Codable, Equatable, Sendable {
     let plusLimit: Int
     let plusOfGuestID: UUID?
     let address: String?
+    let city: String?
+    let state: String?
+    let country: String?
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
     let originLabel: String?
@@ -121,6 +134,9 @@ struct GuestDraft: Codable, Equatable, Sendable {
         plusLimit: Int = 0,
         plusOfGuestID: UUID? = nil,
         address: String? = nil,
+        city: String? = nil,
+        state: String? = nil,
+        country: String? = nil,
         customFields: JSONValue = .object([:]),
         rsvpStatus: RSVPStatus? = nil,
         originLabel: String? = nil,
@@ -136,6 +152,9 @@ struct GuestDraft: Codable, Equatable, Sendable {
         self.plusLimit = plusLimit
         self.plusOfGuestID = plusOfGuestID
         self.address = address
+        self.city = city
+        self.state = state
+        self.country = country
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
         self.originLabel = originLabel
@@ -153,6 +172,7 @@ struct GuestDraft: Codable, Equatable, Sendable {
         case plusLimit = "plus_limit"
         case plusOfGuestID = "plus_of_guest_id"
         case address
+        case city, state, country
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
         case originLabel = "origin_label"
@@ -182,6 +202,9 @@ struct GuestPatch: Encodable, Equatable, Sendable {
     let plusLimit: Int?
     let plusOfGuestID: NullablePatch<UUID>
     let address: NullablePatch<String>
+    let city: NullablePatch<String>
+    let state: NullablePatch<String>
+    let country: NullablePatch<String>
     let customFields: JSONValue?
     let rsvpStatus: NullablePatch<RSVPStatus>
     let originLabel: NullablePatch<String>
@@ -198,6 +221,9 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         plusLimit: Int? = nil,
         plusOfGuestID: NullablePatch<UUID> = .unchanged,
         address: NullablePatch<String> = .unchanged,
+        city: NullablePatch<String> = .unchanged,
+        state: NullablePatch<String> = .unchanged,
+        country: NullablePatch<String> = .unchanged,
         customFields: JSONValue? = nil,
         rsvpStatus: NullablePatch<RSVPStatus> = .unchanged,
         originLabel: NullablePatch<String> = .unchanged,
@@ -213,6 +239,9 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         self.plusLimit = plusLimit
         self.plusOfGuestID = plusOfGuestID
         self.address = address
+        self.city = city
+        self.state = state
+        self.country = country
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
         self.originLabel = originLabel
@@ -230,6 +259,7 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         case plusLimit = "plus_limit"
         case plusOfGuestID = "plus_of_guest_id"
         case address
+        case city, state, country
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
         case originLabel = "origin_label"
@@ -247,6 +277,7 @@ struct GuestPatch: Encodable, Equatable, Sendable {
             && plusLimit == nil
             && plusOfGuestID == .unchanged
             && address == .unchanged
+            && city == .unchanged && state == .unchanged && country == .unchanged
             && customFields == nil
             && rsvpStatus == .unchanged
             && originLabel == .unchanged
@@ -265,6 +296,9 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         try container.encodeIfPresent(plusLimit, forKey: .plusLimit)
         try encode(plusOfGuestID, forKey: .plusOfGuestID, into: &container)
         try encode(address, forKey: .address, into: &container)
+        try encode(city, forKey: .city, into: &container)
+        try encode(state, forKey: .state, into: &container)
+        try encode(country, forKey: .country, into: &container)
         try container.encodeIfPresent(customFields, forKey: .customFields)
         try encode(rsvpStatus, forKey: .rsvpStatus, into: &container)
         try encode(originLabel, forKey: .originLabel, into: &container)

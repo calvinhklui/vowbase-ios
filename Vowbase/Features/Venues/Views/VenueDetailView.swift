@@ -67,8 +67,7 @@ struct VenueDetailView: View {
     @State private var flashingFields: Set<VenueEditableField> = []
 
     @State private var locationDraft = ""
-    @State private var locationSuggestions: [GeocodeResult] = []
-    @State private var locationSearchTask: Task<Void, Never>?
+    @State private var locationSelection: AppleMapsAddressSelection?
 
     init(
         venue: MVPVenue,
@@ -324,7 +323,6 @@ struct VenueDetailView: View {
             editingField = nil
             isDetailsEditing = false
             isNoteEditing = false
-            locationSearchTask?.cancel()
             if let documentPreviewTemporaryURL {
                 try? FileManager.default.removeItem(at: documentPreviewTemporaryURL)
             }
@@ -810,15 +808,22 @@ struct VenueDetailView: View {
     private var locationRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             if editingField == .location {
-                TextField("Address or location", text: $locationDraft)
-                    .focused($focusedField, equals: .location)
-                    .onAppear { focusedField = .location }
+                AppleMapsAddressField(
+                    text: $locationDraft,
+                    selection: $locationSelection,
+                    placeholder: "Address or location",
+                    onSubmit: {
+                        editingField = nil
+                        commitLocation()
+                    }
+                )
                     .font(.subheadline)
                     .foregroundStyle(VowbaseTheme.ink)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-                    .onSubmit { focusedField = nil }
-                    .onChange(of: locationDraft) { _, newValue in searchLocation(newValue) }
+                    .onChange(of: locationSelection) { _, selection in
+                        guard let selection else { return }
+                        editingField = nil
+                        commitLocation(selected: selection)
+                    }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Button {
@@ -836,30 +841,6 @@ struct VenueDetailView: View {
                     Button("View on map", action: onViewOnMap)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(VowbaseTheme.rose)
-                }
-            }
-            if editingField == .location, !locationSuggestions.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(locationSuggestions.enumerated()), id: \.offset) { _, result in
-                        Button {
-                            selectLocationSuggestion(result)
-                        } label: {
-                            Text(result.displayName)
-                                .font(.subheadline)
-                                .foregroundStyle(VowbaseTheme.ink)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.vertical, 8)
-                        if result.displayName != locationSuggestions.last?.displayName {
-                            Divider()
-                        }
-                    }
-                }
-                .padding(.horizontal, 10)
-                .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(VowbaseTheme.border, lineWidth: 1)
                 }
             }
             if currentVenue.coordinate == nil {
@@ -1090,7 +1071,7 @@ struct VenueDetailView: View {
 
     private func beginEditingLocation() {
         locationDraft = rawStringValue(for: .location)
-        locationSuggestions = []
+        locationSelection = nil
         fieldErrors[.location] = nil
         editingField = .location
     }
@@ -1201,59 +1182,33 @@ struct VenueDetailView: View {
         }
     }
 
-    private func searchLocation(_ query: String) {
-        locationSearchTask?.cancel()
-        let trimmed = query.trimmed
-        guard !trimmed.isEmpty else {
-            locationSuggestions = []
-            return
-        }
-        locationSearchTask = Task {
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled else { return }
-            let results = await store.geocodeSuggestions(for: trimmed)
-            guard !Task.isCancelled else { return }
-            locationSuggestions = results
-        }
-    }
-
-    private func selectLocationSuggestion(_ result: GeocodeResult) {
-        locationSearchTask?.cancel()
-        locationSuggestions = []
-        editingField = nil
-        focusedField = nil
-        commitLocation(selected: result)
-    }
-
     /// Committing a typed string with no selection stores the literal text and clears
     /// coordinates; committing a selected suggestion stores its normalized label and
     /// coordinates. Spec §4.6 — this is what keeps the map tab from silently drifting.
-    private func commitLocation(selected: GeocodeResult? = nil) {
-        locationSearchTask?.cancel()
+    private func commitLocation(selected: AppleMapsAddressSelection? = nil) {
         let venueID = currentVenue.id
         let patch: VenuePatch
         let display: String
 
         if let selected {
             patch = VenuePatch(
-                location: .value(selected.displayName),
-                address: .value(selected.displayName),
+                address: .value(selected.address),
                 city: selected.city.map(NullablePatch.value) ?? .null,
-                state: selected.region.map(NullablePatch.value) ?? .null,
+                state: selected.state.map(NullablePatch.value) ?? .null,
                 country: selected.country.map(NullablePatch.value) ?? .null,
                 latitude: .value(selected.latitude),
                 longitude: .value(selected.longitude)
             )
-            display = selected.displayName
+            display = selected.address
         } else {
             let trimmed = locationDraft.trimmed
             let current = rawStringValue(for: .location)
             guard trimmed != current else { return }
             if trimmed.isEmpty {
-                patch = VenuePatch(location: .null, address: .null, city: .null, state: .null, country: .null, latitude: .null, longitude: .null)
+                patch = VenuePatch(address: .null, city: .null, state: .null, country: .null, latitude: .null, longitude: .null)
                 display = "Location not added"
             } else {
-                patch = VenuePatch(location: .value(trimmed), address: .value(trimmed), city: .null, state: .null, country: .null, latitude: .null, longitude: .null)
+                patch = VenuePatch(address: .value(trimmed), city: .null, state: .null, country: .null, latitude: .null, longitude: .null)
                 display = trimmed
             }
         }

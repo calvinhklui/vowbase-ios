@@ -565,7 +565,7 @@ final class VowbaseWorkspaceStore {
     var clusters: [GuestCluster] {
         let locatedGuests = guestRecords.compactMap { guest -> (String, Double, Double)? in
             guard guest.originPrecision == "city",
-                  let city = guest.originLabel,
+                  let city = GuestLocationLabel.display(for: guest),
                   let latitude = guest.originLatitude,
                   let longitude = guest.originLongitude else {
                 return nil
@@ -771,7 +771,7 @@ final class VowbaseWorkspaceStore {
     func createVenue(
         name: String,
         location: String,
-        selectedAddress: String? = nil,
+        selection: AppleMapsAddressSelection? = nil,
         status: VenueStatus
     ) async -> Bool {
         guard let repositories, let weddingID = wedding?.id else { return unavailable() }
@@ -779,18 +779,17 @@ final class VowbaseWorkspaceStore {
             // An Apple Maps selection is a more specific, durable lookup value
             // than whatever free-form text happened to be in the field when the
             // user tapped it. Use it for both geocoding and persistence.
-            let locationQuery = selectedAddress?.nilIfBlank ?? location
+            let locationQuery = selection?.address ?? location
             let resolvedLocation = await resolvedLocation(for: locationQuery, repositories: repositories)
-            let savedAddress = selectedAddress?.nilIfBlank ?? resolvedLocation.displayName
+            let savedAddress = selection?.address ?? resolvedLocation.displayName
             let venue = try await repositories.venues.createVenue(
                 VenueDraft(
                     name: name.trimmed,
                     status: status,
-                    location: savedAddress,
                     address: savedAddress,
-                    city: resolvedLocation.city,
-                    state: resolvedLocation.region,
-                    country: resolvedLocation.country,
+                    city: selection?.city ?? resolvedLocation.city,
+                    state: selection?.state ?? resolvedLocation.region,
+                    country: selection?.country ?? resolvedLocation.country,
                     contactName: nil,
                     contactEmail: nil,
                     contactPhone: nil,
@@ -800,8 +799,8 @@ final class VowbaseWorkspaceStore {
                     priceEstimate: nil,
                     priceNotes: nil,
                     ourNotes: nil,
-                    latitude: resolvedLocation.latitude,
-                    longitude: resolvedLocation.longitude,
+                    latitude: selection?.latitude ?? resolvedLocation.latitude,
+                    longitude: selection?.longitude ?? resolvedLocation.longitude,
                     photoURL: nil
                 ),
                 weddingID: weddingID
@@ -853,7 +852,7 @@ final class VowbaseWorkspaceStore {
         do {
             let updated = try await repositories.venues.updateVenue(id: id, patch: patch)
             replace(updated, in: &venueRecords)
-            if patch.location != .unchanged || patch.address != .unchanged
+            if patch.address != .unchanged
                 || patch.latitude != .unchanged || patch.longitude != .unchanged {
                 // A typed location intentionally clears its server coordinate.
                 // Discard an old, address-specific fallback before resolving the
@@ -1019,7 +1018,7 @@ final class VowbaseWorkspaceStore {
         firstName: String,
         lastName: String,
         location: String,
-        selectedAddress: String? = nil,
+        selection: AppleMapsAddressSelection? = nil,
         rsvp: RSVPStatus,
         email: String = "",
         phone: String = "",
@@ -1031,8 +1030,18 @@ final class VowbaseWorkspaceStore {
             return nil
         }
         do {
-            let resolved = await resolvedLocation(for: location, repositories: repositories)
-            let savedAddress = selectedAddress?.nilIfBlank ?? resolved.displayName
+            let locationQuery = selection?.address ?? location
+            // This first lookup is only for the address and its administrative
+            // fields. Never use its (potentially street-precise) coordinate for
+            // a guest map origin.
+            let addressLocation = await resolvedLocation(for: locationQuery, repositories: repositories)
+            let savedAddress = selection?.address ?? addressLocation.displayName
+            let city = selection?.city ?? addressLocation.city
+            let state = selection?.state ?? addressLocation.region
+            let country = selection?.country ?? addressLocation.country
+            let origin = await coarseGuestOrigin(
+                city: city, state: state, country: country, repositories: repositories
+            )
             let guest = try await repositories.guests.createGuest(
                 GuestDraft(
                     firstName: firstName.trimmed,
@@ -1041,13 +1050,18 @@ final class VowbaseWorkspaceStore {
                     phone: phone.nilIfBlank,
                     plusLimit: plusGuests.count,
                     address: savedAddress,
+                    city: city,
+                    state: state,
+                    country: country,
                     customFields: .object(customFields),
                     rsvpStatus: rsvp,
-                    originLabel: resolved.city ?? resolved.displayName,
-                    originLatitude: resolved.latitude,
-                    originLongitude: resolved.longitude,
-                    originPrecision: resolved.city == nil ? nil : "city",
-                    geocodeStatus: resolved.latitude == nil ? nil : "resolved"
+                    // Guest origins intentionally use the city lookup rather
+                    // than the selected street coordinate.
+                    originLabel: nil,
+                    originLatitude: origin?.latitude,
+                    originLongitude: origin?.longitude,
+                    originPrecision: origin == nil ? nil : "city",
+                    geocodeStatus: GuestOriginPrivacy.geocodeStatus(address: savedAddress, origin: origin)
                 ),
                 weddingID: weddingID
             )
@@ -1118,27 +1132,71 @@ final class VowbaseWorkspaceStore {
             // Clearing the address clears everything derived from it.
             let patch = GuestPatch(
                 address: .null,
+                city: .null,
+                state: .null,
+                country: .null,
                 originLabel: .null,
                 originLatitude: .null,
                 originLongitude: .null,
                 originPrecision: .null,
-                geocodeStatus: .null
+                geocodeStatus: .value("missing")
             )
             return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
         }
 
         // Show progress across the geocode too, not just the write that follows.
         fieldSaveStates[key] = .saving
+        // Resolve the complete address for structured fields, then resolve the
+        // disambiguated city query for the only coordinate we retain.
         let resolved = await resolvedLocation(for: trimmed, repositories: repositories)
+        let origin = await coarseGuestOrigin(
+            city: resolved.city, state: resolved.region, country: resolved.country, repositories: repositories
+        )
         let patch = GuestPatch(
             address: .value(trimmed),
-            originLabel: (resolved.city ?? resolved.displayName).map(NullablePatch.value) ?? .null,
-            originLatitude: resolved.latitude.map(NullablePatch.value) ?? .null,
-            originLongitude: resolved.longitude.map(NullablePatch.value) ?? .null,
-            originPrecision: resolved.city == nil ? .null : .value("city"),
-            geocodeStatus: resolved.latitude == nil ? .null : .value("resolved")
+            city: resolved.city.map(NullablePatch.value) ?? .null,
+            state: resolved.region.map(NullablePatch.value) ?? .null,
+            country: resolved.country.map(NullablePatch.value) ?? .null,
+            originLabel: .null,
+            originLatitude: origin.map { .value($0.latitude) } ?? .null,
+            originLongitude: origin.map { .value($0.longitude) } ?? .null,
+            originPrecision: origin == nil ? .null : .value("city"),
+            geocodeStatus: .value(GuestOriginPrivacy.geocodeStatus(address: trimmed, origin: origin))
         )
         return await applyPatch(patch, guestID: guestID, key: key, pendingValue: trimmed)
+    }
+
+    /// Saves an Apple Maps choice as one patch. The exact street coordinate is
+    /// deliberately never persisted for a guest; the map uses the selected
+    /// result's city through the existing coarse-location resolver instead.
+    @discardableResult
+    func commitAddress(for guestID: UUID, selection: AppleMapsAddressSelection) async -> Bool {
+        guard let repositories, let record = guestRecord(id: guestID) else { return false }
+        let key = GuestFieldKey(guestID: guestID, field: "address")
+        guard selection.address != record.address
+            || selection.city != record.city
+            || selection.state != record.state
+            || selection.country != record.country else {
+            fieldSaveStates[key] = nil
+            return false
+        }
+
+        fieldSaveStates[key] = .saving
+        let origin = await coarseGuestOrigin(
+            city: selection.city, state: selection.state, country: selection.country, repositories: repositories
+        )
+        let patch = GuestPatch(
+            address: .value(selection.address),
+            city: selection.city.map(NullablePatch.value) ?? .null,
+            state: selection.state.map(NullablePatch.value) ?? .null,
+            country: selection.country.map(NullablePatch.value) ?? .null,
+            originLabel: .null,
+            originLatitude: origin.map { .value($0.latitude) } ?? .null,
+            originLongitude: origin.map { .value($0.longitude) } ?? .null,
+            originPrecision: origin == nil ? .null : .value("city"),
+            geocodeStatus: .value(GuestOriginPrivacy.geocodeStatus(address: selection.address, origin: origin))
+        )
+        return await applyPatch(patch, guestID: guestID, key: key, pendingValue: selection.address)
     }
 
     @discardableResult
@@ -1615,6 +1673,23 @@ final class VowbaseWorkspaceStore {
         )
     }
 
+    /// The guest map is intentionally city-scale. We first obtain city/state/
+    /// country from the address result, then issue a second, disambiguated
+    /// lookup for that administrative place and quantize it to the API's
+    /// 0.1-degree privacy grid.
+    private func coarseGuestOrigin(
+        city: String?,
+        state: String?,
+        country: String?,
+        repositories: RepositoryContainer
+    ) async -> GuestOriginCoordinate? {
+        guard let query = GuestOriginPrivacy.cityQuery(city: city, state: state, country: country) else {
+            return nil
+        }
+        let location = await resolvedLocation(for: query, repositories: repositories)
+        return GuestOriginPrivacy.coordinate(city: city, location: location)
+    }
+
     private func replace<T: Identifiable>(_ value: T, in records: inout [T]) where T.ID: Equatable {
         guard let index = records.firstIndex(where: { $0.id == value.id }) else { return }
         records[index] = value
@@ -1636,7 +1711,7 @@ final class VowbaseWorkspaceStore {
     }
 }
 
-private struct ResolvedLocation {
+struct ResolvedLocation {
     let displayName: String?
     let city: String?
     let region: String?
@@ -1647,6 +1722,45 @@ private struct ResolvedLocation {
     static let empty = ResolvedLocation(
         displayName: nil, city: nil, region: nil, country: nil, latitude: nil, longitude: nil
     )
+}
+
+struct GuestOriginCoordinate: Equatable, Sendable {
+    let latitude: Double
+    let longitude: Double
+}
+
+/// Pure privacy policy so every create/edit path uses the same city-only,
+/// disambiguated and quantized guest-origin contract.
+enum GuestOriginPrivacy {
+    static func cityQuery(city: String?, state: String?, country: String?) -> String? {
+        let parts = [city, state, country]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: ", ")
+    }
+
+    static func coordinate(city: String?, location: ResolvedLocation) -> GuestOriginCoordinate? {
+        guard city?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              let latitude = location.latitude,
+              let longitude = location.longitude,
+              (-90...90).contains(latitude),
+              (-180...180).contains(longitude) else {
+            return nil
+        }
+        return .init(latitude: rounded(latitude), longitude: rounded(longitude))
+    }
+
+    static func rounded(_ value: Double) -> Double {
+        (value * 10).rounded() / 10
+    }
+
+    static func geocodeStatus(address: String?, origin: GuestOriginCoordinate?) -> String {
+        guard address?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+            return "missing"
+        }
+        return origin == nil ? "failed" : "resolved"
+    }
 }
 
 /// A best-effort map coordinate associated with the exact text that produced
@@ -1723,7 +1837,7 @@ private extension MVPVenue {
         id = venue.id
         name = venue.name
         status = venue.status
-        location = venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? venue.address ?? "Location not added"
+        location = venue.address?.nilIfBlank ?? venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? "Location not added"
         fullAddress = VenueCoordinateRecovery.fullAddress(for: venue)
         mapSearchQuery = fullAddress ?? location
         city = venue.city?.nilIfBlank
@@ -1761,11 +1875,13 @@ private extension MVPGuest {
         firstName = guest.firstName
         lastName = guest.lastName ?? ""
         subtitle = GuestDisplayResolver.subtitle(for: guest, columns: columns)
-        location = guest.originLabel ?? guest.address
+        location = GuestLocationLabel.display(for: guest) ?? guest.address
         email = guest.email
         phone = guest.phone
         rsvp = guest.rsvpStatus ?? .notInvited
         isMappable = guest.originPrecision == "city"
+            && guest.originLatitude != nil
+            && guest.originLongitude != nil
         customSearchText = GuestCustomFields.object(in: guest.customFields)
             .values
             .compactMap { value in

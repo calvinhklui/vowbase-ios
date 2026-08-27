@@ -16,7 +16,7 @@ struct AddGuestSheet: View {
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var location = ""
-    @State private var selectedAddress: String?
+    @State private var selection: AppleMapsAddressSelection?
     @State private var email = ""
     @State private var phone = ""
     @State private var rsvp: RSVPStatus = .notInvited
@@ -89,7 +89,7 @@ struct AddGuestSheet: View {
             }
             AppleMapsAddressField(
                 text: $location,
-                selectedAddress: $selectedAddress,
+                selection: $selection,
                 placeholder: "Address or location (optional)"
             )
             Picker("Additional guests", selection: $plusLimit) {
@@ -212,7 +212,7 @@ struct AddGuestSheet: View {
                 firstName: firstName,
                 lastName: lastName,
                 location: location,
-                selectedAddress: selectedAddress,
+                selection: selection,
                 rsvp: rsvp,
                 email: email,
                 phone: phone,

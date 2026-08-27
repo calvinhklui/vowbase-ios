@@ -55,15 +55,14 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         case updatedAt = "updated_at"
     }
 }
-struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let location:String?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?
-enum CodingKeys:String,CodingKey{case name;case status;case location;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"}}
+struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?
+enum CodingKeys:String,CodingKey{case name;case status;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"}}
 /// A field omitted from `init` (default `.unchanged`) is left untouched server-side;
 /// `.null` clears the column. `name` and `status` are never nullable, so they stay
 /// plain optionals where `nil` means "don't touch."
 struct VenuePatch: Encodable, Equatable, Sendable {
     let name: String?
     let status: VenueStatus?
-    let location: NullablePatch<String>
     let address: NullablePatch<String>
     let city: NullablePatch<String>
     let state: NullablePatch<String>
@@ -89,7 +88,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
     init(
         name: String? = nil,
         status: VenueStatus? = nil,
-        location: NullablePatch<String> = .unchanged,
         address: NullablePatch<String> = .unchanged,
         city: NullablePatch<String> = .unchanged,
         state: NullablePatch<String> = .unchanged,
@@ -114,7 +112,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
     ) {
         self.name = name
         self.status = status
-        self.location = location
         self.address = address
         self.city = city
         self.state = state
@@ -140,7 +137,7 @@ struct VenuePatch: Encodable, Equatable, Sendable {
 
     var isEmpty: Bool {
         name == nil && status == nil
-            && location == .unchanged && address == .unchanged && city == .unchanged
+            && address == .unchanged && city == .unchanged
             && state == .unchanged && country == .unchanged
             && contactName == .unchanged && contactEmail == .unchanged && contactPhone == .unchanged
             && website == .unchanged
@@ -154,7 +151,7 @@ struct VenuePatch: Encodable, Equatable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case name, status, location, address, city, state, country, website, latitude, longitude
+        case name, status, address, city, state, country, website, latitude, longitude
         case contactName = "contact_name"
         case contactEmail = "contact_email"
         case contactPhone = "contact_phone"
@@ -175,7 +172,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
         try container.encodeIfPresent(status, forKey: .status)
-        try container.encode(location, forKey: .location)
         try container.encode(address, forKey: .address)
         try container.encode(city, forKey: .city)
         try container.encode(state, forKey: .state)

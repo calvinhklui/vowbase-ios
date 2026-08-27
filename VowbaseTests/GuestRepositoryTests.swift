@@ -23,6 +23,9 @@ struct GuestRepositoryTests {
         #expect(guest.rsvpStatus == .notInvited)
         #expect(guest.plusLimit == 2)
         #expect(guest.plusOfGuestID == nil)
+        #expect(guest.city == "Brooklyn")
+        #expect(guest.state == "NY")
+        #expect(guest.country == "United States")
         #expect(column.kind == .select)
         #expect(column.options == .array([.string("Family"), .string("Friends")]))
         #expect(rsvp.status == .pending)
@@ -115,6 +118,9 @@ struct GuestRepositoryTests {
             plusLimit: 4,
             plusOfGuestID: .value(guestID),
             address: .null,
+            city: .value("Brooklyn"),
+            state: .value("NY"),
+            country: .null,
             rsvpStatus: .value(.accepted),
             originLabel: .null,
             originLatitude: .value(40.7128),
@@ -128,6 +134,9 @@ struct GuestRepositoryTests {
         #expect(values["plus_limit"] as? Int == 4)
         #expect(UUID(uuidString: values["plus_of_guest_id"] as? String ?? "") == guestID)
         #expect(values["address"] is NSNull)
+        #expect(values["city"] as? String == "Brooklyn")
+        #expect(values["state"] as? String == "NY")
+        #expect(values["country"] is NSNull)
         #expect(values["rsvp_status"] as? String == "accepted")
         #expect(values["origin_label"] is NSNull)
         #expect(values["origin_latitude"] as? Double == 40.7128)
@@ -135,6 +144,28 @@ struct GuestRepositoryTests {
         #expect(values["origin_precision"] as? String == "city")
         #expect(values["geocode_status"] is NSNull)
         #expect(values["custom_fields"] == nil)
+    }
+
+    @Test("guest location patches replace the coarse coordinate pair and manual text clears it")
+    func guestCoordinateInvalidation() throws {
+        let selected = try jsonObject(GuestPatch(
+            address: .value("1 Apple Park Way, Cupertino, CA 95014, United States"),
+            city: .value("Cupertino"), state: .value("CA"), country: .value("United States"),
+            originLatitude: .value(37.3230), originLongitude: .value(-122.0322),
+            originPrecision: .value("city"), geocodeStatus: .value("resolved")
+        ))
+        #expect(selected["origin_latitude"] as? Double == 37.3230)
+        #expect(selected["origin_longitude"] as? Double == -122.0322)
+
+        let manual = try jsonObject(GuestPatch(
+            address: .value("Manually entered guest"), city: .null, state: .null, country: .null,
+            originLabel: .null, originLatitude: .null, originLongitude: .null,
+            originPrecision: .null, geocodeStatus: .value("failed")
+        ))
+        #expect(manual["origin_label"] is NSNull)
+        #expect(manual["origin_latitude"] is NSNull)
+        #expect(manual["origin_longitude"] is NSNull)
+        #expect(manual["geocode_status"] as? String == "failed")
     }
 
     @Test("an all-unchanged guest patch fails before authentication or database access")
@@ -310,7 +341,7 @@ struct GuestRepositoryTests {
 
     private var guestData: Data {
         Data("""
-        {"id":"\(guestID.uuidString)","wedding_id":"\(weddingID.uuidString)","first_name":"Avery","last_name":null,"email":null,"phone":null,"plus_limit":2,"plus_of_guest_id":null,"address":null,"custom_fields":{"party_size":2,"needs_car":true},"rsvp_status":"not_invited","rsvp_date":null,"origin_label":null,"origin_latitude":null,"origin_longitude":null,"origin_precision":null,"geocode_status":null,"created_at":"2026-07-25T12:00:00Z"}
+        {"id":"\(guestID.uuidString)","wedding_id":"\(weddingID.uuidString)","first_name":"Avery","last_name":null,"email":null,"phone":null,"plus_limit":2,"plus_of_guest_id":null,"address":null,"city":"Brooklyn","state":"NY","country":"United States","custom_fields":{"party_size":2,"needs_car":true},"rsvp_status":"not_invited","rsvp_date":null,"origin_label":null,"origin_latitude":null,"origin_longitude":null,"origin_precision":null,"geocode_status":null,"created_at":"2026-07-25T12:00:00Z"}
         """.utf8)
     }
 
@@ -356,7 +387,7 @@ struct GuestRepositoryTests {
 }
 
 private enum GuestColumns {
-    static let guests = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
+    static let guests = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,city,state,country,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
     static let customColumns = "id,wedding_id,key,label,kind,options,position,hidden,created_at,updated_at"
     static let rsvps = "id,wedding_id,guest_id,event_id,status,meal_choice,notes,updated_at"
 }

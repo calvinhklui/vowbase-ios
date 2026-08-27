@@ -2,7 +2,7 @@ import Foundation
 import Supabase
 
 final class SupabaseGuestRepository: GuestRepository, @unchecked Sendable {
-    private static let guestColumns = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
+    private static let guestColumns = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,city,state,country,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
     private static let customColumnColumns = "id,wedding_id,key,label,kind,options,position,hidden,created_at,updated_at"
     private static let rsvpColumns = "id,wedding_id,guest_id,event_id,status,meal_choice,notes,updated_at"
     private let database: any GuestDatabaseAdapter
@@ -158,6 +158,9 @@ struct GuestCreatePayload: Codable, Equatable, Sendable {
     let plusLimit: Int
     let plusOfGuestID: UUID?
     let address: String?
+    let city: String?
+    let state: String?
+    let country: String?
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
     let originLabel: String?
@@ -168,14 +171,14 @@ struct GuestCreatePayload: Codable, Equatable, Sendable {
 
     init(weddingID: UUID, draft: GuestDraft) {
         self.weddingID = weddingID; firstName = draft.firstName; lastName = draft.lastName
-        email = draft.email; phone = draft.phone; address = draft.address; customFields = draft.customFields
+        email = draft.email; phone = draft.phone; address = draft.address; city = draft.city; state = draft.state; country = draft.country; customFields = draft.customFields
         plusLimit = draft.plusLimit; plusOfGuestID = draft.plusOfGuestID
         rsvpStatus = draft.rsvpStatus; originLabel = draft.originLabel; originLatitude = draft.originLatitude
         originLongitude = draft.originLongitude; originPrecision = draft.originPrecision; geocodeStatus = draft.geocodeStatus
     }
 
     private enum CodingKeys: String, CodingKey {
-        case weddingID = "wedding_id", firstName = "first_name", lastName = "last_name", email, phone, address
+        case weddingID = "wedding_id", firstName = "first_name", lastName = "last_name", email, phone, address, city, state, country
         case plusLimit = "plus_limit", plusOfGuestID = "plus_of_guest_id"
         case customFields = "custom_fields", rsvpStatus = "rsvp_status", originLabel = "origin_label"
         case originLatitude = "origin_latitude", originLongitude = "origin_longitude", originPrecision = "origin_precision", geocodeStatus = "geocode_status"

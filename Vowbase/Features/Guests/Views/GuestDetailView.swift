@@ -199,13 +199,7 @@ struct GuestDetailView: View {
         Section("Location") {
             let key = GuestFieldKey(guestID: guest.id, field: "address")
             LabeledContent("Address") {
-                GuestInlineField(
-                    stored: record.address ?? "",
-                    placeholder: "Not added",
-                    saveState: store.saveState(key),
-                    capitalization: .words,
-                    commit: { await store.commitAddress(for: guest.id, value: $0) }
-                )
+                GuestAddressEditor(record: record, store: store)
             }
             GuestDerivedLocationRow(record: record, isResolving: store.saveState(key) == .saving)
         }
@@ -467,6 +461,55 @@ private struct GuestInlineField: View {
     }
 }
 
+/// The same Apple Maps autocomplete used by both creation sheets. Choosing a
+/// result writes its address and structured city fields in one guest patch;
+/// entering text and pressing Return remains available when Maps has no match.
+private struct GuestAddressEditor: View {
+    let record: Guest
+    let store: VowbaseWorkspaceStore
+    @State private var text: String
+    @State private var selection: AppleMapsAddressSelection?
+
+    init(record: Guest, store: VowbaseWorkspaceStore) {
+        self.record = record
+        self.store = store
+        _text = State(initialValue: record.address ?? "")
+    }
+
+    var body: some View {
+        AppleMapsAddressField(
+            text: $text,
+            selection: $selection,
+            placeholder: "Not added",
+            onSubmit: commitTypedAddress,
+            onFocusChange: { isFocused in
+                if !isFocused { commitTypedAddress() }
+            }
+        )
+        .multilineTextAlignment(.trailing)
+        .onChange(of: selection) { _, selection in
+            guard let selection else { return }
+            Task { _ = await store.commitAddress(for: record.id, selection: selection) }
+        }
+        .onChange(of: record.address) { _, address in
+            if selection == nil { text = address ?? "" }
+        }
+    }
+
+    private func commitTypedAddress() {
+        guard GuestAddressCommitPolicy.shouldCommitTypedAddress(selection: selection) else { return }
+        Task { _ = await store.commitAddress(for: record.id, value: text) }
+    }
+}
+
+enum GuestAddressCommitPolicy {
+    /// A selected Apple Maps result owns the save; the manual fallback must
+    /// not race it when the field resigns focus.
+    static func shouldCommitTypedAddress(selection: AppleMapsAddressSelection?) -> Bool {
+        selection == nil
+    }
+}
+
 private struct GuestSaveIndicator: View {
     let state: GuestFieldSaveState?
 
@@ -518,7 +561,10 @@ private struct GuestDerivedLocationRow: View {
                     Text("Locating…").foregroundStyle(VowbaseTheme.mutedInk)
                     ProgressView().controlSize(.mini)
                 }
-            } else if record.originPrecision == "city", let label = record.originLabel {
+            } else if record.originPrecision == "city",
+                      let label = GuestLocationLabel.display(for: record),
+                      record.originLatitude != nil,
+                      record.originLongitude != nil {
                 HStack(spacing: 8) {
                     Text(label)
                     Text("City")
