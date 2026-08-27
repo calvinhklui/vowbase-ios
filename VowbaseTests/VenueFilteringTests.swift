@@ -8,7 +8,7 @@ struct VenueFilteringTests {
 
     private func venue(
         _ name: String,
-        status: VenueStatus = .suggested,
+        status: VenueStatus = .considering,
         address: String? = nil,
         contactName: String? = nil,
         email: String? = nil,
@@ -43,7 +43,6 @@ struct VenueFilteringTests {
             latitude: latitude,
             longitude: longitude,
             photoURL: nil,
-            rawResearch: nil,
             createdAt: .distantPast,
             updatedAt: Date(timeIntervalSince1970: updated)
         )
@@ -52,7 +51,7 @@ struct VenueFilteringTests {
     private var venues: [Venue] {
         [
             venue("Cedar Hall", status: .shortlisted, address: "Portland", updated: 10),
-            venue("Aster Estate", status: .suggested, address: "10 Garden Way", contactName: "Mira Rose", email: "mira@aster.test", updated: 30),
+            venue("Aster Estate", status: .considering, address: "10 Garden Way", contactName: "Mira Rose", email: "mira@aster.test", updated: 30),
             venue("Birch Barn", status: .contacted, phone: "+1 555 0100", updated: 20),
             venue("Alder House", status: .shortlisted, updated: 40)
         ]

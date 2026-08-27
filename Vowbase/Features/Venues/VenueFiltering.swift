@@ -97,14 +97,13 @@ enum VenueQuery {
 
     private static func lifecycleRank(_ status: VenueStatus) -> Int {
         switch status {
-        case .suggested: 0
-        case .considering: 1
-        case .contacted: 2
-        case .toured: 3
-        case .shortlisted: 4
-        case .negotiating: 5
-        case .booked: 6
-        case .passed: 7
+        case .considering: 0
+        case .contacted: 1
+        case .toured: 2
+        case .shortlisted: 3
+        case .negotiating: 4
+        case .booked: 5
+        case .passed: 6
         }
     }
 }

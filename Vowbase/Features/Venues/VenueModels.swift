@@ -1,5 +1,5 @@
 import Foundation
-enum VenueStatus: String, Codable, Equatable, Sendable { case suggested, considering, contacted, toured, shortlisted, negotiating, booked, passed }
+enum VenueStatus: String, Codable, Equatable, Sendable { case considering, contacted, toured, shortlisted, negotiating, booked, passed }
 struct Venue: Codable, Equatable, Sendable, Identifiable {
     let id: UUID
     let weddingID: UUID
@@ -26,7 +26,6 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
     let latitude: Double?
     let longitude: Double?
     let photoURL: String?
-    let rawResearch: JSONValue?
     let createdAt: Date
     let updatedAt: Date
 
@@ -47,7 +46,6 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         case availableDatesText = "available_dates_text"
         case ourNotes = "our_notes"
         case photoURL = "photo_url"
-        case rawResearch = "raw_research"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -80,7 +78,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
     let latitude: NullablePatch<Double>
     let longitude: NullablePatch<Double>
     let photoURL: NullablePatch<String>
-    let rawResearch: JSONValue?
 
     init(
         name: String? = nil,
@@ -104,8 +101,7 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         ourNotes: NullablePatch<String> = .unchanged,
         latitude: NullablePatch<Double> = .unchanged,
         longitude: NullablePatch<Double> = .unchanged,
-        photoURL: NullablePatch<String> = .unchanged,
-        rawResearch: JSONValue? = nil
+        photoURL: NullablePatch<String> = .unchanged
     ) {
         self.name = name
         self.status = status
@@ -129,7 +125,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         self.latitude = latitude
         self.longitude = longitude
         self.photoURL = photoURL
-        self.rawResearch = rawResearch
     }
 
     var isEmpty: Bool {
@@ -144,7 +139,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
             && ourNotes == .unchanged
             && latitude == .unchanged && longitude == .unchanged
             && photoURL == .unchanged
-            && rawResearch == nil
     }
 
     enum CodingKeys: String, CodingKey {
@@ -162,7 +156,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         case availableDatesText = "available_dates_text"
         case ourNotes = "our_notes"
         case photoURL = "photo_url"
-        case rawResearch = "raw_research"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -189,7 +182,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         try container.encode(latitude, forKey: .latitude)
         try container.encode(longitude, forKey: .longitude)
         try container.encode(photoURL, forKey: .photoURL)
-        try container.encodeIfPresent(rawResearch, forKey: .rawResearch)
     }
 }
 
@@ -219,7 +211,6 @@ extension VenueStatus: Hashable {}
 extension VenueStatus {
     var title: String {
         switch self {
-        case .suggested: "Suggested"
         case .considering: "Considering"
         case .contacted: "Contacted"
         case .toured: "Toured"

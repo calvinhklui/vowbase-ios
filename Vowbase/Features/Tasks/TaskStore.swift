@@ -54,9 +54,7 @@ final class TaskStore {
                         priority: draft.priority,
                         ownerUserID: draft.ownerUserID,
                         ownerLabel: draft.ownerLabel?.nilIfBlank,
-                        dueDate: draft.dueDate,
-                        relatedVendorID: draft.relatedVendorID,
-                        relatedEventID: draft.relatedEventID
+                        dueDate: draft.dueDate
                     ),
                     weddingID: weddingID
                 )
@@ -71,8 +69,6 @@ final class TaskStore {
                     ownerUserID: draft.ownerUserID,
                     ownerLabel: draft.ownerLabel?.nilIfBlank,
                     dueDate: draft.dueDate,
-                    relatedVendorID: draft.relatedVendorID,
-                    relatedEventID: draft.relatedEventID,
                     createdAt: Date()
                 )
             }
@@ -131,8 +127,6 @@ final class TaskStore {
                     ownerUserID: task.ownerUserID,
                     ownerLabel: ownerLabel.nilIfBlank,
                     dueDate: dueDate,
-                    relatedVendorID: task.relatedVendorID,
-                    relatedEventID: task.relatedEventID,
                     createdAt: task.createdAt
                 )
             }
@@ -167,8 +161,6 @@ final class TaskStore {
                     ownerUserID: task.ownerUserID,
                     ownerLabel: task.ownerLabel,
                     dueDate: task.dueDate,
-                    relatedVendorID: task.relatedVendorID,
-                    relatedEventID: task.relatedEventID,
                     createdAt: task.createdAt
                 )
             }
@@ -246,11 +238,11 @@ extension TaskStore {
         }
 
         return TaskStore(fixtures: [
-            WeddingTask(id: UUID(), weddingID: weddingID, title: "Confirm ceremony readings", description: "Share the final order with the officiant.", status: .todo, priority: .high, ownerUserID: nil, ownerLabel: "Calvin", dueDate: date(0), relatedVendorID: nil, relatedEventID: nil, createdAt: now),
-            WeddingTask(id: UUID(), weddingID: weddingID, title: "Review florist proposal", description: nil, status: .inProgress, priority: .medium, ownerUserID: nil, ownerLabel: "Avery", dueDate: date(3), relatedVendorID: nil, relatedEventID: nil, createdAt: now),
-            WeddingTask(id: UUID(), weddingID: weddingID, title: "Choose welcome-bag treats", description: nil, status: .backlog, priority: .low, ownerUserID: nil, ownerLabel: nil, dueDate: nil, relatedVendorID: nil, relatedEventID: nil, createdAt: now),
-            WeddingTask(id: UUID(), weddingID: weddingID, title: "Send catering headcount", description: nil, status: .blocked, priority: .urgent, ownerUserID: nil, ownerLabel: "Avery", dueDate: date(-1), relatedVendorID: nil, relatedEventID: nil, createdAt: now),
-            WeddingTask(id: UUID(), weddingID: weddingID, title: "Book rehearsal dinner", description: nil, status: .done, priority: .medium, ownerUserID: nil, ownerLabel: nil, dueDate: date(-4), relatedVendorID: nil, relatedEventID: nil, createdAt: now)
+            WeddingTask(id: UUID(), weddingID: weddingID, title: "Confirm ceremony readings", description: "Share the final order with the officiant.", status: .todo, priority: .high, ownerUserID: nil, ownerLabel: "Calvin", dueDate: date(0), createdAt: now),
+            WeddingTask(id: UUID(), weddingID: weddingID, title: "Review florist proposal", description: nil, status: .inProgress, priority: .medium, ownerUserID: nil, ownerLabel: "Avery", dueDate: date(3), createdAt: now),
+            WeddingTask(id: UUID(), weddingID: weddingID, title: "Choose welcome-bag treats", description: nil, status: .backlog, priority: .low, ownerUserID: nil, ownerLabel: nil, dueDate: nil, createdAt: now),
+            WeddingTask(id: UUID(), weddingID: weddingID, title: "Send catering headcount", description: nil, status: .blocked, priority: .urgent, ownerUserID: nil, ownerLabel: "Avery", dueDate: date(-1), createdAt: now),
+            WeddingTask(id: UUID(), weddingID: weddingID, title: "Book rehearsal dinner", description: nil, status: .done, priority: .medium, ownerUserID: nil, ownerLabel: nil, dueDate: date(-4), createdAt: now)
         ])
     }
 }

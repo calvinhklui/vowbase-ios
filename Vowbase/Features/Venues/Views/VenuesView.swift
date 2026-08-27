@@ -151,7 +151,7 @@ struct VenuesView: View {
 
 private extension VenueStatus {
     static let compactLifecycleOrder: [VenueStatus] = [
-        .suggested, .considering, .contacted, .toured,
+        .considering, .contacted, .toured,
         .shortlisted, .negotiating, .booked, .passed
     ]
 }

@@ -345,7 +345,6 @@ final class VowbaseWorkspaceStore {
                 latitude: 39.5,
                 longitude: -98.35,
                 photoURL: nil,
-                rawResearch: nil,
                 createdAt: createdAt,
                 updatedAt: createdAt
             ),
@@ -375,7 +374,6 @@ final class VowbaseWorkspaceStore {
                 latitude: 39.6,
                 longitude: -98.25,
                 photoURL: nil,
-                rawResearch: nil,
                 createdAt: createdAt,
                 updatedAt: createdAt
             ),
@@ -405,7 +403,6 @@ final class VowbaseWorkspaceStore {
                 latitude: 39.4,
                 longitude: -98.45,
                 photoURL: nil,
-                rawResearch: nil,
                 createdAt: createdAt,
                 updatedAt: createdAt
             )

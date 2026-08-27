@@ -15,7 +15,6 @@ struct StatusCapsule: View {
 extension VenueStatus {
     var badgeColor: Color {
         switch self {
-        case .suggested: Color(uiColor: .systemPurple)
         case .considering: Color(uiColor: .systemOrange)
         case .contacted: Color(uiColor: .systemBlue)
         case .toured: Color(uiColor: .systemIndigo)

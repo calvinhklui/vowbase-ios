@@ -43,11 +43,7 @@
 		B1C2D3E4F5A6000000000003 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6000000000013 /* AuthService.swift */; };
 		B2614CFCBF8AAC13B84F6F07 /* AddGuestSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7996C3888797713DA2463A22 /* AddGuestSheet.swift */; };
 		B7C1BC4DF5CCE139CAED263F /* VenuesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36697F493ADC8C7948BE3C3F /* VenuesView.swift */; };
-		BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */; };
-		BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */; };
-		BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */; };
 		BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */; };
-		BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */; };
 		BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */; };
 		B0A67F1A91E1448CA67E0001 /* VenueFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A67F1A91E1448CA67E1001 /* VenueFiltering.swift */; };
 		B0A67F1A91E1448CA67E0002 /* VenueFilteringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A67F1A91E1448CA67E1002 /* VenueFilteringTests.swift */; };
@@ -59,7 +55,6 @@
 		D0C000000000000000000003 /* VenueDocumentBinaryTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000103 /* VenueDocumentBinaryTransfer.swift */; };
 		D0C000000000000000000004 /* APIVenueDocumentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000104 /* APIVenueDocumentRepository.swift */; };
 		D0C000000000000000000005 /* VenueDocumentRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C000000000000000000105 /* VenueDocumentRepositoryTests.swift */; };
-		BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */ = {isa = PBXBuildFile; fileRef = BAA3B4C5D6E7000000000017 /* venue-research-run.json */; };
 		C1D2E3F4A5B6000000000001 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000011 /* APIRequest.swift */; };
 		C1D2E3F4A5B6000000000002 /* VowbaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */; };
 		C1D2E3F4A5B6000000000003 /* URLProtocolStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6000000000013 /* URLProtocolStub.swift */; };
@@ -198,13 +193,8 @@
 		B1C2D3E4F5A6000000000011 /* SupabaseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseProvider.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000012 /* AuthServicing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServicing.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6000000000013 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueResearchModels.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenueResearchRepository.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/APIVenueResearchRepository.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Venues/VenuePhotoService.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueResearchRepositoryTests.swift; sourceTree = "<group>"; };
 		BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenuePhotoServiceTests.swift; sourceTree = "<group>"; };
-		BAA3B4C5D6E7000000000017 /* venue-research-run.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "venue-research-run.json"; sourceTree = "<group>"; };
 		BC1DE56310FF20746FAB1859 /* Console.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Console.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000011 /* APIRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIRequest.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6000000000012 /* VowbaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowbaseAPIClient.swift; sourceTree = "<group>"; };
@@ -342,9 +332,6 @@
 				B0A67F1A91E1448CA67E1001 /* VenueFiltering.swift */,
 				F6A3B4C5D6E7000000000018 /* VenueRepository.swift */,
 				F6A3B4C5D6E7000000000019 /* SupabaseVenueRepository.swift */,
-				BAA3B4C5D6E7000000000011 /* VenueResearchModels.swift */,
-				BAA3B4C5D6E7000000000012 /* VenueResearchRepository.swift */,
-				BAA3B4C5D6E7000000000013 /* APIVenueResearchRepository.swift */,
 				BAA3B4C5D6E7000000000014 /* VenuePhotoService.swift */,
 				C0FFEE000000000000000101 /* VenuePhotoMutationService.swift */,
 				C0FFEE000000000000000102 /* SupabaseVenuePhotoStorageAdapter.swift */,
@@ -405,7 +392,6 @@
 				F7A3B4C5D6E7000000000017 /* InspirationAttachmentRepositoryTests.swift */,
 				F9A3B4C5D6E7000000000012 /* RepositoryContainerTests.swift */,
 				FAA3B4C5D6E7000000000014 /* MapWorkflowRepositoryTests.swift */,
-				BAA3B4C5D6E7000000000015 /* VenueResearchRepositoryTests.swift */,
 				BAA3B4C5D6E7000000000016 /* VenuePhotoServiceTests.swift */,
 				B0A67F1A91E1448CA67E1002 /* VenueFilteringTests.swift */,
 				C0FFEE000000000000000103 /* VenuePhotoMutationServiceTests.swift */,
@@ -448,7 +434,6 @@
 				F2A3B4C5D6E7000000000015 /* session-summary.json */,
 				FAA3B4C5D6E7000000000015 /* geocode-response.json */,
 				FAA3B4C5D6E7000000000016 /* travel-times-response.json */,
-				BAA3B4C5D6E7000000000017 /* venue-research-run.json */,
 			);
 			path = Fixtures;
 			sourceTree = "<group>";
@@ -684,7 +669,6 @@
 				F2A3B4C5D6E7000000000005 /* session-summary.json in Resources */,
 				FAA3B4C5D6E7000000000005 /* geocode-response.json in Resources */,
 				FAA3B4C5D6E7000000000006 /* travel-times-response.json in Resources */,
-				BAA3B4C5D6E7000000000007 /* venue-research-run.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -761,9 +745,6 @@
 				FAA3B4C5D6E7000000000001 /* MapWorkflowModels.swift in Sources */,
 				FAA3B4C5D6E7000000000002 /* MapWorkflowRepository.swift in Sources */,
 				FAA3B4C5D6E7000000000003 /* APIMapWorkflowRepository.swift in Sources */,
-				BAA3B4C5D6E7000000000001 /* VenueResearchModels.swift in Sources */,
-				BAA3B4C5D6E7000000000002 /* VenueResearchRepository.swift in Sources */,
-				BAA3B4C5D6E7000000000003 /* APIVenueResearchRepository.swift in Sources */,
 				BAA3B4C5D6E7000000000004 /* VenuePhotoService.swift in Sources */,
 				C0FFEE000000000000000001 /* VenuePhotoMutationService.swift in Sources */,
 				C0FFEE000000000000000002 /* SupabaseVenuePhotoStorageAdapter.swift in Sources */,
@@ -818,7 +799,6 @@
 				F7A3B4C5D6E7000000000007 /* InspirationAttachmentRepositoryTests.swift in Sources */,
 				F9A3B4C5D6E7000000000002 /* RepositoryContainerTests.swift in Sources */,
 				FAA3B4C5D6E7000000000004 /* MapWorkflowRepositoryTests.swift in Sources */,
-				BAA3B4C5D6E7000000000005 /* VenueResearchRepositoryTests.swift in Sources */,
 				BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */,
 				D894BD97D21922174D371587 /* TravelImpactCalculatorTests.swift in Sources */,
 				837D0EAC1299058281457445 /* MapCameraFittingTests.swift in Sources */,

@@ -10,7 +10,6 @@ import Testing
         #expect(container.inspiration is SupabaseInspirationRepository)
         #expect(container.attachments is SupabaseAttachmentRepository)
         #expect(container.maps is APIMapWorkflowRepository)
-        #expect(container.venueResearch is APIVenueResearchRepository)
         #expect(container.venuePhotos is VenuePhotoService)
         #expect(container.venuePhotoMutations is VenuePhotoMutationService)
         #expect(container.venueDocuments is APIVenueDocumentRepository)

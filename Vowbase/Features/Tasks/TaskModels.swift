@@ -44,8 +44,6 @@ struct WeddingTask: Codable, Equatable, Sendable, Identifiable {
     let ownerUserID: UUID?
     let ownerLabel: String?
     let dueDate: String?
-    let relatedVendorID: UUID?
-    let relatedEventID: UUID?
     let createdAt: Date
 
     var effectiveStatus: WeddingTaskStatus { status ?? .todo }
@@ -57,8 +55,6 @@ struct WeddingTask: Codable, Equatable, Sendable, Identifiable {
         case ownerUserID = "owner_user_id"
         case ownerLabel = "owner_label"
         case dueDate = "due_date"
-        case relatedVendorID = "related_vendor_id"
-        case relatedEventID = "related_event_id"
         case createdAt = "created_at"
     }
 }
@@ -71,8 +67,6 @@ struct TaskDraft: Codable, Equatable, Sendable {
     let ownerUserID: UUID?
     let ownerLabel: String?
     let dueDate: String?
-    let relatedVendorID: UUID?
-    let relatedEventID: UUID?
 
     init(
         title: String,
@@ -81,9 +75,7 @@ struct TaskDraft: Codable, Equatable, Sendable {
         priority: WeddingTaskPriority? = .medium,
         ownerUserID: UUID? = nil,
         ownerLabel: String? = nil,
-        dueDate: String? = nil,
-        relatedVendorID: UUID? = nil,
-        relatedEventID: UUID? = nil
+        dueDate: String? = nil
     ) {
         self.title = title
         self.description = description
@@ -92,8 +84,6 @@ struct TaskDraft: Codable, Equatable, Sendable {
         self.ownerUserID = ownerUserID
         self.ownerLabel = ownerLabel
         self.dueDate = dueDate
-        self.relatedVendorID = relatedVendorID
-        self.relatedEventID = relatedEventID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -101,8 +91,6 @@ struct TaskDraft: Codable, Equatable, Sendable {
         case ownerUserID = "owner_user_id"
         case ownerLabel = "owner_label"
         case dueDate = "due_date"
-        case relatedVendorID = "related_vendor_id"
-        case relatedEventID = "related_event_id"
     }
 }
 
@@ -114,8 +102,6 @@ struct TaskPatch: Encodable, Equatable, Sendable {
     let ownerUserID: NullablePatch<UUID>
     let ownerLabel: NullablePatch<String>
     let dueDate: NullablePatch<String>
-    let relatedVendorID: NullablePatch<UUID>
-    let relatedEventID: NullablePatch<UUID>
 
     init(
         title: String? = nil,
@@ -124,9 +110,7 @@ struct TaskPatch: Encodable, Equatable, Sendable {
         priority: NullablePatch<WeddingTaskPriority> = .unchanged,
         ownerUserID: NullablePatch<UUID> = .unchanged,
         ownerLabel: NullablePatch<String> = .unchanged,
-        dueDate: NullablePatch<String> = .unchanged,
-        relatedVendorID: NullablePatch<UUID> = .unchanged,
-        relatedEventID: NullablePatch<UUID> = .unchanged
+        dueDate: NullablePatch<String> = .unchanged
     ) {
         self.title = title
         self.description = description
@@ -135,14 +119,12 @@ struct TaskPatch: Encodable, Equatable, Sendable {
         self.ownerUserID = ownerUserID
         self.ownerLabel = ownerLabel
         self.dueDate = dueDate
-        self.relatedVendorID = relatedVendorID
-        self.relatedEventID = relatedEventID
     }
 
     var isEmpty: Bool {
         title == nil && description == .unchanged && status == .unchanged &&
         priority == .unchanged && ownerUserID == .unchanged && ownerLabel == .unchanged &&
-        dueDate == .unchanged && relatedVendorID == .unchanged && relatedEventID == .unchanged
+        dueDate == .unchanged
     }
 
     enum CodingKeys: String, CodingKey {
@@ -150,8 +132,6 @@ struct TaskPatch: Encodable, Equatable, Sendable {
         case ownerUserID = "owner_user_id"
         case ownerLabel = "owner_label"
         case dueDate = "due_date"
-        case relatedVendorID = "related_vendor_id"
-        case relatedEventID = "related_event_id"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -163,8 +143,6 @@ struct TaskPatch: Encodable, Equatable, Sendable {
         try container.encode(ownerUserID, forKey: .ownerUserID)
         try container.encode(ownerLabel, forKey: .ownerLabel)
         try container.encode(dueDate, forKey: .dueDate)
-        try container.encode(relatedVendorID, forKey: .relatedVendorID)
-        try container.encode(relatedEventID, forKey: .relatedEventID)
     }
 }
 

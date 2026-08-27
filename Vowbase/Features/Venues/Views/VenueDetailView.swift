@@ -452,7 +452,7 @@ struct VenueDetailView: View {
     private var statusMenu: some View {
         Menu {
             ForEach([
-                VenueStatus.suggested, .considering, .contacted, .toured,
+                VenueStatus.considering, .contacted, .toured,
                 .shortlisted, .negotiating, .booked, .passed,
             ], id: \.self) { status in
                 Button(status.title) { commitStatus(status) }

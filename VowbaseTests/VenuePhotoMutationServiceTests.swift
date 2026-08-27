@@ -249,7 +249,6 @@ struct VenuePhotoMutationServiceTests {
             latitude: nil,
             longitude: nil,
             photoURL: photoURL,
-            rawResearch: nil,
             createdAt: .now,
             updatedAt: .now
         )
@@ -333,7 +332,6 @@ private actor VenuePhotoMetadataSpy: VenuePhotoMetadataMutating {
             latitude: nil,
             longitude: nil,
             photoURL: nil,
-            rawResearch: nil,
             createdAt: .now,
             updatedAt: .now
         )

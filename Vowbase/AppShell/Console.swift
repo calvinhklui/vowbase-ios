@@ -379,7 +379,7 @@ struct VenueRailContent: View {
     @State private var selectedStatus: VenueStatus?
 
     private let lifecycleOrder: [VenueStatus] = [
-        .suggested, .considering, .contacted, .toured,
+        .considering, .contacted, .toured,
         .shortlisted, .negotiating, .booked, .passed,
     ]
 

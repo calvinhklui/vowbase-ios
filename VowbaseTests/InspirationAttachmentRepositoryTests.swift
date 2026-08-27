@@ -13,12 +13,11 @@ struct InspirationAttachmentRepositoryTests {
         let item = try DatabaseDecoding.decoder.decode(
             InspirationItem.self,
             from: Data("""
-            {"id":"00000000-0000-0000-0000-000000000003","wedding_id":"00000000-0000-0000-0000-000000000001","title":"Floral arch","image_url":"https://example.invalid/arch.jpg","category":"florals","status":"shortlisted","position_x":0,"position_y":0,"width":240,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}
+            {"id":"00000000-0000-0000-0000-000000000003","wedding_id":"00000000-0000-0000-0000-000000000001","title":"Floral arch","image_url":"https://example.invalid/arch.jpg","notes":"Use at the ceremony entrance.","position_x":0,"position_y":0,"width":240,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}
             """.utf8)
         )
 
-        #expect(item.category == .florals)
-        #expect(item.status == .shortlisted)
+        #expect(item.notes == "Use at the ceremony entrance.")
     }
 
     @Test("attachment paths are owned by the wedding, not a caller path")

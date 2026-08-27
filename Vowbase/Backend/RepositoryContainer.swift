@@ -15,7 +15,6 @@ struct RepositoryContainer: Sendable {
     let inspiration: any InspirationRepository
     let attachments: any AttachmentRepository
     let maps: any MapWorkflowRepository
-    let venueResearch: any VenueResearchRepository
     let venuePhotos: any VenuePhotoServicing
     let venuePhotoMutations: any VenuePhotoMutationServicing
     let venueDocuments: any VenueDocumentRepository
@@ -34,7 +33,6 @@ struct RepositoryContainer: Sendable {
         inspiration = SupabaseInspirationRepository(provider: supabase)
         attachments = SupabaseAttachmentRepository(provider: supabase)
         maps = APIMapWorkflowRepository(api: api)
-        venueResearch = APIVenueResearchRepository(api: api)
         venuePhotos = VenuePhotoService(api: api) { path in
             try await supabase.client.storage
                 .from("venue-photos")
