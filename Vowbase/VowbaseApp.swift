@@ -25,7 +25,8 @@ struct VowbaseApp: App {
                 if ProcessInfo.processInfo.arguments.contains("-testingWorkspace") {
                     VowbaseAuthenticatedContent(
                         testingWorkspace: true,
-                        presentsInitialVenueInsight: ProcessInfo.processInfo.arguments.contains("-testingVenueInsight")
+                        presentsInitialVenueInsight: ProcessInfo.processInfo.arguments.contains("-testingVenueInsight"),
+                        presentsInitialGuestInsight: ProcessInfo.processInfo.arguments.contains("-testingGuestInsight")
                     )
                 } else if let dependencies {
                     VowbaseAppRoot(dependencies: dependencies)

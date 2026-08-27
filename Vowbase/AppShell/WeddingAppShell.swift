@@ -22,6 +22,11 @@ private enum MapInsightDestination: Identifiable {
     }
 }
 
+private enum MapInsightDetailDestination {
+    case venue(MVPVenue)
+    case guest(MVPGuest)
+}
+
 /// The authenticated app: one persistent map canvas, one persistent console
 /// sheet whose content depends on the active lens. See
 /// `docs/vowbase-ios-map-command-center-ux-spec.md` §2, §7.
@@ -53,6 +58,7 @@ struct WeddingAppShell: View {
     @State private var quickAdd: QuickAddDestination?
     @State private var taskEditor: TaskEditorDestination?
     @State private var mapInsight: MapInsightDestination?
+    @State private var pendingMapInsightDetail: MapInsightDetailDestination?
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
@@ -78,18 +84,27 @@ struct WeddingAppShell: View {
         timelineStore: TimelineStore,
         initialLens: PlanLens = .venues,
         presentsInitialVenueInsight: Bool = false,
+        presentsInitialGuestInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
         self.taskStore = taskStore
         self.timelineStore = timelineStore
         self.onSignOut = onSignOut
-        _navigation = State(initialValue: AppNavigationModel(selectedLens: initialLens))
+        let initialGuestCluster = presentsInitialGuestInsight ? store.clusters.first : nil
+        let initialNavigation = AppNavigationModel(
+            selectedLens: initialGuestCluster == nil ? initialLens : .guests
+        )
+        initialNavigation.selectedGuestClusterID = initialGuestCluster?.id
+        _navigation = State(initialValue: initialNavigation)
         let initialVenue = presentsInitialVenueInsight ? store.venues.first : nil
         if let initialVenue {
             store.selectedVenueID = initialVenue.id
         }
-        _mapInsight = State(initialValue: initialVenue.map(MapInsightDestination.venue))
+        _mapInsight = State(initialValue:
+            initialVenue.map(MapInsightDestination.venue)
+                ?? initialGuestCluster.map(MapInsightDestination.guestCluster)
+        )
     }
 
     var body: some View {
@@ -336,13 +351,27 @@ struct WeddingAppShell: View {
             TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
                 .presentationDetents([.large])
         }
-        .sheet(item: $mapInsight, onDismiss: clearMapInsight) { destination in
+        .sheet(item: $mapInsight, onDismiss: finishMapInsightDismissal) { destination in
             Group {
                 switch destination {
                 case let .venue(venue):
-                    VenueReachConsole(store: store, venue: venue)
+                    VenueReachConsole(
+                        store: store,
+                        venue: venue,
+                        onOpenDetails: {
+                            pendingMapInsightDetail = .venue(venue)
+                            mapInsight = nil
+                        }
+                    )
                 case let .guestCluster(cluster):
-                    TravelCoverageConsole(store: store, cluster: cluster)
+                    TravelCoverageConsole(
+                        store: store,
+                        cluster: cluster,
+                        onOpenGuestDetails: { guest in
+                            pendingMapInsightDetail = .guest(guest)
+                            mapInsight = nil
+                        }
+                    )
                 }
             }
                 .presentationDetents([.fraction(0.52), .large])
@@ -625,6 +654,34 @@ struct WeddingAppShell: View {
         store.clusterTravel = .idle
     }
 
+    private func finishMapInsightDismissal() {
+        clearMapInsight()
+        guard let destination = pendingMapInsightDetail else { return }
+        pendingMapInsightDetail = nil
+        switch destination {
+        case let .venue(venue):
+            openVenueDetails(venue)
+        case let .guest(guest):
+            openGuestDetails(guest)
+        }
+    }
+
+    private func openVenueDetails(_ venue: MVPVenue) {
+        navigation.selectedLens = .venues
+        navigation.venuesPath = NavigationPath()
+        venueDetailReturnDetent = lensDetents[.venues] ?? defaultDetent(for: .venues)
+        lensDetents[.venues] = .full
+        navigation.venuesPath.append(venue)
+    }
+
+    private func openGuestDetails(_ guest: MVPGuest) {
+        navigation.selectedLens = .guests
+        navigation.guestsPath = NavigationPath()
+        guestDetailReturnDetent = lensDetents[.guests] ?? defaultDetent(for: .guests)
+        lensDetents[.guests] = .full
+        navigation.guestsPath.append(guest)
+    }
+
     private func openInMaps(_ venue: MVPVenue) {
         let location = venue.mapSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !location.isEmpty else { return }
@@ -658,6 +715,7 @@ struct WeddingAppShell: View {
 private struct VenueReachConsole: View {
     let store: VowbaseWorkspaceStore
     let venue: MVPVenue
+    let onOpenDetails: () -> Void
 
     private var reachRows: [(cluster: GuestCluster, travelTime: TravelTime)] {
         guard case let .ready(readout) = store.travelImpact else { return [] }
@@ -671,28 +729,44 @@ private struct VenueReachConsole: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(venue.name)
-                        .font(.system(size: 27, weight: .bold, design: .serif))
-                        .foregroundStyle(VowbaseTheme.ink)
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(venue.name)
+                            .font(.system(size: 27, weight: .bold, design: .serif))
+                            .foregroundStyle(VowbaseTheme.ink)
 
-                    HStack(spacing: 8) {
-                        Text(venue.status.title)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(venue.status.badgeColor)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(venue.status.badgeColor.opacity(0.14), in: Capsule())
+                        HStack(spacing: 8) {
+                            Text(venue.status.title)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(venue.status.badgeColor)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(venue.status.badgeColor.opacity(0.14), in: Capsule())
 
-                        Text(venue.location)
+                            Text(venue.location)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(VowbaseTheme.mutedInk)
+                                .lineLimit(1)
+                        }
+
+                        Text("\(venue.capacity) guests  ·  \(venue.estimate)")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(VowbaseTheme.mutedInk)
-                            .lineLimit(1)
                     }
 
-                    Text("\(venue.capacity) guests  ·  \(venue.estimate)")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(VowbaseTheme.mutedInk)
+                    Spacer(minLength: 0)
+
+                    Button {
+                        onOpenDetails()
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(VowbaseTheme.rose)
+                            .frame(width: 38, height: 38)
+                            .background(VowbaseTheme.blush, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("View \(venue.name) details")
                 }
 
                 reachSummary
@@ -713,7 +787,7 @@ private struct VenueReachConsole: View {
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 18)
+            .padding(.top, 30)
             .padding(.bottom, 18)
         }
     }
@@ -777,6 +851,7 @@ private struct VenueReachConsole: View {
 private struct TravelCoverageConsole: View {
     let store: VowbaseWorkspaceStore
     let cluster: GuestCluster
+    let onOpenGuestDetails: (MVPGuest) -> Void
 
     private var guests: [MVPGuest] { store.guests(in: cluster) }
     private var comparisons: [ClusterVenueTravel] {
@@ -835,7 +910,7 @@ private struct TravelCoverageConsole: View {
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 18)
+            .padding(.top, 30)
             .padding(.bottom, 18)
         }
     }
@@ -850,13 +925,19 @@ private struct TravelCoverageConsole: View {
     private var guestStrip: some View {
         HStack(spacing: -7) {
             ForEach(Array(guests.prefix(5))) { guest in
-                Text(guest.initials)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(VowbaseTheme.ink)
-                    .frame(width: 38, height: 38)
-                    .background(VowbaseTheme.blush, in: Circle())
-                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                    .accessibilityLabel(guest.name)
+                Button {
+                    onOpenGuestDetails(guest)
+                } label: {
+                    Text(guest.initials)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(VowbaseTheme.ink)
+                        .frame(width: 38, height: 38)
+                        .background(VowbaseTheme.blush, in: Circle())
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("View \(guest.name) details")
             }
             if guests.count > 5 {
                 Text("+\(guests.count - 5)")

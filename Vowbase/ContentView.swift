@@ -23,6 +23,7 @@ struct VowbaseAuthenticatedContent: View {
     @State private var presentationState = WorkspacePresentationState.loading
     private let initialLens: PlanLens
     private let presentsInitialVenueInsight: Bool
+    private let presentsInitialGuestInsight: Bool
     let onSignOut: () -> Void
 
     init(
@@ -32,6 +33,7 @@ struct VowbaseAuthenticatedContent: View {
         self.onSignOut = onSignOut
         initialLens = .venues
         presentsInitialVenueInsight = false
+        presentsInitialGuestInsight = false
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
         _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
         _timelineStore = State(initialValue: TimelineStore(
@@ -44,12 +46,14 @@ struct VowbaseAuthenticatedContent: View {
     init(
         testingWorkspace: Bool,
         presentsInitialVenueInsight: Bool = false,
+        presentsInitialGuestInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
         initialLens = .venues
         self.presentsInitialVenueInsight = presentsInitialVenueInsight
+        self.presentsInitialGuestInsight = presentsInitialGuestInsight
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
         let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
         _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
@@ -73,6 +77,7 @@ struct VowbaseAuthenticatedContent: View {
                     timelineStore: timelineStore,
                     initialLens: initialLens,
                     presentsInitialVenueInsight: presentsInitialVenueInsight,
+                    presentsInitialGuestInsight: presentsInitialGuestInsight,
                     onSignOut: onSignOut
                 )
                     .transition(.opacity.combined(with: .scale(scale: 0.985)))
