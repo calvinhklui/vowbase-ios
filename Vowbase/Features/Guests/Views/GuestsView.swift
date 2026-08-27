@@ -37,11 +37,7 @@ struct GuestsView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ConsoleHeader(
-                        guests: store.allGuestRecords,
-                        refreshAction: { Task { await store.load() } },
-                        isRefreshing: store.isLoading
-                    )
+                    ConsoleHeader(guests: store.allGuestRecords)
                         .padding(.bottom, 10)
 
                     metricCards

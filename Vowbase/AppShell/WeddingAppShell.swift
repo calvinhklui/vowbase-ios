@@ -91,7 +91,11 @@ struct WeddingAppShell: View {
                     onClearFocus: clearMapFocus
                 )
 
-                ContextBar(store: store) {
+                ContextBar(
+                    store: store,
+                    onRefresh: refreshCurrentLens,
+                    isRefreshing: isRefreshingCurrentLens
+                ) {
                     isSignOutConfirmationPresented = true
                 }
                     .padding(.horizontal, 16)
@@ -424,12 +428,7 @@ struct WeddingAppShell: View {
         case .guests:
             EmptyView()
         case .tasks:
-            ConsoleHeader(
-                openTaskCount: openTaskCount,
-                dueSoonCount: dueSoonTaskCount,
-                refreshAction: refreshTasks,
-                isRefreshing: taskStore.isLoading
-            )
+            ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
         }
     }
 
@@ -507,9 +506,16 @@ struct WeddingAppShell: View {
         taskStore.tasks.filter { $0.effectiveStatus != .done }.count
     }
 
-    private func refreshTasks() {
-        guard let weddingID = store.wedding?.id else { return }
-        Task { await taskStore.load(weddingID: weddingID) }
+    private var isRefreshingCurrentLens: Bool {
+        navigation.selectedLens == .tasks ? taskStore.isLoading : store.isLoading
+    }
+
+    private func refreshCurrentLens() {
+        if navigation.selectedLens == .tasks, let weddingID = store.wedding?.id {
+            Task { await taskStore.load(weddingID: weddingID) }
+        } else {
+            Task { await store.load() }
+        }
     }
 
     private func expandCurrentConsole() {

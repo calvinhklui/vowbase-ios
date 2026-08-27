@@ -3,6 +3,8 @@ import SwiftUI
 /// Replaces `IdentityBar`. One row, 52 pt, floating material capsule — spec §5.
 struct ContextBar: View {
     let store: VowbaseWorkspaceStore
+    let onRefresh: () -> Void
+    let isRefreshing: Bool
     let onRequestSignOut: () -> Void
 
     var body: some View {
@@ -10,6 +12,16 @@ struct ContextBar: View {
             monogram
             titleLine
             Spacer(minLength: 0)
+            Button(action: onRefresh) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .background(VowbaseTheme.blush, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(VowbaseTheme.rose)
+            .disabled(isRefreshing)
+            .accessibilityLabel("Refresh")
         }
         .padding(8)
         .background(.regularMaterial, in: Capsule())

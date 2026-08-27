@@ -31,11 +31,7 @@ struct VenuesView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ConsoleHeader(
-                        venues: store.venues,
-                        refreshAction: { Task { await store.load() } },
-                        isRefreshing: store.isLoading
-                    )
+                    ConsoleHeader(venues: store.venues)
                         .padding(.bottom, 10)
 
                     if !store.venues.isEmpty {

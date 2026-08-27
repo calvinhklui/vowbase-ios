@@ -153,8 +153,6 @@ struct ConsoleHeader: View {
     let title: String
     let trailing: String?
     let subline: String?
-    let refreshAction: (() -> Void)?
-    let isRefreshing: Bool
     let addAction: (() -> Void)?
     let addAccessibilityLabel: String?
     let addSystemImage: String
@@ -162,8 +160,6 @@ struct ConsoleHeader: View {
         title: String,
         trailing: String?,
         subline: String?,
-        refreshAction: (() -> Void)? = nil,
-        isRefreshing: Bool = false,
         addAction: (() -> Void)? = nil,
         addAccessibilityLabel: String? = nil,
         addSystemImage: String = "plus"
@@ -171,8 +167,6 @@ struct ConsoleHeader: View {
         self.title = title
         self.trailing = trailing
         self.subline = subline
-        self.refreshAction = refreshAction
-        self.isRefreshing = isRefreshing
         self.addAction = addAction
         self.addAccessibilityLabel = addAccessibilityLabel
         self.addSystemImage = addSystemImage
@@ -189,18 +183,6 @@ struct ConsoleHeader: View {
                     Text(trailing)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(VowbaseTheme.mutedInk)
-                }
-                if let refreshAction {
-                    Button(action: refreshAction) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(width: 36, height: 36)
-                            .background(VowbaseTheme.blush, in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(VowbaseTheme.rose)
-                    .disabled(isRefreshing)
-                    .accessibilityLabel("Refresh")
                 }
                 if let addAction {
                     Button(action: addAction) {
@@ -230,15 +212,11 @@ extension ConsoleHeader {
     /// selected on the map. Status counts live in the compact metric rail.
     init(
         venues _: [MVPVenue],
-        refreshAction: (() -> Void)? = nil,
-        isRefreshing: Bool = false,
         addAction: (() -> Void)? = nil
     ) {
         title = "Venues"
         trailing = nil
         subline = nil
-        self.refreshAction = refreshAction
-        self.isRefreshing = isRefreshing
         self.addAction = addAction
         addAccessibilityLabel = "Add Venue"
         addSystemImage = "plus"
@@ -247,15 +225,11 @@ extension ConsoleHeader {
     /// No selection: the Guests lens's own state at a glance.
     init(
         guests: [Guest],
-        refreshAction: (() -> Void)? = nil,
-        isRefreshing: Bool = false,
         addAction: (() -> Void)? = nil
     ) {
         title = "Guests"
         trailing = nil
         subline = nil
-        self.refreshAction = refreshAction
-        self.isRefreshing = isRefreshing
         self.addAction = addAction
         addAccessibilityLabel = "Add Guest"
         addSystemImage = "plus"
@@ -265,15 +239,11 @@ extension ConsoleHeader {
     init(
         openTaskCount: Int,
         dueSoonCount: Int,
-        refreshAction: (() -> Void)? = nil,
-        isRefreshing: Bool = false,
         addAction: (() -> Void)? = nil
     ) {
         title = "Tasks"
         trailing = nil
         subline = "\(openTaskCount) open" + (dueSoonCount > 0 ? " · \(dueSoonCount) due this week" : "")
-        self.refreshAction = refreshAction
-        self.isRefreshing = isRefreshing
         self.addAction = addAction
         addAccessibilityLabel = "Add Task"
         addSystemImage = "plus"
