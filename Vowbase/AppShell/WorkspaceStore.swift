@@ -276,6 +276,7 @@ final class VowbaseWorkspaceStore {
     /// cancels any in-flight request for the venue you've since moved away
     /// from rather than racing it.
     var travelImpact: TravelImpactState = .idle
+    var clusterTravel: ClusterTravelState = .idle
 
     var canManageTasks: Bool {
         guard let role = activeMembership?.role else { return false }
@@ -342,8 +343,8 @@ final class VowbaseWorkspaceStore {
                 availableDatesText: "Weekends in September",
                 ourNotes: nil,
                 summary: "An airy riverside venue for a joyful, relaxed celebration.",
-                latitude: 39.5,
-                longitude: -98.35,
+                latitude: 46.72,
+                longitude: -92.10,
                 photoURL: nil,
                 createdAt: createdAt,
                 updatedAt: createdAt
@@ -351,7 +352,7 @@ final class VowbaseWorkspaceStore {
             Venue(
                 id: UUID(uuidString: "75AC0474-624B-4106-8A1C-5D13B117A34F")!,
                 weddingID: weddingID,
-                name: "Harbor Gallery",
+                name: "Cedar Hall",
                 status: .toured,
                 address: "200 Example Street, Example City",
                 city: "Example City",
@@ -371,8 +372,8 @@ final class VowbaseWorkspaceStore {
                 availableDatesText: "October weekends",
                 ourNotes: nil,
                 summary: nil,
-                latitude: 39.6,
-                longitude: -98.25,
+                latitude: 46.67,
+                longitude: -92.22,
                 photoURL: nil,
                 createdAt: createdAt,
                 updatedAt: createdAt
@@ -400,18 +401,32 @@ final class VowbaseWorkspaceStore {
                 availableDatesText: nil,
                 ourNotes: nil,
                 summary: nil,
-                latitude: 39.4,
-                longitude: -98.45,
+                latitude: 46.75,
+                longitude: -92.34,
                 photoURL: nil,
                 createdAt: createdAt,
                 updatedAt: createdAt
             )
         ]
-        guestRecords = [
-            Guest(id: UUID(uuidString: "AE67A07D-D565-4A7D-A960-4B6A186C4D6D")!, weddingID: weddingID, firstName: "Avery", lastName: "Rowan", email: nil, phone: nil, address: nil, city: "Lumen Bay", customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .accepted, rsvpDate: nil, originLatitude: 39.5, originLongitude: -98.35, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
-            Guest(id: UUID(uuidString: "167E1A25-7B99-499B-9A66-872B2A3B784A")!, weddingID: weddingID, firstName: "Mira", lastName: "Vale", email: nil, phone: nil, address: nil, city: "Northvale", customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .pending, rsvpDate: nil, originLatitude: 39.6, originLongitude: -98.25, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
-            Guest(id: UUID(uuidString: "3F8DB09C-44F3-4888-8D2B-31EB26F5C487")!, weddingID: weddingID, firstName: "Theo", lastName: "Lark", email: nil, phone: nil, address: nil, city: "Willow Coast", customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .pending, rsvpDate: nil, originLatitude: 39.4, originLongitude: -98.45, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
-            Guest(id: UUID(uuidString: "DE25BD36-69A1-4DC3-A5E0-5E0AF076E34E")!, weddingID: weddingID, firstName: "Nora", lastName: "Wynn", email: nil, phone: nil, address: nil, city: "Solace Point", customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .notInvited, rsvpDate: nil, originLatitude: 39.45, originLongitude: -98.3, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
+        let duluthNames = [
+            ("Avery", "Rowan"), ("Mira", "Vale"), ("Theo", "Lark"), ("Nora", "Wynn"),
+            ("June", "Ellis"), ("Miles", "Hart"), ("Iris", "Chen"), ("Leo", "Brooks"),
+            ("Sage", "Morgan"), ("Ezra", "King"), ("Mae", "Parker"), ("Owen", "Reed"),
+            ("Lena", "Stone"), ("Finn", "Wells")
+        ]
+        let duluthGuests = duluthNames.enumerated().map { index, name in
+            let status: RSVPStatus = index < 9 ? .accepted : (index < 11 ? .maybe : .pending)
+            return Guest(
+                id: UUID(), weddingID: weddingID, firstName: name.0, lastName: name.1,
+                city: "Duluth", state: "MN", customFields: .object(["group": .string("Cedar Circle")]),
+                rsvpStatus: status, originLatitude: 46.81, originLongitude: -92.27,
+                originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt
+            )
+        }
+        guestRecords = duluthGuests + [
+            Guest(id: UUID(), weddingID: weddingID, firstName: "Ari", lastName: "Cole", city: "Minneapolis", state: "MN", rsvpStatus: .accepted, originLatitude: 46.63, originLongitude: -92.04, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(), weddingID: weddingID, firstName: "Tess", lastName: "Gray", city: "Two Harbors", state: "MN", rsvpStatus: .pending, originLatitude: 46.83, originLongitude: -92.03, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(), weddingID: weddingID, firstName: "Sam", lastName: "Lane", city: "Superior", state: "WI", rsvpStatus: .accepted, originLatitude: 46.69, originLongitude: -92.32, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
         ]
         customColumnRecords = [
             GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C01")!, weddingID: weddingID, key: "group", label: "Group", kind: .select, options: .array([.string("Cedar Circle"), .string("Juniper Guild")]), position: 0, hidden: false, createdAt: createdAt, updatedAt: createdAt),
@@ -419,7 +434,6 @@ final class VowbaseWorkspaceStore {
             GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C03")!, weddingID: weddingID, key: "plus_one", label: "Plus one", kind: .checkbox, options: .array([]), position: 2, hidden: false, createdAt: createdAt, updatedAt: createdAt),
             GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C04")!, weddingID: weddingID, key: "table", label: "Table", kind: .number, options: .array([]), position: 3, hidden: false, createdAt: createdAt, updatedAt: createdAt)
         ]
-        selectedVenueID = venueRecords.first?.id
     }
 #endif
 
@@ -521,6 +535,18 @@ final class VowbaseWorkspaceStore {
 
     func guestRecord(id: UUID) -> Guest? {
         guestRecords.first { $0.id == id }
+    }
+
+    func guests(in cluster: GuestCluster) -> [MVPGuest] {
+        let columns = customColumnRecords
+        return guestRecords
+            .filter { guest in
+                guard guest.originPrecision == "city",
+                      let label = GuestLocationLabel.display(for: guest) else { return false }
+                return label.localizedCaseInsensitiveCompare(cluster.city) == .orderedSame
+            }
+            .map { MVPGuest($0, columns: columns) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     func plusGuests(for guestID: UUID) -> [Guest] {
@@ -715,10 +741,6 @@ final class VowbaseWorkspaceStore {
     /// selection, so both the reactive `.task(id: selectedVenueID)` and a
     /// manual "Retry" tap can call the same method.
     func refreshTravelImpact() async {
-        guard let repositories else {
-            travelImpact = .idle
-            return
-        }
         guard let venueID = selectedVenueID, let venue = venueRecords.first(where: { $0.id == venueID }) else {
             travelImpact = .idle
             return
@@ -734,6 +756,46 @@ final class VowbaseWorkspaceStore {
         }
 
         travelImpact = .loading
+        guard let repositories else {
+#if DEBUG
+            let travelTimes = currentClusters.map { cluster -> TravelTime in
+                let minutes: Int
+                switch (venue.name, cluster.city) {
+                case ("Riverside Pavilion", "Duluth, MN"): minutes = 138
+                case ("Riverside Pavilion", "Minneapolis, MN"): minutes = 85
+                case ("Riverside Pavilion", "Two Harbors, MN"): minutes = 45
+                case ("Riverside Pavilion", "Superior, WI"): minutes = 65
+                case ("Cedar Hall", "Duluth, MN"): minutes = 164
+                case ("Cedar Hall", "Minneapolis, MN"): minutes = 110
+                case ("Cedar Hall", "Two Harbors, MN"): minutes = 72
+                case ("Cedar Hall", "Superior, WI"): minutes = 95
+                default: minutes = 190
+                }
+                let source = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                let destination = CLLocation(latitude: cluster.latitude, longitude: cluster.longitude)
+                return TravelTime(
+                    id: cluster.id,
+                    latitude: cluster.latitude,
+                    longitude: cluster.longitude,
+                    durationSeconds: minutes * 60,
+                    distanceMeters: Int(source.distance(from: destination)),
+                    source: .estimate,
+                    estimated: true,
+                    travelMode: .drive
+                )
+            }
+            travelImpact = .ready(
+                TravelImpactCalculator.readout(
+                    clusters: currentClusters,
+                    totalGuestCount: guestRecords.count,
+                    travelTimes: travelTimes
+                )
+            )
+#else
+            travelImpact = .unavailable(.requestFailed)
+#endif
+            return
+        }
         do {
             let destinations = currentClusters.map {
                 TravelDestination(id: $0.id, latitude: $0.latitude, longitude: $0.longitude)
@@ -756,6 +818,59 @@ final class VowbaseWorkspaceStore {
         } catch {
             guard !Task.isCancelled, venueID == selectedVenueID else { return }
             travelImpact = .unavailable(.requestFailed)
+        }
+    }
+
+    func refreshClusterTravel(clusterID: String?) async {
+        guard let clusterID, let cluster = clusters.first(where: { $0.id == clusterID }) else {
+            clusterTravel = .idle
+            return
+        }
+        let mappedVenues = venues.filter { $0.coordinate != nil }
+        guard !mappedVenues.isEmpty else {
+            clusterTravel = .unavailable
+            return
+        }
+
+        clusterTravel = .loading
+        guard let repositories, let weddingID = wedding?.id else {
+#if DEBUG
+            let estimates = mappedVenues.map { venue -> TravelTime in
+                let destination = venue.coordinate!
+                let source = CLLocation(latitude: cluster.latitude, longitude: cluster.longitude)
+                let distance = source.distance(from: CLLocation(latitude: destination.latitude, longitude: destination.longitude))
+                let seconds: Int
+                switch venue.name {
+                case "Riverside Pavilion": seconds = 2 * 3600 + 18 * 60
+                case "Cedar Hall": seconds = 2 * 3600 + 44 * 60
+                default: seconds = max(3 * 3600, Int(distance / 22.0))
+                }
+                return TravelTime(id: venue.id.uuidString, latitude: destination.latitude, longitude: destination.longitude, durationSeconds: seconds, distanceMeters: Int(distance), source: .estimate, estimated: true, travelMode: .drive)
+            }
+            clusterTravel = .ready(ClusterTravelCalculator.comparisons(venues: mappedVenues, travelTimes: estimates))
+#else
+            clusterTravel = .unavailable
+#endif
+            return
+        }
+
+        do {
+            let destinations = mappedVenues.compactMap { venue -> TravelDestination? in
+                guard let coordinate = venue.coordinate else { return nil }
+                return TravelDestination(id: venue.id.uuidString, latitude: coordinate.latitude, longitude: coordinate.longitude)
+            }
+            let results = try await repositories.maps.travelTimes(
+                weddingID: weddingID,
+                origin: Coordinate(latitude: cluster.latitude, longitude: cluster.longitude),
+                destinations: destinations
+            )
+            guard !Task.isCancelled, clusterID == clusters.first(where: { $0.id == clusterID })?.id else { return }
+            clusterTravel = .ready(ClusterTravelCalculator.comparisons(venues: mappedVenues, travelTimes: results))
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            clusterTravel = .unavailable
         }
     }
 

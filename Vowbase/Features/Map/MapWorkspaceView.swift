@@ -25,10 +25,12 @@ struct MapWorkspaceView: View {
     let lens: PlanLens
     let consoleInset: CGFloat
     let selectedGuestID: UUID?
+    let selectedGuestClusterID: String?
     /// Explicit recenter request for a selected venue whose ID did not change
     /// (for example, returning from its detail screen to the map peek).
     let focusToken: Int
     let onSelectVenue: (MVPVenue) -> Void
+    let onSelectGuestCluster: (GuestCluster) -> Void
     let onOpenVenueInMaps: (MVPVenue) -> Void
     let onClearFocus: () -> Void
 
@@ -70,8 +72,39 @@ struct MapWorkspaceView: View {
             ForEach(store.clusters) { cluster in
                 let badge = travelBadge(for: cluster)
                 Annotation(Self.clusterTitle(for: cluster), coordinate: cluster.coordinate) {
-                    GuestClusterAnnotation(cluster: cluster, badge: badge)
-                        .accessibilityLabel(accessibilityLabel(for: cluster, badge: badge))
+                    Button {
+                        onSelectGuestCluster(cluster)
+                    } label: {
+                        GuestClusterAnnotation(
+                            cluster: cluster,
+                            badge: badge,
+                            selected: selectedGuestClusterID == cluster.id
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(accessibilityLabel(for: cluster, badge: badge))
+                }
+            }
+
+            ForEach(routeComparisons) { comparison in
+                if let cluster = selectedGuestCluster {
+                    MapPolyline(coordinates: [cluster.coordinate, comparison.coordinate])
+                        .stroke(
+                            routeColor(for: comparison),
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [6, 6])
+                        )
+
+                    Annotation(
+                        comparison.venueName,
+                        coordinate: Self.midpoint(from: cluster.coordinate, to: comparison.coordinate)
+                    ) {
+                        Text(TravelDurationFormatter.string(fromSeconds: comparison.travelTime.durationSeconds))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(routeColor(for: comparison))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.regularMaterial, in: Capsule())
+                    }
                 }
             }
         }
@@ -112,6 +145,8 @@ struct MapWorkspaceView: View {
             lens.rawValue,
             store.selectedVenueID?.uuidString ?? "none",
             selectedGuestID?.uuidString ?? "none",
+            selectedGuestClusterID ?? "none",
+            routeComparisons.map { $0.venueID.uuidString }.joined(separator: ","),
             String(focusToken),
             String(store.venues.count),
             String(store.clusters.count),
@@ -131,6 +166,17 @@ struct MapWorkspaceView: View {
         return .init(latitude: latitude, longitude: longitude)
     }
 
+    private var selectedGuestCluster: GuestCluster? {
+        guard let selectedGuestClusterID else { return nil }
+        return store.clusters.first { $0.id == selectedGuestClusterID }
+    }
+
+    private var routeComparisons: [ClusterVenueTravel] {
+        guard selectedGuestCluster != nil,
+              case let .ready(comparisons) = store.clusterTravel else { return [] }
+        return Array(comparisons.prefix(2))
+    }
+
     /// What each lens wants in frame.
     ///
     /// Venues zooms to the venue you're inspecting; Guests frames where people
@@ -139,6 +185,10 @@ struct MapWorkspaceView: View {
     private var focusCoordinates: [CLLocationCoordinate2D] {
         let venueCoordinates = store.venues.compactMap(\.coordinate)
         let clusterCoordinates = store.clusters.map(\.coordinate)
+
+        if let selectedGuestCluster, lens != .tasks {
+            return [selectedGuestCluster.coordinate] + routeComparisons.map(\.coordinate)
+        }
 
         switch lens {
         case .venues:
@@ -151,6 +201,14 @@ struct MapWorkspaceView: View {
             if let selectedVenueCoordinate { return [selectedVenueCoordinate] + clusterCoordinates }
             return venueCoordinates + clusterCoordinates
         }
+    }
+
+    private func routeColor(for comparison: ClusterVenueTravel) -> Color {
+        comparison.id == routeComparisons.first?.id ? VowbaseTheme.rose : VowbaseTheme.guestBlue
+    }
+
+    static func midpoint(from start: CLLocationCoordinate2D, to end: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
+        .init(latitude: (start.latitude + end.latitude) / 2, longitude: (start.longitude + end.longitude) / 2)
     }
 
     private func updateCamera(animated: Bool) {
@@ -355,16 +413,26 @@ private struct VenueMapAnnotation: View {
 private struct GuestClusterAnnotation: View {
     let cluster: GuestCluster
     let badge: String?
+    let selected: Bool
 
     var body: some View {
         VStack(spacing: 4) {
-            Text("\(cluster.count)")
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
+            HStack(spacing: 7) {
+                Text("\(cluster.count)")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                if selected {
+                    Text(cluster.city)
+                        .font(.system(size: 12, weight: .semibold))
+                        .lineLimit(1)
+                }
+            }
                 .foregroundStyle(.white)
-                .frame(width: 48, height: 48)
-                .background(VowbaseTheme.guestBlue, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 4))
+                .frame(minWidth: 48, minHeight: 48)
+                .padding(.horizontal, selected ? 12 : 0)
+                .background(VowbaseTheme.guestBlue, in: Capsule())
+                .overlay(Capsule().stroke(.white.opacity(0.55), lineWidth: 4))
                 .shadow(color: VowbaseTheme.guestBlue.opacity(0.36), radius: 8, y: 3)
+                .scaleEffect(selected ? 1.08 : 1)
 
             if let badge {
                 Text(badge)

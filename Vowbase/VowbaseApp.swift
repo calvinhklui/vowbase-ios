@@ -21,11 +21,24 @@ struct VowbaseApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
+#if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("-testingWorkspace") {
+                    VowbaseAuthenticatedContent(
+                        testingWorkspace: true,
+                        presentsInitialVenueInsight: ProcessInfo.processInfo.arguments.contains("-testingVenueInsight")
+                    )
+                } else if let dependencies {
+                    VowbaseAppRoot(dependencies: dependencies)
+                } else {
+                    VowbaseConfigurationErrorView()
+                }
+#else
                 if let dependencies {
                     VowbaseAppRoot(dependencies: dependencies)
                 } else {
                     VowbaseConfigurationErrorView()
                 }
+#endif
             }
             .onOpenURL { [authCallbackHandler] url in
                     guard let authCallbackHandler else { return }

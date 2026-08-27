@@ -20,6 +20,8 @@ struct VowbaseAuthenticatedContent: View {
     @State private var store: VowbaseWorkspaceStore
     @State private var taskStore: TaskStore
     @State private var presentationState = WorkspacePresentationState.loading
+    private let initialLens: PlanLens
+    private let presentsInitialVenueInsight: Bool
     let onSignOut: () -> Void
 
     init(
@@ -27,6 +29,8 @@ struct VowbaseAuthenticatedContent: View {
         onSignOut: @escaping () -> Void = {}
     ) {
         self.onSignOut = onSignOut
+        initialLens = .venues
+        presentsInitialVenueInsight = false
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
         _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
     }
@@ -34,10 +38,13 @@ struct VowbaseAuthenticatedContent: View {
 #if DEBUG
     init(
         testingWorkspace: Bool,
+        presentsInitialVenueInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
+        initialLens = .venues
+        self.presentsInitialVenueInsight = presentsInitialVenueInsight
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
         let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
         _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
@@ -54,7 +61,13 @@ struct VowbaseAuthenticatedContent: View {
                 )
                 .transition(.opacity)
             case .ready:
-                WeddingAppShell(store: store, taskStore: taskStore, onSignOut: onSignOut)
+                WeddingAppShell(
+                    store: store,
+                    taskStore: taskStore,
+                    initialLens: initialLens,
+                    presentsInitialVenueInsight: presentsInitialVenueInsight,
+                    onSignOut: onSignOut
+                )
                     .transition(.opacity.combined(with: .scale(scale: 0.985)))
             case let .failed(message):
                 WorkspaceLoadingFailureView(message: message) {

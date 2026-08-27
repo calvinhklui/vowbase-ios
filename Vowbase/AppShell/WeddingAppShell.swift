@@ -10,6 +10,18 @@ private enum QuickAddDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
+private enum MapInsightDestination: Identifiable {
+    case venue(MVPVenue)
+    case guestCluster(GuestCluster)
+
+    var id: String {
+        switch self {
+        case let .venue(venue): "venue-\(venue.id.uuidString)"
+        case let .guestCluster(cluster): "guest-cluster-\(cluster.id)"
+        }
+    }
+}
+
 /// The authenticated app: one persistent map canvas, one persistent console
 /// sheet whose content depends on the active lens. See
 /// `docs/vowbase-ios-map-command-center-ux-spec.md` §2, §7.
@@ -39,6 +51,7 @@ struct WeddingAppShell: View {
     @State private var navigation: AppNavigationModel
     @State private var quickAdd: QuickAddDestination?
     @State private var taskEditor: TaskEditorDestination?
+    @State private var mapInsight: MapInsightDestination?
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
@@ -61,12 +74,18 @@ struct WeddingAppShell: View {
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
         initialLens: PlanLens = .venues,
+        presentsInitialVenueInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
         self.taskStore = taskStore
         self.onSignOut = onSignOut
         _navigation = State(initialValue: AppNavigationModel(selectedLens: initialLens))
+        let initialVenue = presentsInitialVenueInsight ? store.venues.first : nil
+        if let initialVenue {
+            store.selectedVenueID = initialVenue.id
+        }
+        _mapInsight = State(initialValue: initialVenue.map(MapInsightDestination.venue))
     }
 
     var body: some View {
@@ -85,8 +104,10 @@ struct WeddingAppShell: View {
                     lens: navigation.selectedLens,
                     consoleInset: consoleHeight,
                     selectedGuestID: navigation.selectedGuestID,
+                    selectedGuestClusterID: navigation.selectedGuestClusterID,
                     focusToken: mapFocusToken,
                     onSelectVenue: selectVenue,
+                    onSelectGuestCluster: selectGuestCluster,
                     onOpenVenueInMaps: openInMaps,
                     onClearFocus: clearMapFocus
                 )
@@ -114,6 +135,9 @@ struct WeddingAppShell: View {
             // land after a fresher one already has.
             .task(id: store.selectedVenueID) {
                 await store.refreshTravelImpact()
+            }
+            .task(id: navigation.selectedGuestClusterID) {
+                await store.refreshClusterTravel(clusterID: navigation.selectedGuestClusterID)
             }
             // The scrim is applied *before* the FAB overlay so it layers
             // underneath it. Applied after, it covered the expanded panel and
@@ -186,9 +210,9 @@ struct WeddingAppShell: View {
     private func availableDetents(for lens: PlanLens) -> Set<PresentationDetent> {
         switch lens {
         case .overview:
-            Set(ConsoleDetent.allCases.map(\.presentationDetent))
+            Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
         case .venues, .guests:
-            Set(ConsoleDetent.allCases.map(\.presentationDetent))
+            Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
         case .tasks:
             [ConsoleDetent.full.presentationDetent]
         }
@@ -307,6 +331,19 @@ struct WeddingAppShell: View {
         .sheet(item: $taskEditor) { destination in
             TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
                 .presentationDetents([.large])
+        }
+        .sheet(item: $mapInsight, onDismiss: clearMapInsight) { destination in
+            Group {
+                switch destination {
+                case let .venue(venue):
+                    VenueReachConsole(store: store, venue: venue)
+                case let .guestCluster(cluster):
+                    TravelCoverageConsole(store: store, cluster: cluster)
+                }
+            }
+                .presentationDetents([.fraction(0.52), .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(VowbaseTheme.background)
         }
     }
 
@@ -456,11 +493,6 @@ struct WeddingAppShell: View {
     private var consoleContent: some View {
         switch navigation.selectedLens {
         case .overview:
-            // The full stack at every detent, not just a peek teaser — at
-            // `.peek` this shows Countdown plus however much of Needs You
-            // fits before the sheet's edge, scrollable for the rest, rather
-            // than reserving peek's height for Countdown alone and leaving
-            // the remainder empty.
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     CountdownModule(store: store)
@@ -481,7 +513,7 @@ struct WeddingAppShell: View {
             VenuesView(
                 store: store,
                 onAddVenue: { quickAdd = .venue },
-                onReturnToMap: { navigation.selectedLens = .overview },
+                onReturnToMap: { navigation.selectedLens = .venues },
                 onViewOnMap: showVenueOnMap,
                 allowsVerticalScrolling: currentDetent == .full,
                 onRequestExpansion: expandCurrentConsole,
@@ -550,7 +582,23 @@ struct WeddingAppShell: View {
 
     private func selectVenue(_ venue: MVPVenue) {
         navigation.selectedGuestID = nil
+        navigation.selectedGuestClusterID = nil
         store.selectedVenueID = venue.id
+        mapInsight = .venue(venue)
+    }
+
+    private func selectGuestCluster(_ cluster: GuestCluster) {
+        navigation.selectedGuestID = nil
+        navigation.selectedGuestClusterID = cluster.id
+        store.selectedVenueID = nil
+        mapInsight = .guestCluster(cluster)
+    }
+
+    private func clearMapInsight() {
+        store.selectedVenueID = nil
+        navigation.selectedGuestClusterID = nil
+        store.travelImpact = .idle
+        store.clusterTravel = .idle
     }
 
     private func openInMaps(_ venue: MVPVenue) {
@@ -578,6 +626,241 @@ struct WeddingAppShell: View {
     private func clearMapFocus() {
         store.selectedVenueID = nil
         navigation.selectedGuestID = nil
+        navigation.selectedGuestClusterID = nil
+        mapInsight = nil
+    }
+}
+
+private struct VenueReachConsole: View {
+    let store: VowbaseWorkspaceStore
+    let venue: MVPVenue
+
+    private var reachRows: [(cluster: GuestCluster, travelTime: TravelTime)] {
+        guard case let .ready(readout) = store.travelImpact else { return [] }
+        return store.clusters.compactMap { cluster in
+            guard let travelTime = readout.durationsByClusterID[cluster.id] else { return nil }
+            return (cluster, travelTime)
+        }
+        .sorted { $0.travelTime.durationSeconds < $1.travelTime.durationSeconds }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(venue.name)
+                        .font(.system(size: 27, weight: .bold, design: .serif))
+                        .foregroundStyle(VowbaseTheme.ink)
+
+                    HStack(spacing: 8) {
+                        Text(venue.status.title)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(venue.status.badgeColor)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(venue.status.badgeColor.opacity(0.14), in: Capsule())
+
+                        Text(venue.location)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                            .lineLimit(1)
+                    }
+
+                    Text("\(venue.capacity) guests  ·  \(venue.estimate)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+
+                reachSummary
+
+                if !reachRows.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(Array(reachRows.enumerated()), id: \.element.cluster.id) { index, row in
+                            if index > 0 { Divider().padding(.leading, 42) }
+                            reachRow(row.cluster, travelTime: row.travelTime)
+                        }
+                    }
+                    .background(VowbaseTheme.blush.opacity(0.45), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+                }
+
+                Label("Guest travel uses city-level origins for privacy.", systemImage: "lock.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 18)
+        }
+    }
+
+    @ViewBuilder
+    private var reachSummary: some View {
+        switch store.travelImpact {
+        case .idle, .loading:
+            HStack(spacing: 10) {
+                ProgressView().tint(VowbaseTheme.rose)
+                Text("Calculating guest reach…")
+            }
+            .foregroundStyle(VowbaseTheme.mutedInk)
+        case .unavailable:
+            Text("Guest reach isn’t available right now.")
+                .foregroundStyle(VowbaseTheme.mutedInk)
+        case let .ready(readout):
+            VStack(alignment: .leading, spacing: 5) {
+                Text(readout.summaryText)
+                    .font(.system(size: 18, weight: .semibold, design: .serif))
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                if readout.isEstimated {
+                    Text("Estimated travel")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(VowbaseTheme.rose)
+                }
+            }
+        }
+    }
+
+    private func reachRow(_ cluster: GuestCluster, travelTime: TravelTime) -> some View {
+        HStack(spacing: 12) {
+            Text("\(cluster.count)")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(VowbaseTheme.guestBlue, in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(cluster.city)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .lineLimit(1)
+                Text("\(cluster.count) \(cluster.count == 1 ? "guest" : "guests")")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(travelTime.travelMode == .flight ? "Flight" : TravelDurationFormatter.string(fromSeconds: travelTime.durationSeconds))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(VowbaseTheme.guestBlue)
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 54)
+    }
+}
+
+private struct TravelCoverageConsole: View {
+    let store: VowbaseWorkspaceStore
+    let cluster: GuestCluster
+
+    private var guests: [MVPGuest] { store.guests(in: cluster) }
+    private var comparisons: [ClusterVenueTravel] {
+        guard case let .ready(values) = store.clusterTravel else { return [] }
+        return Array(values.prefix(2))
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("\(cluster.city) guests")
+                        .font(.system(size: 27, weight: .bold, design: .serif))
+                        .foregroundStyle(VowbaseTheme.ink)
+                    Text(rsvpSummary)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                }
+
+                guestStrip
+
+                if let best = comparisons.first {
+                    Text("\(best.venueName) is the easier trip for \(cluster.count) \(cluster.count == 1 ? "guest" : "guests").")
+                        .font(.system(size: 17, weight: .semibold, design: .serif))
+                        .foregroundStyle(VowbaseTheme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Group {
+                    switch store.clusterTravel {
+                    case .loading:
+                        HStack(spacing: 10) {
+                            ProgressView().tint(VowbaseTheme.rose)
+                            Text("Comparing venue travel…")
+                        }
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                    case .unavailable:
+                        Text("Travel comparison isn’t available right now.")
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    case .ready:
+                        VStack(spacing: 0) {
+                            ForEach(Array(comparisons.enumerated()), id: \.element.id) { index, comparison in
+                                if index > 0 { Divider().padding(.leading, 42) }
+                                venueRow(comparison, rank: index)
+                            }
+                        }
+                        .background(VowbaseTheme.blush.opacity(0.45), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
+                    case .idle:
+                        EmptyView()
+                    }
+                }
+
+                Label("Guest locations are shown at city level for privacy.", systemImage: "lock.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 18)
+        }
+    }
+
+    private var rsvpSummary: String {
+        let accepted = guests.filter { $0.rsvp == .accepted }.count
+        let maybe = guests.filter { $0.rsvp == .maybe }.count
+        let pending = guests.filter { $0.rsvp == .pending }.count
+        return "Accepted \(accepted)  ·  Maybe \(maybe)  ·  Pending \(pending)"
+    }
+
+    private var guestStrip: some View {
+        HStack(spacing: -7) {
+            ForEach(Array(guests.prefix(5))) { guest in
+                Text(guest.initials)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(VowbaseTheme.ink)
+                    .frame(width: 38, height: 38)
+                    .background(VowbaseTheme.blush, in: Circle())
+                    .overlay(Circle().stroke(.white, lineWidth: 2))
+                    .accessibilityLabel(guest.name)
+            }
+            if guests.count > 5 {
+                Text("+\(guests.count - 5)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(VowbaseTheme.guestBlue, in: Circle())
+                    .overlay(Circle().stroke(.white, lineWidth: 2))
+            }
+        }
+    }
+
+    private func venueRow(_ comparison: ClusterVenueTravel, rank: Int) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "mappin.circle.fill")
+                .font(.system(size: 24))
+                .foregroundStyle(rank == 0 ? VowbaseTheme.rose : VowbaseTheme.guestBlue)
+            Text(comparison.venueName)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(VowbaseTheme.ink)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Text(TravelDurationFormatter.string(fromSeconds: comparison.travelTime.durationSeconds))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(rank == 0 ? VowbaseTheme.rose : VowbaseTheme.guestBlue)
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 48)
     }
 }
 
