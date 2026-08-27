@@ -61,6 +61,7 @@ struct GuestsView: View {
                 onExpand: onRequestExpansion,
                 onCollapse: onRequestCollapse
             )
+            .scrollDismissesKeyboard(.immediately)
             .vowbaseScrollClearance()
             .navigationBarHidden(true)
             .navigationDestination(for: MVPGuest.self) { guest in
@@ -177,9 +178,9 @@ struct GuestsView: View {
                 Label("Customize metrics", systemImage: "slider.horizontal.3")
             }
         } label: {
-            CompactConsoleCircleControl(systemImage: "ellipsis")
+            CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
         }
-        .accessibilityLabel("More")
+        .accessibilityLabel("Sort and options")
     }
 
     private var metricCards: some View {

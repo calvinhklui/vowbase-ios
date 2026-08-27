@@ -72,6 +72,7 @@ struct VenuesView: View {
                 onExpand: onRequestExpansion,
                 onCollapse: onRequestCollapse
             )
+            .scrollDismissesKeyboard(.immediately)
             .vowbaseScrollClearance()
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
@@ -116,9 +117,9 @@ struct VenuesView: View {
                     }
                 }
             } label: {
-                CompactConsoleCircleControl(systemImage: "ellipsis")
+                CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
             }
-            .accessibilityLabel("More")
+            .accessibilityLabel("Sort")
         }
     }
 

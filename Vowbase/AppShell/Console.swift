@@ -708,6 +708,7 @@ struct CompactConsoleCircleControl: View {
 struct CompactConsoleSearchField: View {
     let placeholder: String
     @Binding var text: String
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -715,11 +716,13 @@ struct CompactConsoleSearchField: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(VowbaseTheme.mutedInk)
             TextField(placeholder, text: $text)
+                .focused($isFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             if !text.isEmpty {
                 Button {
                     text = ""
+                    isFocused = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(VowbaseTheme.mutedInk)

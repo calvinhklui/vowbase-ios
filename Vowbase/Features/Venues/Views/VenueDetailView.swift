@@ -195,6 +195,8 @@ struct VenueDetailView: View {
                 notesSection
             }
             .padding(16)
+            .containerRelativeFrame(.horizontal, alignment: .leading)
+            .clipped()
         }
         .consoleVerticalScrollHandoff(
             allowsVerticalScrolling: allowsVerticalScrolling,
