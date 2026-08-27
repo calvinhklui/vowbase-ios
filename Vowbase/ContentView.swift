@@ -22,7 +22,7 @@ struct VowbaseAuthenticatedContent: View {
     @State private var timelineStore: TimelineStore
     @State private var presentationState = WorkspacePresentationState.loading
     private let initialLens: PlanLens
-    private let presentsInitialVenueInsight: Bool
+    private let presentsInitialVenueDetail: Bool
     private let presentsInitialGuestInsight: Bool
     let onSignOut: () -> Void
 
@@ -32,7 +32,7 @@ struct VowbaseAuthenticatedContent: View {
     ) {
         self.onSignOut = onSignOut
         initialLens = .venues
-        presentsInitialVenueInsight = false
+        presentsInitialVenueDetail = false
         presentsInitialGuestInsight = false
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
         _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
@@ -45,14 +45,14 @@ struct VowbaseAuthenticatedContent: View {
 #if DEBUG
     init(
         testingWorkspace: Bool,
-        presentsInitialVenueInsight: Bool = false,
+        presentsInitialVenueDetail: Bool = false,
         presentsInitialGuestInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
         initialLens = .venues
-        self.presentsInitialVenueInsight = presentsInitialVenueInsight
+        self.presentsInitialVenueDetail = presentsInitialVenueDetail
         self.presentsInitialGuestInsight = presentsInitialGuestInsight
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
         let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
@@ -76,7 +76,7 @@ struct VowbaseAuthenticatedContent: View {
                     taskStore: taskStore,
                     timelineStore: timelineStore,
                     initialLens: initialLens,
-                    presentsInitialVenueInsight: presentsInitialVenueInsight,
+                    presentsInitialVenueDetail: presentsInitialVenueDetail,
                     presentsInitialGuestInsight: presentsInitialGuestInsight,
                     onSignOut: onSignOut
                 )

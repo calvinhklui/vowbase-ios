@@ -10,23 +10,6 @@ private enum QuickAddDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
-private enum MapInsightDestination: Identifiable {
-    case venue(MVPVenue)
-    case guestCluster(GuestCluster)
-
-    var id: String {
-        switch self {
-        case let .venue(venue): "venue-\(venue.id.uuidString)"
-        case let .guestCluster(cluster): "guest-cluster-\(cluster.id)"
-        }
-    }
-}
-
-private enum MapInsightDetailDestination {
-    case venue(MVPVenue)
-    case guest(MVPGuest)
-}
-
 /// The authenticated app: one persistent map canvas, one persistent console
 /// sheet whose content depends on the active lens. See
 /// `docs/vowbase-ios-map-command-center-ux-spec.md` §2, §7.
@@ -57,15 +40,15 @@ struct WeddingAppShell: View {
     @State private var navigation: AppNavigationModel
     @State private var quickAdd: QuickAddDestination?
     @State private var taskEditor: TaskEditorDestination?
-    @State private var mapInsight: MapInsightDestination?
-    @State private var pendingMapInsightDetail: MapInsightDetailDestination?
+    @State private var guestClusterInsight: GuestCluster?
+    @State private var pendingGuestDetail: MVPGuest?
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
     @State private var mapFocusToken = 0
-    /// A pushed detail needs a full-height navigation host, but Back should
-    /// return the couple to the exact detent they were using rather than
-    /// permanently promoting its console to full.
+    /// List-driven details use a full-height navigation host, while a venue
+    /// opened directly from the map preserves the current detent. Back returns
+    /// to the detent captured by whichever route opened the detail.
     @State private var venueDetailReturnDetent: ConsoleDetent?
     @State private var guestDetailReturnDetent: ConsoleDetent?
 
@@ -83,7 +66,7 @@ struct WeddingAppShell: View {
         taskStore: TaskStore,
         timelineStore: TimelineStore,
         initialLens: PlanLens = .venues,
-        presentsInitialVenueInsight: Bool = false,
+        presentsInitialVenueDetail: Bool = false,
         presentsInitialGuestInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
@@ -91,20 +74,19 @@ struct WeddingAppShell: View {
         self.taskStore = taskStore
         self.timelineStore = timelineStore
         self.onSignOut = onSignOut
-        let initialGuestCluster = presentsInitialGuestInsight ? store.clusters.first : nil
+        let initialVenue = presentsInitialVenueDetail ? store.venues.first : nil
+        let initialGuestCluster = initialVenue == nil && presentsInitialGuestInsight ? store.clusters.first : nil
         let initialNavigation = AppNavigationModel(
             selectedLens: initialGuestCluster == nil ? initialLens : .guests
         )
-        initialNavigation.selectedGuestClusterID = initialGuestCluster?.id
-        _navigation = State(initialValue: initialNavigation)
-        let initialVenue = presentsInitialVenueInsight ? store.venues.first : nil
         if let initialVenue {
+            initialNavigation.venuesPath.append(initialVenue)
             store.selectedVenueID = initialVenue.id
         }
-        _mapInsight = State(initialValue:
-            initialVenue.map(MapInsightDestination.venue)
-                ?? initialGuestCluster.map(MapInsightDestination.guestCluster)
-        )
+        initialNavigation.selectedGuestClusterID = initialGuestCluster?.id
+        _navigation = State(initialValue: initialNavigation)
+        _guestClusterInsight = State(initialValue: initialGuestCluster)
+        _venueDetailReturnDetent = State(initialValue: initialVenue == nil ? nil : .half)
     }
 
     var body: some View {
@@ -351,29 +333,15 @@ struct WeddingAppShell: View {
             TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
                 .presentationDetents([.large])
         }
-        .sheet(item: $mapInsight, onDismiss: finishMapInsightDismissal) { destination in
-            Group {
-                switch destination {
-                case let .venue(venue):
-                    VenueReachConsole(
-                        store: store,
-                        venue: venue,
-                        onOpenDetails: {
-                            pendingMapInsightDetail = .venue(venue)
-                            mapInsight = nil
-                        }
-                    )
-                case let .guestCluster(cluster):
-                    TravelCoverageConsole(
-                        store: store,
-                        cluster: cluster,
-                        onOpenGuestDetails: { guest in
-                            pendingMapInsightDetail = .guest(guest)
-                            mapInsight = nil
-                        }
-                    )
+        .sheet(item: $guestClusterInsight, onDismiss: finishGuestClusterInsightDismissal) { cluster in
+            TravelCoverageConsole(
+                store: store,
+                cluster: cluster,
+                onOpenGuestDetails: { guest in
+                    pendingGuestDetail = guest
+                    guestClusterInsight = nil
                 }
-            }
+            )
                 .presentationDetents([.fraction(0.52), .large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(VowbaseTheme.background)
@@ -455,9 +423,9 @@ struct WeddingAppShell: View {
             set: { newPath in
                 let wasShowingDetail = !navigation.venuesPath.isEmpty
                 if !wasShowingDetail, !newPath.isEmpty {
-                    // A detail can also be opened from the expanded venue
-                    // list, which mutates this binding rather than calling
-                    // `openVenueDetails(_:)`. Capture that full detent too.
+                    // List navigation mutates this binding and promotes the
+                    // detail to full. Map taps mutate the path directly so
+                    // their current detent remains unchanged.
                     venueDetailReturnDetent = currentDetent
                     lensDetents[.venues] = .full
                 }
@@ -634,44 +602,34 @@ struct WeddingAppShell: View {
     }
 
     private func selectVenue(_ venue: MVPVenue) {
+        let preservedDetent = currentDetent
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = nil
         store.selectedVenueID = venue.id
-        mapInsight = .venue(venue)
+        navigation.selectedLens = .venues
+        navigation.venuesPath = NavigationPath()
+        venueDetailReturnDetent = preservedDetent
+        lensDetents[.venues] = preservedDetent
+        navigation.venuesPath.append(venue)
     }
 
     private func selectGuestCluster(_ cluster: GuestCluster) {
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = cluster.id
         store.selectedVenueID = nil
-        mapInsight = .guestCluster(cluster)
+        guestClusterInsight = cluster
     }
 
-    private func clearMapInsight() {
-        store.selectedVenueID = nil
+    private func clearGuestClusterInsight() {
         navigation.selectedGuestClusterID = nil
-        store.travelImpact = .idle
         store.clusterTravel = .idle
     }
 
-    private func finishMapInsightDismissal() {
-        clearMapInsight()
-        guard let destination = pendingMapInsightDetail else { return }
-        pendingMapInsightDetail = nil
-        switch destination {
-        case let .venue(venue):
-            openVenueDetails(venue)
-        case let .guest(guest):
-            openGuestDetails(guest)
-        }
-    }
-
-    private func openVenueDetails(_ venue: MVPVenue) {
-        navigation.selectedLens = .venues
-        navigation.venuesPath = NavigationPath()
-        venueDetailReturnDetent = lensDetents[.venues] ?? defaultDetent(for: .venues)
-        lensDetents[.venues] = .full
-        navigation.venuesPath.append(venue)
+    private func finishGuestClusterInsightDismissal() {
+        clearGuestClusterInsight()
+        guard let guest = pendingGuestDetail else { return }
+        pendingGuestDetail = nil
+        openGuestDetails(guest)
     }
 
     private func openGuestDetails(_ guest: MVPGuest) {
@@ -708,143 +666,7 @@ struct WeddingAppShell: View {
         store.selectedVenueID = nil
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = nil
-        mapInsight = nil
-    }
-}
-
-private struct VenueReachConsole: View {
-    let store: VowbaseWorkspaceStore
-    let venue: MVPVenue
-    let onOpenDetails: () -> Void
-
-    private var reachRows: [(cluster: GuestCluster, travelTime: TravelTime)] {
-        guard case let .ready(readout) = store.travelImpact else { return [] }
-        return store.clusters.compactMap { cluster in
-            guard let travelTime = readout.durationsByClusterID[cluster.id] else { return nil }
-            return (cluster, travelTime)
-        }
-        .sorted { $0.travelTime.durationSeconds < $1.travelTime.durationSeconds }
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 7) {
-                        Text(venue.name)
-                            .font(.system(size: 27, weight: .bold, design: .serif))
-                            .foregroundStyle(VowbaseTheme.ink)
-
-                        HStack(spacing: 8) {
-                            Text(venue.status.title)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(venue.status.badgeColor)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 5)
-                                .background(venue.status.badgeColor.opacity(0.14), in: Capsule())
-
-                            Text(venue.location)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(VowbaseTheme.mutedInk)
-                                .lineLimit(1)
-                        }
-
-                        Text("\(venue.capacity) guests  ·  \(venue.estimate)")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(VowbaseTheme.mutedInk)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        onOpenDetails()
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(VowbaseTheme.rose)
-                            .frame(width: 38, height: 38)
-                            .background(VowbaseTheme.blush, in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("View \(venue.name) details")
-                }
-
-                reachSummary
-
-                if !reachRows.isEmpty {
-                    VStack(spacing: 0) {
-                        ForEach(Array(reachRows.enumerated()), id: \.element.cluster.id) { index, row in
-                            if index > 0 { Divider().padding(.leading, 42) }
-                            reachRow(row.cluster, travelTime: row.travelTime)
-                        }
-                    }
-                    .background(VowbaseTheme.blush.opacity(0.45), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1))
-                }
-
-                Label("Guest travel uses city-level origins for privacy.", systemImage: "lock.fill")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 30)
-            .padding(.bottom, 18)
-        }
-    }
-
-    @ViewBuilder
-    private var reachSummary: some View {
-        switch store.travelImpact {
-        case .idle, .loading:
-            HStack(spacing: 10) {
-                ProgressView().tint(VowbaseTheme.rose)
-                Text("Calculating guest reach…")
-            }
-            .foregroundStyle(VowbaseTheme.mutedInk)
-        case .unavailable:
-            Text("Guest reach isn’t available right now.")
-                .foregroundStyle(VowbaseTheme.mutedInk)
-        case let .ready(readout):
-            VStack(alignment: .leading, spacing: 5) {
-                Text(readout.summaryText)
-                    .font(.system(size: 18, weight: .semibold, design: .serif))
-                    .foregroundStyle(VowbaseTheme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                if readout.isEstimated {
-                    Text("Estimated travel")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(VowbaseTheme.rose)
-                }
-            }
-        }
-    }
-
-    private func reachRow(_ cluster: GuestCluster, travelTime: TravelTime) -> some View {
-        HStack(spacing: 12) {
-            Text("\(cluster.count)")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(VowbaseTheme.guestBlue, in: Circle())
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(cluster.city)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(VowbaseTheme.ink)
-                    .lineLimit(1)
-                Text("\(cluster.count) \(cluster.count == 1 ? "guest" : "guests")")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-            }
-
-            Spacer(minLength: 8)
-
-            Text(travelTime.travelMode == .flight ? "Flight" : TravelDurationFormatter.string(fromSeconds: travelTime.durationSeconds))
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(VowbaseTheme.guestBlue)
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 54)
+        guestClusterInsight = nil
     }
 }
 
