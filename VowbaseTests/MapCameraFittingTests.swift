@@ -98,4 +98,45 @@ struct MapCameraFittingTests {
         #expect(abs(forward.span.latitudeDelta - reversed.span.latitudeDelta) < 0.0001)
         #expect(abs(forward.span.longitudeDelta - reversed.span.longitudeDelta) < 0.0001)
     }
+
+    @Test("Route labels sit midway between a guest origin and venue")
+    func routeMidpoint() {
+        let midpoint = MapWorkspaceView.midpoint(
+            from: coordinate(46.8, -92.3),
+            to: coordinate(46.6, -92.1)
+        )
+
+        #expect(abs(midpoint.latitude - 46.7) < 0.0001)
+        #expect(abs(midpoint.longitude - (-92.2)) < 0.0001)
+    }
+
+    @Test("Cluster drill-in only returns guests in that city-level group")
+    func clusterGuestMembership() throws {
+        let store = VowbaseWorkspaceStore(testingWorkspace: true)
+        let duluth = try #require(store.clusters.first { $0.city == "Duluth, MN" })
+        let guests = store.guests(in: duluth)
+
+        #expect(guests.count == 14)
+        #expect(guests.filter { $0.rsvp == .accepted }.count == 9)
+        #expect(guests.filter { $0.rsvp == .maybe }.count == 2)
+        #expect(guests.filter { $0.rsvp == .pending }.count == 3)
+    }
+
+    @Test("Venue map drill-in starts unselected and computes guest reach")
+    func venueReachFixture() async throws {
+        let store = VowbaseWorkspaceStore(testingWorkspace: true)
+        #expect(store.selectedVenueID == nil)
+
+        let venue = try #require(store.venues.first { $0.name == "Riverside Pavilion" })
+        store.selectedVenueID = venue.id
+        await store.refreshTravelImpact()
+
+        guard case let .ready(readout) = store.travelImpact else {
+            Issue.record("Expected fixture guest reach to be ready")
+            return
+        }
+        #expect(readout.durationsByClusterID.count == 4)
+        #expect(readout.summaryText == "18% of guests within 2h · 2h 18m median")
+        #expect(readout.isEstimated)
+    }
 }

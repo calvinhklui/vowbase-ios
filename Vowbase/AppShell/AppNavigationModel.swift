@@ -42,11 +42,11 @@ enum SheetDestination: Identifiable, Hashable {
 /// navigation: AppNavigationModel` and bind directly to `selectedLens`, a lens
 /// path, or `sheetDestination`. `selectVenueOnMap(_:)` is the canonical route
 /// from a list/detail to a focused map marker; `clearMapFocus()` acknowledges
-/// that request after Overview has applied it.
+/// that request after the Venues lens has applied it.
 @MainActor
 @Observable
 final class AppNavigationModel {
-    /// The currently visible lens. Overview — the map — remains the default.
+    /// The currently visible lens. Venues is the default visible destination.
     var selectedLens: PlanLens
 
     /// Independent navigation stacks preserve each lens's drill-in state.
@@ -58,16 +58,19 @@ final class AppNavigationModel {
     /// The one modal task currently presented by the app shell, if any.
     var sheetDestination: SheetDestination?
 
-    /// A venue Overview should focus the next time it becomes visible.
+    /// A venue the map should focus the next time the Venues lens is visible.
     ///
-    /// This remains set until `clearMapFocus()` is called so the Overview lens
+    /// This remains set until `clearMapFocus()` is called so the Venues lens
     /// can consume it after it has appeared following a lens change.
     var focusedVenueID: UUID?
 
     /// The guest currently focused by the Guests peek rail.
     var selectedGuestID: UUID?
 
-    init(selectedLens: PlanLens = .overview) {
+    /// The city-level guest group currently presented over the active lens.
+    var selectedGuestClusterID: String?
+
+    init(selectedLens: PlanLens = .venues) {
         self.selectedLens = selectedLens
     }
 
@@ -84,15 +87,15 @@ final class AppNavigationModel {
         sheetDestination = nil
     }
 
-    /// Routes to Overview and requests that it select and reveal `venueID`.
+    /// Routes to Venues and requests that the map select and reveal `venueID`.
     func selectVenueOnMap(_ venueID: UUID) {
-        selectedLens = .overview
-        overviewPath = NavigationPath()
+        selectedLens = .venues
+        venuesPath = NavigationPath()
         sheetDestination = nil
         focusedVenueID = venueID
     }
 
-    /// Clears a map focus request after Overview has selected the venue.
+    /// Clears a map focus request after the map has selected the venue.
     func clearMapFocus() {
         focusedVenueID = nil
     }
@@ -103,6 +106,7 @@ final class AppNavigationModel {
         sheetDestination = nil
         focusedVenueID = nil
         selectedGuestID = nil
+        selectedGuestClusterID = nil
     }
 
     /// Returns one lens to its root without disturbing the others.

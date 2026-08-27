@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 /// The console header's second line when a venue is selected — spec §8.
@@ -63,6 +64,43 @@ enum TravelDurationFormatter {
         if hours > 0 && minutes > 0 { return "\(hours)h \(minutes)m" }
         if hours > 0 { return "\(hours)h" }
         return "\(minutes)m"
+    }
+}
+
+enum ClusterTravelState: Equatable {
+    case idle
+    case loading
+    case unavailable
+    case ready([ClusterVenueTravel])
+}
+
+struct ClusterVenueTravel: Identifiable, Equatable {
+    let venueID: UUID
+    let venueName: String
+    let latitude: Double
+    let longitude: Double
+    let travelTime: TravelTime
+
+    var id: UUID { venueID }
+    var coordinate: CLLocationCoordinate2D { .init(latitude: latitude, longitude: longitude) }
+}
+
+enum ClusterTravelCalculator {
+    static func comparisons(venues: [MVPVenue], travelTimes: [TravelTime]) -> [ClusterVenueTravel] {
+        let times = Dictionary(uniqueKeysWithValues: travelTimes.map { ($0.id, $0) })
+        return venues.compactMap { venue in
+            guard let latitude = venue.latitude,
+                  let longitude = venue.longitude,
+                  let travelTime = times[venue.id.uuidString] else { return nil }
+            return ClusterVenueTravel(
+                venueID: venue.id,
+                venueName: venue.name,
+                latitude: latitude,
+                longitude: longitude,
+                travelTime: travelTime
+            )
+        }
+        .sorted { $0.travelTime.durationSeconds < $1.travelTime.durationSeconds }
     }
 }
 
