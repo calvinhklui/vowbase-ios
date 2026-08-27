@@ -9,7 +9,6 @@ struct VenueFilteringTests {
     private func venue(
         _ name: String,
         status: VenueStatus = .suggested,
-        location: String? = nil,
         address: String? = nil,
         contactName: String? = nil,
         email: String? = nil,
@@ -23,8 +22,6 @@ struct VenueFilteringTests {
             weddingID: weddingID,
             name: name,
             status: status,
-            location: location,
-            locationText: nil,
             address: address,
             city: nil,
             state: nil,
@@ -54,7 +51,7 @@ struct VenueFilteringTests {
 
     private var venues: [Venue] {
         [
-            venue("Cedar Hall", status: .shortlisted, location: "Portland", updated: 10),
+            venue("Cedar Hall", status: .shortlisted, address: "Portland", updated: 10),
             venue("Aster Estate", status: .suggested, address: "10 Garden Way", contactName: "Mira Rose", email: "mira@aster.test", updated: 30),
             venue("Birch Barn", status: .contacted, phone: "+1 555 0100", updated: 20),
             venue("Alder House", status: .shortlisted, updated: 40)

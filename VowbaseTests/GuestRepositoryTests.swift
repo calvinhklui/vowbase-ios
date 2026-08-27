@@ -122,7 +122,6 @@ struct GuestRepositoryTests {
             state: .value("NY"),
             country: .null,
             rsvpStatus: .value(.accepted),
-            originLabel: .null,
             originLatitude: .value(40.7128),
             originLongitude: .null,
             originPrecision: .value("city"),
@@ -138,7 +137,6 @@ struct GuestRepositoryTests {
         #expect(values["state"] as? String == "NY")
         #expect(values["country"] is NSNull)
         #expect(values["rsvp_status"] as? String == "accepted")
-        #expect(values["origin_label"] is NSNull)
         #expect(values["origin_latitude"] as? Double == 40.7128)
         #expect(values["origin_longitude"] is NSNull)
         #expect(values["origin_precision"] as? String == "city")
@@ -159,10 +157,9 @@ struct GuestRepositoryTests {
 
         let manual = try jsonObject(GuestPatch(
             address: .value("Manually entered guest"), city: .null, state: .null, country: .null,
-            originLabel: .null, originLatitude: .null, originLongitude: .null,
+            originLatitude: .null, originLongitude: .null,
             originPrecision: .null, geocodeStatus: .value("failed")
         ))
-        #expect(manual["origin_label"] is NSNull)
         #expect(manual["origin_latitude"] is NSNull)
         #expect(manual["origin_longitude"] is NSNull)
         #expect(manual["geocode_status"] as? String == "failed")
@@ -341,7 +338,7 @@ struct GuestRepositoryTests {
 
     private var guestData: Data {
         Data("""
-        {"id":"\(guestID.uuidString)","wedding_id":"\(weddingID.uuidString)","first_name":"Avery","last_name":null,"email":null,"phone":null,"plus_limit":2,"plus_of_guest_id":null,"address":null,"city":"Brooklyn","state":"NY","country":"United States","custom_fields":{"party_size":2,"needs_car":true},"rsvp_status":"not_invited","rsvp_date":null,"origin_label":null,"origin_latitude":null,"origin_longitude":null,"origin_precision":null,"geocode_status":null,"created_at":"2026-07-25T12:00:00Z"}
+        {"id":"\(guestID.uuidString)","wedding_id":"\(weddingID.uuidString)","first_name":"Avery","last_name":null,"email":null,"phone":null,"plus_limit":2,"plus_of_guest_id":null,"address":null,"city":"Brooklyn","state":"NY","country":"United States","custom_fields":{"party_size":2,"needs_car":true},"rsvp_status":"not_invited","rsvp_date":null,"origin_latitude":null,"origin_longitude":null,"origin_precision":null,"geocode_status":null,"created_at":"2026-07-25T12:00:00Z"}
         """.utf8)
     }
 
@@ -387,7 +384,7 @@ struct GuestRepositoryTests {
 }
 
 private enum GuestColumns {
-    static let guests = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,city,state,country,custom_fields,rsvp_status,rsvp_date,origin_label,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
+    static let guests = "id,wedding_id,first_name,last_name,email,phone,plus_limit,plus_of_guest_id,address,city,state,country,custom_fields,rsvp_status,rsvp_date,origin_latitude,origin_longitude,origin_precision,geocode_status,created_at"
     static let customColumns = "id,wedding_id,key,label,kind,options,position,hidden,created_at,updated_at"
     static let rsvps = "id,wedding_id,guest_id,event_id,status,meal_choice,notes,updated_at"
 }

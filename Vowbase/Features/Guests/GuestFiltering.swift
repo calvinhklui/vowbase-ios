@@ -1,15 +1,12 @@
 import Foundation
 
-/// Structured administrative fields are authoritative for new records. The
-/// legacy origin label remains a read-only fallback while older rows migrate.
+/// Structured administrative fields are the guest-safe display source.
 enum GuestLocationLabel {
     static func display(for guest: Guest) -> String? {
         let parts = [guest.city, guest.state]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        if !parts.isEmpty { return parts.joined(separator: ", ") }
-        let legacy = guest.originLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return legacy?.isEmpty == false ? legacy : nil
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 }
 

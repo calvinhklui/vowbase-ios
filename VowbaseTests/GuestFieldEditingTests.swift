@@ -41,7 +41,6 @@ struct GuestFieldEditingTests {
             customFields: customFields,
             rsvpStatus: .pending,
             rsvpDate: nil,
-            originLabel: nil,
             originLatitude: nil,
             originLongitude: nil,
             originPrecision: nil,

@@ -20,14 +20,12 @@ import Testing
         #expect(unchanged["our_notes"] == nil)
     }
 
-    @Test("venue writes use the canonical address and never legacy location fields") func venueAddressPatchEncoding() throws {
+    @Test("venue writes use the canonical address fields") func venueAddressPatchEncoding() throws {
         let encoded = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(VenuePatch(address: .value("1 Apple Park Way"), city: .value("Cupertino")))
         ) as! [String: Any]
         #expect(encoded["address"] as? String == "1 Apple Park Way")
         #expect(encoded["city"] as? String == "Cupertino")
-        #expect(encoded["location"] == nil)
-        #expect(encoded["location_text"] == nil)
     }
 
     @Test("venue address updates replace coordinate pairs atomically and manual text clears them") func venueCoordinateInvalidation() throws {

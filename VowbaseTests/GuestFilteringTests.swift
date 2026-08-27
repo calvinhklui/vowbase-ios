@@ -26,12 +26,11 @@ struct GuestFilteringTests {
             email: email,
             phone: phone,
             address: origin,
-            city: city,
+            city: city ?? origin,
             state: state,
             customFields: .object(custom),
             rsvpStatus: rsvp,
             rsvpDate: nil,
-            originLabel: origin,
             originLatitude: precision == "city" ? 45 : nil,
             originLongitude: precision == "city" ? -122 : nil,
             originPrecision: precision,
@@ -95,9 +94,9 @@ struct GuestFilteringTests {
         #expect(roster.filter(filters.matches).count == 3)
     }
 
-    @Test("Structured city and state take precedence over the legacy origin label")
-    func structuredLocationLabelsTakePrecedence() {
-        let guest = guest("Avery", origin: "Old label", city: "Portland", state: "OR")
+    @Test("Structured city and state form the location label")
+    func structuredLocationLabels() {
+        let guest = guest("Avery", city: "Portland", state: "OR")
         #expect(GuestLocationLabel.display(for: guest) == "Portland, OR")
         #expect(GuestFilterSet.bucket(for: guest) == .named("Portland, OR"))
     }
@@ -332,11 +331,11 @@ struct GuestFilteringTests {
         let missingAddress = GuestMetricCondition.address(.absent)
         #expect(roster.count(where: missingAddress.matches) == 2)
 
-        let originWithoutAddress = Guest(
-            id: UUID(), weddingID: weddingID, firstName: "Origin only",
-            address: nil, originLabel: "Lumen Bay", createdAt: .distantPast
+        let cityWithoutAddress = Guest(
+            id: UUID(), weddingID: weddingID, firstName: "City only",
+            address: nil, city: "Lumen Bay", createdAt: .distantPast
         )
-        #expect(missingAddress.matches(originWithoutAddress))
+        #expect(missingAddress.matches(cityWithoutAddress))
 
         let fish = GuestMetricCondition.customValue(key: "meal", value: "Fish")
         #expect(roster.count(where: fish.matches) == 2)

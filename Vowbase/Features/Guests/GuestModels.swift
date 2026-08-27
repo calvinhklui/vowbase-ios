@@ -31,7 +31,6 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
     let rsvpDate: Date?
-    let originLabel: String?
     let originLatitude: Double?
     let originLongitude: Double?
     let originPrecision: String?
@@ -54,7 +53,6 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         customFields: JSONValue = .object([:]),
         rsvpStatus: RSVPStatus? = nil,
         rsvpDate: Date? = nil,
-        originLabel: String? = nil,
         originLatitude: Double? = nil,
         originLongitude: Double? = nil,
         originPrecision: String? = nil,
@@ -76,7 +74,6 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
         self.rsvpDate = rsvpDate
-        self.originLabel = originLabel
         self.originLatitude = originLatitude
         self.originLongitude = originLongitude
         self.originPrecision = originPrecision
@@ -98,7 +95,6 @@ struct Guest: Codable, Equatable, Sendable, Identifiable {
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
         case rsvpDate = "rsvp_date"
-        case originLabel = "origin_label"
         case originLatitude = "origin_latitude"
         case originLongitude = "origin_longitude"
         case originPrecision = "origin_precision"
@@ -120,7 +116,6 @@ struct GuestDraft: Codable, Equatable, Sendable {
     let country: String?
     let customFields: JSONValue
     let rsvpStatus: RSVPStatus?
-    let originLabel: String?
     let originLatitude: Double?
     let originLongitude: Double?
     let originPrecision: String?
@@ -139,7 +134,6 @@ struct GuestDraft: Codable, Equatable, Sendable {
         country: String? = nil,
         customFields: JSONValue = .object([:]),
         rsvpStatus: RSVPStatus? = nil,
-        originLabel: String? = nil,
         originLatitude: Double? = nil,
         originLongitude: Double? = nil,
         originPrecision: String? = nil,
@@ -157,7 +151,6 @@ struct GuestDraft: Codable, Equatable, Sendable {
         self.country = country
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
-        self.originLabel = originLabel
         self.originLatitude = originLatitude
         self.originLongitude = originLongitude
         self.originPrecision = originPrecision
@@ -175,7 +168,6 @@ struct GuestDraft: Codable, Equatable, Sendable {
         case city, state, country
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
-        case originLabel = "origin_label"
         case originLatitude = "origin_latitude"
         case originLongitude = "origin_longitude"
         case originPrecision = "origin_precision"
@@ -207,7 +199,6 @@ struct GuestPatch: Encodable, Equatable, Sendable {
     let country: NullablePatch<String>
     let customFields: JSONValue?
     let rsvpStatus: NullablePatch<RSVPStatus>
-    let originLabel: NullablePatch<String>
     let originLatitude: NullablePatch<Double>
     let originLongitude: NullablePatch<Double>
     let originPrecision: NullablePatch<String>
@@ -226,7 +217,6 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         country: NullablePatch<String> = .unchanged,
         customFields: JSONValue? = nil,
         rsvpStatus: NullablePatch<RSVPStatus> = .unchanged,
-        originLabel: NullablePatch<String> = .unchanged,
         originLatitude: NullablePatch<Double> = .unchanged,
         originLongitude: NullablePatch<Double> = .unchanged,
         originPrecision: NullablePatch<String> = .unchanged,
@@ -244,7 +234,6 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         self.country = country
         self.customFields = customFields
         self.rsvpStatus = rsvpStatus
-        self.originLabel = originLabel
         self.originLatitude = originLatitude
         self.originLongitude = originLongitude
         self.originPrecision = originPrecision
@@ -262,7 +251,6 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         case city, state, country
         case customFields = "custom_fields"
         case rsvpStatus = "rsvp_status"
-        case originLabel = "origin_label"
         case originLatitude = "origin_latitude"
         case originLongitude = "origin_longitude"
         case originPrecision = "origin_precision"
@@ -280,7 +268,6 @@ struct GuestPatch: Encodable, Equatable, Sendable {
             && city == .unchanged && state == .unchanged && country == .unchanged
             && customFields == nil
             && rsvpStatus == .unchanged
-            && originLabel == .unchanged
             && originLatitude == .unchanged
             && originLongitude == .unchanged
             && originPrecision == .unchanged
@@ -301,7 +288,6 @@ struct GuestPatch: Encodable, Equatable, Sendable {
         try encode(country, forKey: .country, into: &container)
         try container.encodeIfPresent(customFields, forKey: .customFields)
         try encode(rsvpStatus, forKey: .rsvpStatus, into: &container)
-        try encode(originLabel, forKey: .originLabel, into: &container)
         try encode(originLatitude, forKey: .originLatitude, into: &container)
         try encode(originLongitude, forKey: .originLongitude, into: &container)
         try encode(originPrecision, forKey: .originPrecision, into: &container)

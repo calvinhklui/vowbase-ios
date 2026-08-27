@@ -5,8 +5,6 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
     let weddingID: UUID
     let name: String
     let status: VenueStatus
-    let location: String?
-    let locationText: String?
     let address: String?
     let city: String?
     let state: String?
@@ -35,8 +33,7 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id
         case weddingID = "wedding_id"
-        case name, status, location, address, city, state, country, website, summary, latitude, longitude
-        case locationText = "location_text"
+        case name, status, address, city, state, country, website, summary, latitude, longitude
         case contactName = "contact_name"
         case contactEmail = "contact_email"
         case contactPhone = "contact_phone"

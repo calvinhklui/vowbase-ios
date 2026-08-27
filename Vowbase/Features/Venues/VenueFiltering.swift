@@ -46,8 +46,6 @@ enum VenueQuery {
             venue.name,
             venue.status.title,
             venue.status.rawValue,
-            venue.location,
-            venue.locationText,
             venue.address,
             venue.city,
             venue.state,

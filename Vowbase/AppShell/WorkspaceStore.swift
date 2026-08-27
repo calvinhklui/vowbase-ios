@@ -324,8 +324,6 @@ final class VowbaseWorkspaceStore {
                 weddingID: weddingID,
                 name: "Riverside Pavilion",
                 status: .toured,
-                location: "Example District, Example City",
-                locationText: "Example District, Example City",
                 address: "100 Example Avenue, Example City",
                 city: "Example City",
                 state: "EX",
@@ -356,8 +354,6 @@ final class VowbaseWorkspaceStore {
                 weddingID: weddingID,
                 name: "Harbor Gallery",
                 status: .toured,
-                location: "Harbor District, Example City",
-                locationText: "Harbor District, Example City",
                 address: "200 Example Street, Example City",
                 city: "Example City",
                 state: "EX",
@@ -388,8 +384,6 @@ final class VowbaseWorkspaceStore {
                 weddingID: weddingID,
                 name: "Meadow House",
                 status: .considering,
-                location: "Lakeside, Example City",
-                locationText: "Lakeside, Example City",
                 address: "300 Example Road, Example City",
                 city: "Example City",
                 state: "EX",
@@ -417,10 +411,10 @@ final class VowbaseWorkspaceStore {
             )
         ]
         guestRecords = [
-            Guest(id: UUID(uuidString: "AE67A07D-D565-4A7D-A960-4B6A186C4D6D")!, weddingID: weddingID, firstName: "Avery", lastName: "Rowan", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .accepted, rsvpDate: nil, originLabel: "Lumen Bay", originLatitude: 39.5, originLongitude: -98.35, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
-            Guest(id: UUID(uuidString: "167E1A25-7B99-499B-9A66-872B2A3B784A")!, weddingID: weddingID, firstName: "Mira", lastName: "Vale", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .pending, rsvpDate: nil, originLabel: "Northvale", originLatitude: 39.6, originLongitude: -98.25, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
-            Guest(id: UUID(uuidString: "3F8DB09C-44F3-4888-8D2B-31EB26F5C487")!, weddingID: weddingID, firstName: "Theo", lastName: "Lark", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .pending, rsvpDate: nil, originLabel: "Willow Coast", originLatitude: 39.4, originLongitude: -98.45, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
-            Guest(id: UUID(uuidString: "DE25BD36-69A1-4DC3-A5E0-5E0AF076E34E")!, weddingID: weddingID, firstName: "Nora", lastName: "Wynn", email: nil, phone: nil, address: nil, customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .notInvited, rsvpDate: nil, originLabel: "Solace Point", originLatitude: 39.45, originLongitude: -98.3, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
+            Guest(id: UUID(uuidString: "AE67A07D-D565-4A7D-A960-4B6A186C4D6D")!, weddingID: weddingID, firstName: "Avery", lastName: "Rowan", email: nil, phone: nil, address: nil, city: "Lumen Bay", customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .accepted, rsvpDate: nil, originLatitude: 39.5, originLongitude: -98.35, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(uuidString: "167E1A25-7B99-499B-9A66-872B2A3B784A")!, weddingID: weddingID, firstName: "Mira", lastName: "Vale", email: nil, phone: nil, address: nil, city: "Northvale", customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .pending, rsvpDate: nil, originLatitude: 39.6, originLongitude: -98.25, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(uuidString: "3F8DB09C-44F3-4888-8D2B-31EB26F5C487")!, weddingID: weddingID, firstName: "Theo", lastName: "Lark", email: nil, phone: nil, address: nil, city: "Willow Coast", customFields: .object(["group": .string("Cedar Circle")]), rsvpStatus: .pending, rsvpDate: nil, originLatitude: 39.4, originLongitude: -98.45, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt),
+            Guest(id: UUID(uuidString: "DE25BD36-69A1-4DC3-A5E0-5E0AF076E34E")!, weddingID: weddingID, firstName: "Nora", lastName: "Wynn", email: nil, phone: nil, address: nil, city: "Solace Point", customFields: .object(["group": .string("Juniper Guild")]), rsvpStatus: .notInvited, rsvpDate: nil, originLatitude: 39.45, originLongitude: -98.3, originPrecision: "city", geocodeStatus: "resolved", createdAt: createdAt)
         ]
         customColumnRecords = [
             GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C01")!, weddingID: weddingID, key: "group", label: "Group", kind: .select, options: .array([.string("Cedar Circle"), .string("Juniper Guild")]), position: 0, hidden: false, createdAt: createdAt, updatedAt: createdAt),
@@ -1057,7 +1051,6 @@ final class VowbaseWorkspaceStore {
                     rsvpStatus: rsvp,
                     // Guest origins intentionally use the city lookup rather
                     // than the selected street coordinate.
-                    originLabel: nil,
                     originLatitude: origin?.latitude,
                     originLongitude: origin?.longitude,
                     originPrecision: origin == nil ? nil : "city",
@@ -1135,7 +1128,6 @@ final class VowbaseWorkspaceStore {
                 city: .null,
                 state: .null,
                 country: .null,
-                originLabel: .null,
                 originLatitude: .null,
                 originLongitude: .null,
                 originPrecision: .null,
@@ -1157,7 +1149,6 @@ final class VowbaseWorkspaceStore {
             city: resolved.city.map(NullablePatch.value) ?? .null,
             state: resolved.region.map(NullablePatch.value) ?? .null,
             country: resolved.country.map(NullablePatch.value) ?? .null,
-            originLabel: .null,
             originLatitude: origin.map { .value($0.latitude) } ?? .null,
             originLongitude: origin.map { .value($0.longitude) } ?? .null,
             originPrecision: origin == nil ? .null : .value("city"),
@@ -1190,7 +1181,6 @@ final class VowbaseWorkspaceStore {
             city: selection.city.map(NullablePatch.value) ?? .null,
             state: selection.state.map(NullablePatch.value) ?? .null,
             country: selection.country.map(NullablePatch.value) ?? .null,
-            originLabel: .null,
             originLatitude: origin.map { .value($0.latitude) } ?? .null,
             originLongitude: origin.map { .value($0.longitude) } ?? .null,
             originPrecision: origin == nil ? .null : .value("city"),
@@ -1778,8 +1768,6 @@ struct VenueCoordinateRecovery: Equatable {
 
     static func fullAddress(for venue: Venue) -> String? {
         let primary = venue.address?.nilIfBlank
-            ?? venue.locationText?.nilIfBlank
-            ?? venue.location?.nilIfBlank
         let regionalParts = [venue.city, venue.state, venue.country]
             .compactMap { $0?.nilIfBlank }
 
@@ -1837,7 +1825,7 @@ private extension MVPVenue {
         id = venue.id
         name = venue.name
         status = venue.status
-        location = venue.address?.nilIfBlank ?? venue.locationText?.nilIfBlank ?? venue.location ?? venue.city ?? "Location not added"
+        location = venue.address?.nilIfBlank ?? venue.city?.nilIfBlank ?? "Location not added"
         fullAddress = VenueCoordinateRecovery.fullAddress(for: venue)
         mapSearchQuery = fullAddress ?? location
         city = venue.city?.nilIfBlank
