@@ -37,7 +37,11 @@ struct GuestsView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ConsoleHeader(guests: store.allGuestRecords)
+                    ConsoleHeader(
+                        guests: store.allGuestRecords,
+                        refreshAction: { Task { await store.load() } },
+                        isRefreshing: store.isLoading
+                    )
                         .padding(.bottom, 10)
 
                     metricCards
@@ -62,9 +66,6 @@ struct GuestsView: View {
                 onCollapse: onRequestCollapse
             )
             .vowbaseScrollClearance()
-            .refreshable {
-                await store.load()
-            }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPGuest.self) { guest in
                 GuestDetailView(

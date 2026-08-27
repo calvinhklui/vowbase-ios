@@ -74,9 +74,6 @@ struct TasksView: View {
             }
             .vowbaseScrollClearance()
             .navigationBarHidden(true)
-            .refreshable {
-                if let weddingID = store.wedding?.id { await taskStore.load(weddingID: weddingID) }
-            }
         }
         .task(id: store.wedding?.id) {
             if let weddingID = store.wedding?.id { await taskStore.load(weddingID: weddingID) }

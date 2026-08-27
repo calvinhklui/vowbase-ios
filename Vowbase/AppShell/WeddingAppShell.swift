@@ -424,7 +424,12 @@ struct WeddingAppShell: View {
         case .guests:
             EmptyView()
         case .tasks:
-            ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
+            ConsoleHeader(
+                openTaskCount: openTaskCount,
+                dueSoonCount: dueSoonTaskCount,
+                refreshAction: refreshTasks,
+                isRefreshing: taskStore.isLoading
+            )
         }
     }
 
@@ -500,6 +505,11 @@ struct WeddingAppShell: View {
 
     private var openTaskCount: Int {
         taskStore.tasks.filter { $0.effectiveStatus != .done }.count
+    }
+
+    private func refreshTasks() {
+        guard let weddingID = store.wedding?.id else { return }
+        Task { await taskStore.load(weddingID: weddingID) }
     }
 
     private func expandCurrentConsole() {

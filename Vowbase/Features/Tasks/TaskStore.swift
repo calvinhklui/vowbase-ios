@@ -30,7 +30,7 @@ final class TaskStore {
         } catch is CancellationError {
             return
         } catch {
-            errorMessage = userFacingMessage(for: error, fallback: "We couldn't load tasks. Pull to refresh and try again.")
+            errorMessage = userFacingMessage(for: error, fallback: "We couldn't load tasks. Refresh and try again.")
         }
     }
 

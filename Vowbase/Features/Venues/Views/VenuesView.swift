@@ -31,7 +31,11 @@ struct VenuesView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ConsoleHeader(venues: store.venues)
+                    ConsoleHeader(
+                        venues: store.venues,
+                        refreshAction: { Task { await store.load() } },
+                        isRefreshing: store.isLoading
+                    )
                         .padding(.bottom, 10)
 
                     if !store.venues.isEmpty {
@@ -73,9 +77,6 @@ struct VenuesView: View {
                 onCollapse: onRequestCollapse
             )
             .vowbaseScrollClearance()
-            .refreshable {
-                await store.load()
-            }
             .navigationBarHidden(true)
             .navigationDestination(for: MVPVenue.self) { venue in
                 VenueDetailView(
