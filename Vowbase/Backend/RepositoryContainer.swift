@@ -13,6 +13,7 @@ struct RepositoryContainer: Sendable {
     let budget: any BudgetRepository
     let venues: any VenueRepository
     let inspiration: any InspirationRepository
+    let timeline: any TimelineRepository
     let attachments: any AttachmentRepository
     let maps: any MapWorkflowRepository
     let venuePhotos: any VenuePhotoServicing
@@ -31,6 +32,7 @@ struct RepositoryContainer: Sendable {
         let venueRepository = SupabaseVenueRepository(provider: supabase)
         venues = venueRepository
         inspiration = SupabaseInspirationRepository(provider: supabase)
+        timeline = SupabaseTimelineRepository(provider: supabase)
         attachments = SupabaseAttachmentRepository(provider: supabase)
         maps = APIMapWorkflowRepository(api: api)
         venuePhotos = VenuePhotoService(api: api) { path in

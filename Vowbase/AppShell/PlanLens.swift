@@ -14,10 +14,11 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
     case venues
     case guests
     case tasks
+    case timeline
 
     var id: String { rawValue }
 
-    static let visibleRailCases: [PlanLens] = [.venues, .guests, .tasks]
+    static let visibleRailCases: [PlanLens] = [.venues, .guests, .tasks, .timeline]
 
     var title: LocalizedStringKey {
         switch self {
@@ -25,6 +26,7 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
         case .venues: "Venues"
         case .guests: "Guests"
         case .tasks: "Tasks"
+        case .timeline: "Timeline"
         }
     }
 
@@ -34,6 +36,7 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
         case .venues: "mappin"
         case .guests: "person.2"
         case .tasks: "checklist"
+        case .timeline: "clock.arrow.circlepath"
         }
     }
 
@@ -45,7 +48,7 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
     /// Budget will be the second. See spec §2.1.
     var isCanvasOptional: Bool {
         switch self {
-        case .tasks: true
+        case .tasks, .timeline: true
         case .overview, .venues, .guests: false
         }
     }

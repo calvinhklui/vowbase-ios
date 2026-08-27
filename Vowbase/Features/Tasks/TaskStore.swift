@@ -69,6 +69,7 @@ final class TaskStore {
                     ownerUserID: draft.ownerUserID,
                     ownerLabel: draft.ownerLabel?.nilIfBlank,
                     dueDate: draft.dueDate,
+                    completedAt: nil,
                     createdAt: Date()
                 )
             }
@@ -127,6 +128,7 @@ final class TaskStore {
                     ownerUserID: task.ownerUserID,
                     ownerLabel: ownerLabel.nilIfBlank,
                     dueDate: dueDate,
+                    completedAt: task.completedAt,
                     createdAt: task.createdAt
                 )
             }
@@ -161,6 +163,7 @@ final class TaskStore {
                     ownerUserID: task.ownerUserID,
                     ownerLabel: task.ownerLabel,
                     dueDate: task.dueDate,
+                    completedAt: task.completedAt,
                     createdAt: task.createdAt
                 )
             }

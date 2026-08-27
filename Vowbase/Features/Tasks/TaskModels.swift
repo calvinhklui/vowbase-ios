@@ -44,9 +44,39 @@ struct WeddingTask: Codable, Equatable, Sendable, Identifiable {
     let ownerUserID: UUID?
     let ownerLabel: String?
     let dueDate: String?
+    /// Server-authored completion timestamp. A done status alone is not
+    /// enough to create a historical Timeline entry, because older records
+    /// may not have a reliable completion date.
+    let completedAt: Date?
     let createdAt: Date
 
     var effectiveStatus: WeddingTaskStatus { status ?? .todo }
+
+    init(
+        id: UUID,
+        weddingID: UUID,
+        title: String,
+        description: String?,
+        status: WeddingTaskStatus?,
+        priority: WeddingTaskPriority?,
+        ownerUserID: UUID?,
+        ownerLabel: String?,
+        dueDate: String?,
+        completedAt: Date? = nil,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.weddingID = weddingID
+        self.title = title
+        self.description = description
+        self.status = status
+        self.priority = priority
+        self.ownerUserID = ownerUserID
+        self.ownerLabel = ownerLabel
+        self.dueDate = dueDate
+        self.completedAt = completedAt
+        self.createdAt = createdAt
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -55,6 +85,7 @@ struct WeddingTask: Codable, Equatable, Sendable, Identifiable {
         case ownerUserID = "owner_user_id"
         case ownerLabel = "owner_label"
         case dueDate = "due_date"
+        case completedAt = "completed_at"
         case createdAt = "created_at"
     }
 }

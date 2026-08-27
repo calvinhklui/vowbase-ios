@@ -1,6 +1,6 @@
 import Foundation
 import Supabase
-final class SupabaseTaskRepository: TaskRepository, @unchecked Sendable { private let provider: SupabaseProvider; private let columns="id,wedding_id,title,description,status,priority,owner_user_id,owner_label,due_date,created_at"; init(provider:SupabaseProvider){self.provider=provider}
+final class SupabaseTaskRepository: TaskRepository, @unchecked Sendable { private let provider: SupabaseProvider; private let columns="id,wedding_id,title,description,status,priority,owner_user_id,owner_label,due_date,completed_at,created_at"; init(provider:SupabaseProvider){self.provider=provider}
     func tasks(weddingID:UUID)async throws->[WeddingTask]{try await run{try await self.provider.client.from("tasks").select(self.columns).eq("wedding_id",value:DomainRepositorySupport.uuid(weddingID)).order("due_date",ascending:true,nullsFirst:false).execute().value}}
     func createTask(_ draft:TaskDraft,weddingID:UUID)async throws->WeddingTask{try await run{try await self.provider.client.from("tasks").insert(TaskCreate(weddingID:weddingID,draft:draft)).select(self.columns).single().execute().value}}
     func updateTask(id:UUID,patch:TaskPatch)async throws->WeddingTask{try DomainRepositorySupport.requirePatch(patch.isEmpty,"Task update must include at least one field.");return try await run{try await self.provider.client.from("tasks").update(patch).eq("id",value:DomainRepositorySupport.uuid(id)).select(self.columns).single().execute().value}}

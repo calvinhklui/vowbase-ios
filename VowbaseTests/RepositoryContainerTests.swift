@@ -8,6 +8,7 @@ import Testing
         let container = RepositoryContainer(supabase: provider, api: ContainerAPI())
         #expect(container.schedule is SupabaseScheduleRepository)
         #expect(container.inspiration is SupabaseInspirationRepository)
+        #expect(container.timeline is SupabaseTimelineRepository)
         #expect(container.attachments is SupabaseAttachmentRepository)
         #expect(container.maps is APIMapWorkflowRepository)
         #expect(container.venuePhotos is VenuePhotoService)

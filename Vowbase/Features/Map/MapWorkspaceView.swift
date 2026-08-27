@@ -118,7 +118,7 @@ struct MapWorkspaceView: View {
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
         .safeAreaPadding(.bottom, consoleInset)
-        // A canvas-optional lens (Tasks, spec §2.1) contributes nothing to the
+        // A canvas-optional lens (Tasks or Timeline, spec §2.1) contributes nothing to the
         // map, so the live map behind it is noise. Frosting it keeps the sense
         // of place without competing with the console's content.
         .overlay {
@@ -186,7 +186,7 @@ struct MapWorkspaceView: View {
         let venueCoordinates = store.venues.compactMap(\.coordinate)
         let clusterCoordinates = store.clusters.map(\.coordinate)
 
-        if let selectedGuestCluster, lens != .tasks {
+        if let selectedGuestCluster, !lens.isCanvasOptional {
             return [selectedGuestCluster.coordinate] + routeComparisons.map(\.coordinate)
         }
 
@@ -197,7 +197,7 @@ struct MapWorkspaceView: View {
         case .guests:
             if let selectedGuestCoordinate { return [selectedGuestCoordinate] }
             return clusterCoordinates.isEmpty ? venueCoordinates : clusterCoordinates
-        case .overview, .tasks:
+        case .overview, .tasks, .timeline:
             if let selectedVenueCoordinate { return [selectedVenueCoordinate] + clusterCoordinates }
             return venueCoordinates + clusterCoordinates
         }

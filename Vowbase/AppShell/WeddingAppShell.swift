@@ -47,6 +47,7 @@ private enum MapInsightDestination: Identifiable {
 struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
     let taskStore: TaskStore
+    let timelineStore: TimelineStore
     let onSignOut: () -> Void
     @State private var navigation: AppNavigationModel
     @State private var quickAdd: QuickAddDestination?
@@ -68,17 +69,20 @@ struct WeddingAppShell: View {
         .venues: .half,
         .guests: .half,
         .tasks: .full,
+        .timeline: .full,
     ]
 
     init(
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
+        timelineStore: TimelineStore,
         initialLens: PlanLens = .venues,
         presentsInitialVenueInsight: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
         self.taskStore = taskStore
+        self.timelineStore = timelineStore
         self.onSignOut = onSignOut
         _navigation = State(initialValue: AppNavigationModel(selectedLens: initialLens))
         let initialVenue = presentsInitialVenueInsight ? store.venues.first : nil
@@ -202,7 +206,7 @@ struct WeddingAppShell: View {
             .peek
         case .venues, .guests:
             .half
-        case .tasks:
+        case .tasks, .timeline:
             .full
         }
     }
@@ -213,7 +217,7 @@ struct WeddingAppShell: View {
             Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
         case .venues, .guests:
             Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
-        case .tasks:
+        case .tasks, .timeline:
             [ConsoleDetent.full.presentationDetent]
         }
     }
@@ -361,6 +365,7 @@ struct WeddingAppShell: View {
             && isConsoleAtRoot
             && !isVenueNoteEditing
             && navigation.selectedLens != .tasks
+            && navigation.selectedLens != .timeline
     }
 
     /// Overview keeps the multi-action quick-add menu. Each focused lens uses
@@ -387,6 +392,8 @@ struct WeddingAppShell: View {
             DirectAddFAB(title: "Add Task", systemImage: "plus") {
                 taskEditor = .add()
             }
+        case .timeline:
+            EmptyView()
         }
     }
 
@@ -397,7 +404,7 @@ struct WeddingAppShell: View {
     /// edits via a sheet (`taskEditor`), not a push.
     private var isConsoleAtRoot: Bool {
         switch navigation.selectedLens {
-        case .overview, .tasks:
+        case .overview, .tasks, .timeline:
             true
         case .venues:
             navigation.venuesPath.isEmpty
@@ -466,6 +473,8 @@ struct WeddingAppShell: View {
             EmptyView()
         case .tasks:
             ConsoleHeader(openTaskCount: openTaskCount, dueSoonCount: dueSoonTaskCount)
+        case .timeline:
+            EmptyView()
         }
     }
 
@@ -531,6 +540,8 @@ struct WeddingAppShell: View {
             )
         case .tasks:
             TasksView(store: store, taskStore: taskStore, editor: $taskEditor)
+        case .timeline:
+            PlanningTimelineView(store: store, taskStore: taskStore, timelineStore: timelineStore)
         }
     }
 
@@ -539,12 +550,25 @@ struct WeddingAppShell: View {
     }
 
     private var isRefreshingCurrentLens: Bool {
-        navigation.selectedLens == .tasks ? taskStore.isLoading : store.isLoading
+        switch navigation.selectedLens {
+        case .tasks:
+            taskStore.isLoading
+        case .timeline:
+            timelineStore.isLoading || taskStore.isLoading
+        case .overview, .venues, .guests:
+            store.isLoading
+        }
     }
 
     private func refreshCurrentLens() {
         if navigation.selectedLens == .tasks, let weddingID = store.wedding?.id {
             Task { await taskStore.load(weddingID: weddingID) }
+        } else if navigation.selectedLens == .timeline, let weddingID = store.wedding?.id {
+            Task {
+                async let tasks: Void = taskStore.load(weddingID: weddingID)
+                async let timeline: Void = timelineStore.load(weddingID: weddingID)
+                _ = await (tasks, timeline)
+            }
         } else {
             Task { await store.load() }
         }
@@ -982,11 +1006,11 @@ private struct LensRailItem: View {
 }
 
 #Preview("Venues") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), initialLens: .venues)
+    WeddingAppShell(store: VowbaseWorkspaceStore(), taskStore: TaskStore(), timelineStore: TimelineStore(), initialLens: .venues)
 }
 
 #if DEBUG
 #Preview("Guests") {
-    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), initialLens: .guests)
+    WeddingAppShell(store: VowbaseWorkspaceStore(testingWorkspace: true), taskStore: TaskStore(), timelineStore: TimelineStore(), initialLens: .guests)
 }
 #endif

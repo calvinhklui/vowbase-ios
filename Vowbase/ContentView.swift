@@ -19,6 +19,7 @@ struct VowbaseAuthenticatedContent: View {
 
     @State private var store: VowbaseWorkspaceStore
     @State private var taskStore: TaskStore
+    @State private var timelineStore: TimelineStore
     @State private var presentationState = WorkspacePresentationState.loading
     private let initialLens: PlanLens
     private let presentsInitialVenueInsight: Bool
@@ -33,6 +34,10 @@ struct VowbaseAuthenticatedContent: View {
         presentsInitialVenueInsight = false
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
         _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
+        _timelineStore = State(initialValue: TimelineStore(
+            repository: repositories?.timeline,
+            inspirationRepository: repositories?.inspiration
+        ))
     }
 
 #if DEBUG
@@ -48,6 +53,7 @@ struct VowbaseAuthenticatedContent: View {
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
         let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
         _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
+        _timelineStore = State(initialValue: TimelineStore())
     }
 #endif
 
@@ -64,6 +70,7 @@ struct VowbaseAuthenticatedContent: View {
                 WeddingAppShell(
                     store: store,
                     taskStore: taskStore,
+                    timelineStore: timelineStore,
                     initialLens: initialLens,
                     presentsInitialVenueInsight: presentsInitialVenueInsight,
                     onSignOut: onSignOut

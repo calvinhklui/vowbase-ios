@@ -94,6 +94,8 @@
 		F4A3B4C5D6E7000000000005 /* GuestFieldEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000015 /* GuestFieldEditing.swift */; };
 		F4A3B4C5D6E7000000000006 /* GuestFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A3B4C5D6E7000000000016 /* GuestFiltering.swift */; };
 		F550BDE0716D5EACD85D6E04 /* TravelImpact.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC398DB5E62D163C9CDC02E5 /* TravelImpact.swift */; };
+		F1A100000000000000000001 /* Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A100000000000000000101 /* Timeline.swift */; };
+		F1A100000000000000000002 /* TimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A100000000000000000102 /* TimelineTests.swift */; };
 		F5A3B4C5D6E7000000000001 /* DomainRepositorySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000011 /* DomainRepositorySupport.swift */; };
 		F5A3B4C5D6E7000000000003 /* ScheduleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000013 /* ScheduleModels.swift */; };
 		F5A3B4C5D6E7000000000004 /* ScheduleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3B4C5D6E7000000000014 /* ScheduleRepository.swift */; };
@@ -274,6 +276,8 @@
 		FAA3B4C5D6E7000000000015 /* geocode-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "geocode-response.json"; sourceTree = "<group>"; };
 		FAA3B4C5D6E7000000000016 /* travel-times-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "travel-times-response.json"; sourceTree = "<group>"; };
 		FC398DB5E62D163C9CDC02E5 /* TravelImpact.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TravelImpact.swift; sourceTree = "<group>"; };
+		F1A100000000000000000101 /* Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Timeline/Timeline.swift; sourceTree = "<group>"; };
+		F1A100000000000000000102 /* TimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -361,6 +365,7 @@
 				D35AD6546386D0ACE9DBA4BA /* GuestDetailView.swift */,
 				7996C3888797713DA2463A22 /* AddGuestSheet.swift */,
 				4E7C2FC39033742B0D8CB649 /* GuestFieldAdmin.swift */,
+				F1A100000000000000000101 /* Timeline.swift */,
 			);
 			path = Vowbase;
 			sourceTree = "<group>";
@@ -404,6 +409,7 @@
 				A1B2C3D4E5F6000000000025 /* GuestFilteringTests.swift */,
 				A70FDED37A580F42DA21A7DD /* TravelImpactCalculatorTests.swift */,
 				72560A894289C3DF6F4B28F7 /* MapCameraFittingTests.swift */,
+				F1A100000000000000000102 /* TimelineTests.swift */,
 			);
 			path = VowbaseTests;
 			sourceTree = "<group>";
@@ -769,6 +775,7 @@
 				9F5B0231F3DF27AE3CFDE6E7 /* ContextBar.swift in Sources */,
 				F550BDE0716D5EACD85D6E04 /* TravelImpact.swift in Sources */,
 				1C1EF97AAAC7DE5812FEB26E /* OverviewModules.swift in Sources */,
+				F1A100000000000000000001 /* Timeline.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -802,6 +809,7 @@
 				BAA3B4C5D6E7000000000006 /* VenuePhotoServiceTests.swift in Sources */,
 				D894BD97D21922174D371587 /* TravelImpactCalculatorTests.swift in Sources */,
 				837D0EAC1299058281457445 /* MapCameraFittingTests.swift in Sources */,
+				F1A100000000000000000002 /* TimelineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
