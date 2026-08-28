@@ -145,6 +145,34 @@ struct TimelineTests {
         #expect(object["details"] == nil)
     }
 
+    @Test("moodboard requirements decode Supabase and normalized database keys")
+    func decodesMoodboardRequirementsFromSupabaseContract() throws {
+        let data = Data("""
+        {
+          "id":"22B779C0-7E5B-4F9D-94F3-00C13DCEE5B4",
+          "wedding_id":"77B779C0-7E5B-4F9D-94F3-00C13DCEE5B4",
+          "importance":"must_have",
+          "title":"Water view",
+          "description":null,
+          "position":0,
+          "created_at":"2027-01-02T12:30:00Z",
+          "updated_at":"2027-01-02T12:30:00Z"
+        }
+        """.utf8)
+        let supabaseStyleDecoder = JSONDecoder()
+        supabaseStyleDecoder.dateDecodingStrategy = .custom(ISO8601DateDecoding.decode)
+
+        let direct = try supabaseStyleDecoder.decode(MoodboardRequirement.self, from: data)
+        let normalized = try DatabaseDecoding.decoder.decode(MoodboardRequirement.self, from: data)
+
+        #expect(direct.id == requirementID)
+        #expect(direct.weddingID == weddingID)
+        #expect(direct.title == "Water view")
+        #expect(direct.importance == "must_have")
+        #expect(direct.position == 0)
+        #expect(direct == normalized)
+    }
+
     @Test("composer validation rejects a blank title")
     func validatesDraft() {
         #expect(PlanningMomentDraft(momentType: .custom, title: " \n", occurredAt: Date()).validationMessage == "Give this moment a title.")
