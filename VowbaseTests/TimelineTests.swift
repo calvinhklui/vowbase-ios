@@ -166,6 +166,14 @@ struct TimelineTests {
         )
         let draft = PlanningMomentDraft(momentType: .payment, title: "Pay deposit", occurredAt: decoded.occurredAt, locationText: "Online")
         let object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(draft)) as? [String: Any])
+        let blankDraft = PlanningMomentDraft(title: "Jot it down", occurredAt: decoded.occurredAt)
+        let blankDraftObject = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(blankDraft)) as? [String: Any])
+        let blankCreateObject = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(PlanningMomentCreate(weddingID: weddingID, draft: blankDraft))) as? [String: Any]
+        )
+        let blankUpdateObject = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(PlanningMomentUpdate(draft: blankDraft))) as? [String: Any]
+        )
 
         #expect(decoded.momentType == .meeting)
         #expect(decoded.locationText == "Studio")
@@ -175,6 +183,42 @@ struct TimelineTests {
         #expect(object["location_text"] as? String == "Online")
         #expect(object["occurred_at"] != nil)
         #expect(object["details"] == nil)
+        #expect(blankDraftObject["moment_type"] is NSNull)
+        #expect(blankCreateObject["moment_type"] is NSNull)
+        #expect(blankUpdateObject["moment_type"] is NSNull)
+    }
+
+    @Test("planning moments accept a blank type and display it generically")
+    func decodesAndDisplaysUntypedMoments() throws {
+        let moment = try DatabaseDecoding.decoder.decode(
+            PlanningMoment.self,
+            from: Data("""
+            {
+              "id":"11B779C0-7E5B-4F9D-94F3-00C13DCEE5B4",
+              "wedding_id":"77B779C0-7E5B-4F9D-94F3-00C13DCEE5B4",
+              "moment_type":null,
+              "title":"Jot it down",
+              "notes":null,
+              "occurred_at":"2027-01-02T12:30:00Z",
+              "location_text":null,
+              "created_by":"33B779C0-7E5B-4F9D-94F3-00C13DCEE5B4",
+              "linked_venue_id":null,
+              "follow_up_task_id":null,
+              "details":{},
+              "created_at":"2027-01-02T12:30:00Z",
+              "updated_at":"2027-01-02T12:30:00Z"
+            }
+            """.utf8)
+        )
+
+        let entry = TimelineFeed.normalized(
+            moments: [moment], momentRequirements: [], tasks: [], requirements: [], venues: [], guests: []
+        ).first
+
+        #expect(moment.momentType == nil)
+        #expect(entry?.kind == .moment(nil))
+        #expect(entry?.kind.title == "Moment")
+        #expect(entry?.kind.systemImage == "sparkles")
     }
 
     @Test("moodboard requirements decode Supabase and normalized database keys")
@@ -207,7 +251,7 @@ struct TimelineTests {
 
     @Test("composer validation rejects a blank title")
     func validatesDraft() {
-        #expect(PlanningMomentDraft(momentType: .custom, title: " \n", occurredAt: Date()).validationMessage == "Give this moment a title.")
+        #expect(PlanningMomentDraft(title: " \n", occurredAt: Date()).validationMessage == "Give this moment a title.")
     }
 
     @Test("timeline is the first visible lens")
@@ -241,12 +285,13 @@ struct TimelineTests {
     func updatesAndDeletesMoment() async throws {
         let store = TimelineStore()
         let created = await store.create(
-            PlanningMomentDraft(momentType: .meeting, title: "Meet florist", occurredAt: Date()),
+            PlanningMomentDraft(title: "Meet florist", occurredAt: Date()),
             requirementIDs: [],
             weddingID: weddingID
         )
         #expect(created)
         let moment = try #require(store.moments.first)
+        #expect(moment.momentType == nil)
 
         let updated = await store.update(
             moment,
@@ -262,6 +307,17 @@ struct TimelineTests {
         #expect(store.moments.first?.title == "Choose florist")
         #expect(store.moments.first?.momentType == .decision)
         #expect(store.moments.first?.locationText == "Studio")
+
+        let typedMoment = try #require(store.moments.first)
+        let cleared = await store.update(
+            typedMoment,
+            draft: PlanningMomentDraft(
+                title: typedMoment.title,
+                occurredAt: typedMoment.occurredAt
+            )
+        )
+        #expect(cleared)
+        #expect(store.moments.first?.momentType == nil)
 
         let savedMoment = try #require(store.moments.first)
         let deleted = await store.delete(savedMoment)

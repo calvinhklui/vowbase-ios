@@ -10,7 +10,6 @@ enum PlanningMomentType: String, Codable, CaseIterable, Equatable, Sendable, Ide
     case decision
     case meeting
     case payment
-    case custom
 
     var id: String { rawValue }
 
@@ -20,7 +19,6 @@ enum PlanningMomentType: String, Codable, CaseIterable, Equatable, Sendable, Ide
         case .decision: "Decision"
         case .meeting: "Meeting"
         case .payment: "Payment"
-        case .custom: "Custom moment"
         }
     }
 
@@ -30,7 +28,6 @@ enum PlanningMomentType: String, Codable, CaseIterable, Equatable, Sendable, Ide
         case .decision: "checkmark.seal"
         case .meeting: "person.2"
         case .payment: "creditcard"
-        case .custom: "sparkles"
         }
     }
 }
@@ -38,7 +35,7 @@ enum PlanningMomentType: String, Codable, CaseIterable, Equatable, Sendable, Ide
 struct PlanningMoment: Codable, Equatable, Sendable, Identifiable {
     let id: UUID
     let weddingID: UUID
-    let momentType: PlanningMomentType
+    let momentType: PlanningMomentType?
     let title: String
     let notes: String?
     let occurredAt: Date
@@ -53,7 +50,7 @@ struct PlanningMoment: Codable, Equatable, Sendable, Identifiable {
     init(
         id: UUID,
         weddingID: UUID,
-        momentType: PlanningMomentType,
+        momentType: PlanningMomentType?,
         title: String,
         notes: String?,
         occurredAt: Date,
@@ -127,7 +124,7 @@ struct PlanningMoment: Codable, Equatable, Sendable, Identifiable {
         }
         id = try values.decode(UUID.self, forKey: .id)
         weddingID = try values.decode(UUID.self, forKey: key(.weddingIDSnake, or: .weddingIDCamel))
-        momentType = try values.decode(PlanningMomentType.self, forKey: key(.momentTypeSnake, or: .momentTypeCamel))
+        momentType = try values.decodeIfPresent(PlanningMomentType.self, forKey: key(.momentTypeSnake, or: .momentTypeCamel))
         title = try values.decode(String.self, forKey: .title)
         notes = try values.decodeIfPresent(String.self, forKey: .notes)
         occurredAt = try values.decode(Date.self, forKey: key(.occurredAtSnake, or: .occurredAtCamel))
@@ -158,7 +155,7 @@ struct PlanningMomentRequirement: Codable, Equatable, Sendable, Hashable, Identi
 }
 
 struct PlanningMomentDraft: Codable, Equatable, Sendable {
-    let momentType: PlanningMomentType
+    let momentType: PlanningMomentType?
     let title: String
     let notes: String?
     let occurredAt: Date
@@ -168,7 +165,7 @@ struct PlanningMomentDraft: Codable, Equatable, Sendable {
     let details: JSONValue?
 
     init(
-        momentType: PlanningMomentType,
+        momentType: PlanningMomentType? = nil,
         title: String,
         notes: String? = nil,
         occurredAt: Date,
@@ -199,6 +196,18 @@ struct PlanningMomentDraft: Codable, Equatable, Sendable {
         case linkedVenueID = "linked_venue_id"
         case followUpTaskID = "follow_up_task_id"
         case details
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(momentType, forKey: .momentType)
+        try values.encode(title, forKey: .title)
+        try values.encodeIfPresent(notes, forKey: .notes)
+        try values.encode(occurredAt, forKey: .occurredAt)
+        try values.encodeIfPresent(locationText, forKey: .locationText)
+        try values.encodeIfPresent(linkedVenueID, forKey: .linkedVenueID)
+        try values.encodeIfPresent(followUpTaskID, forKey: .followUpTaskID)
+        try values.encodeIfPresent(details, forKey: .details)
     }
 }
 
@@ -304,9 +313,9 @@ final class SupabaseTimelineRepository: TimelineRepository, @unchecked Sendable 
     }
 }
 
-private struct PlanningMomentCreate: Codable {
+struct PlanningMomentCreate: Encodable {
     let weddingID: UUID
-    let momentType: PlanningMomentType
+    let momentType: PlanningMomentType?
     let title: String
     let notes: String?
     let occurredAt: Date
@@ -337,9 +346,22 @@ private struct PlanningMomentCreate: Codable {
         case followUpTaskID = "follow_up_task_id"
         case details
     }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(weddingID, forKey: .weddingID)
+        try values.encode(momentType, forKey: .momentType)
+        try values.encode(title, forKey: .title)
+        try values.encodeIfPresent(notes, forKey: .notes)
+        try values.encode(occurredAt, forKey: .occurredAt)
+        try values.encodeIfPresent(locationText, forKey: .locationText)
+        try values.encodeIfPresent(linkedVenueID, forKey: .linkedVenueID)
+        try values.encodeIfPresent(followUpTaskID, forKey: .followUpTaskID)
+        try values.encodeIfPresent(details, forKey: .details)
+    }
 }
 
-private struct PlanningMomentUpdate: Encodable, Sendable {
+struct PlanningMomentUpdate: Encodable, Sendable {
     let draft: PlanningMomentDraft
 
     func encode(to encoder: Encoder) throws {
@@ -372,7 +394,7 @@ private struct TimelineDeleteReceipt: Decodable, Sendable {
 // MARK: - Feed normalization and status
 
 enum TimelineEntryKind: Equatable, Sendable {
-    case moment(PlanningMomentType)
+    case moment(PlanningMomentType?)
     case completedTask
     case taskAdded
     case venueAdded
@@ -381,7 +403,7 @@ enum TimelineEntryKind: Equatable, Sendable {
 
     var title: String {
         switch self {
-        case let .moment(type): type.title
+        case let .moment(type): type?.title ?? "Moment"
         case .completedTask: "Task completed"
         case .taskAdded: "Task added"
         case .venueAdded: "Venue added"
@@ -392,7 +414,7 @@ enum TimelineEntryKind: Equatable, Sendable {
 
     var systemImage: String {
         switch self {
-        case let .moment(type): type.systemImage
+        case let .moment(type): type?.systemImage ?? "sparkles"
         case .completedTask: "checkmark.circle.fill"
         case .taskAdded: "checklist"
         case .venueAdded: PlanLens.venues.systemImage
@@ -1209,7 +1231,7 @@ struct TimelineComposer: View {
     let venues: [MVPVenue]
     let moment: PlanningMoment?
 
-    @State private var momentType: PlanningMomentType
+    @State private var momentType: PlanningMomentType?
     @State private var title: String
     @State private var occurredAt: Date
     @State private var notes: String
@@ -1229,7 +1251,7 @@ struct TimelineComposer: View {
         self.weddingID = weddingID
         self.venues = venues
         self.moment = moment
-        _momentType = State(initialValue: moment?.momentType ?? .venueTour)
+        _momentType = State(initialValue: moment?.momentType)
         _title = State(initialValue: moment?.title ?? "")
         _occurredAt = State(initialValue: moment?.occurredAt ?? Date())
         _notes = State(initialValue: moment?.notes ?? "")
@@ -1255,8 +1277,11 @@ struct TimelineComposer: View {
                         .textInputAutocapitalization(.sentences)
                         .focused($isTitleFocused)
                     Picker("Type", selection: $momentType) {
+                        Text("")
+                            .accessibilityLabel("No type")
+                            .tag(PlanningMomentType?.none)
                         ForEach(PlanningMomentType.allCases) { type in
-                            Label(type.title, systemImage: type.systemImage).tag(type)
+                            Label(type.title, systemImage: type.systemImage).tag(Optional(type))
                         }
                     }
                     DatePicker("When", selection: $occurredAt, displayedComponents: [.date, .hourAndMinute])
