@@ -43,7 +43,7 @@ struct TaskEditorSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(VowbaseTheme.background)
-            .navigationTitle(isNew ? "New Task" : "Edit Task")
+            .navigationTitle(isNew ? "Add Task" : "Edit Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

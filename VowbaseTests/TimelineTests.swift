@@ -81,6 +81,11 @@ struct TimelineTests {
         #expect(entries.map(\.title) == ["Avery Ng", "Riverside Pavilion", "Draft seating plan"])
         #expect(entries.map(\.kind) == [.guestAdded, .venueAdded, .taskAdded])
         #expect(entries.allSatisfy { $0.notes == nil && $0.locationText == nil })
+        #expect(entries[0].destination == .guest(guest.id))
+        #expect(entries[0].kind.systemImage == PlanLens.guests.systemImage)
+        #expect(entries[1].destination == .venue(venue.id))
+        #expect(entries[1].kind.systemImage == PlanLens.venues.systemImage)
+        #expect(entries[2].destination == nil)
     }
 
     @Test("on-track state follows conservative information and overdue boundaries")

@@ -347,11 +347,16 @@ enum TimelineEntryKind: Equatable, Sendable {
         case let .moment(type): type.systemImage
         case .completedTask: "checkmark.circle.fill"
         case .taskAdded: "checklist"
-        case .venueAdded: "building.2"
-        case .guestAdded: "person.crop.circle"
+        case .venueAdded: PlanLens.venues.systemImage
+        case .guestAdded: PlanLens.guests.systemImage
         case .requirement: "list.bullet.clipboard"
         }
     }
+}
+
+enum TimelineEntryDestination: Equatable, Sendable {
+    case venue(UUID)
+    case guest(UUID)
 }
 
 struct TimelineEntry: Identifiable, Equatable, Sendable {
@@ -363,6 +368,9 @@ struct TimelineEntry: Identifiable, Equatable, Sendable {
     let locationText: String?
     let linkedVenueName: String?
     let requirementNames: [String]
+    /// Stable identity for timeline row types that support navigation.
+    /// The view resolves the current value from its owning store before routing.
+    let destination: TimelineEntryDestination?
 }
 
 enum TimelineFeed {
@@ -387,7 +395,8 @@ enum TimelineFeed {
                 notes: moment.notes,
                 locationText: moment.locationText,
                 linkedVenueName: moment.linkedVenueID.flatMap { venueNames[$0] },
-                requirementNames: (requirementsByMoment[moment.id] ?? []).compactMap { requirementNames[$0.requirementID] }.sorted()
+                requirementNames: (requirementsByMoment[moment.id] ?? []).compactMap { requirementNames[$0.requirementID] }.sorted(),
+                destination: nil
             )
         }
 
@@ -400,7 +409,8 @@ enum TimelineFeed {
                 notes: nil,
                 locationText: nil,
                 linkedVenueName: nil,
-                requirementNames: []
+                requirementNames: [],
+                destination: nil
             )
         }
 
@@ -413,7 +423,8 @@ enum TimelineFeed {
                 notes: nil,
                 locationText: nil,
                 linkedVenueName: nil,
-                requirementNames: []
+                requirementNames: [],
+                destination: .venue(venue.id)
             )
         }
 
@@ -426,7 +437,8 @@ enum TimelineFeed {
                 notes: nil,
                 locationText: nil,
                 linkedVenueName: nil,
-                requirementNames: []
+                requirementNames: [],
+                destination: .guest(guest.id)
             )
         }
 
@@ -439,7 +451,8 @@ enum TimelineFeed {
                 notes: requirement.description,
                 locationText: nil,
                 linkedVenueName: nil,
-                requirementNames: []
+                requirementNames: [],
+                destination: nil
             )
         }
 
@@ -683,6 +696,22 @@ struct PlanningTimelineView: View {
     let store: VowbaseWorkspaceStore
     let taskStore: TaskStore
     let timelineStore: TimelineStore
+    let onOpenVenue: (MVPVenue) -> Void
+    let onOpenGuest: (MVPGuest) -> Void
+
+    init(
+        store: VowbaseWorkspaceStore,
+        taskStore: TaskStore,
+        timelineStore: TimelineStore,
+        onOpenVenue: @escaping (MVPVenue) -> Void = { _ in },
+        onOpenGuest: @escaping (MVPGuest) -> Void = { _ in }
+    ) {
+        self.store = store
+        self.taskStore = taskStore
+        self.timelineStore = timelineStore
+        self.onOpenVenue = onOpenVenue
+        self.onOpenGuest = onOpenGuest
+    }
 
     private var weddingID: UUID? { store.wedding?.id }
     private var entries: [TimelineEntry] {
@@ -734,7 +763,7 @@ struct PlanningTimelineView: View {
                                     .accessibilityAddTraits(.isHeader)
 
                                 ForEach(group.entries) { entry in
-                                    TimelineEntryRow(entry: entry)
+                                    TimelineEntryRow(entry: entry, onOpen: openAction(for: entry))
                                     Divider()
                                 }
                             }
@@ -788,6 +817,19 @@ struct PlanningTimelineView: View {
         async let tasks: Void = taskStore.load(weddingID: weddingID)
         async let timeline: Void = timelineStore.load(weddingID: weddingID)
         _ = await (workspace, tasks, timeline)
+    }
+
+    private func openAction(for entry: TimelineEntry) -> (() -> Void)? {
+        switch entry.destination {
+        case let .venue(id):
+            guard let venue = store.venues.first(where: { $0.id == id }) else { return nil }
+            return { onOpenVenue(venue) }
+        case let .guest(id):
+            guard let guest = store.guests.first(where: { $0.id == id }) else { return nil }
+            return { onOpenGuest(guest) }
+        case nil:
+            return nil
+        }
     }
 }
 
@@ -843,8 +885,29 @@ private struct TimelineStatusRow: View {
 
 private struct TimelineEntryRow: View {
     let entry: TimelineEntry
+    let onOpen: (() -> Void)?
 
     var body: some View {
+        if let onOpen {
+            Button(action: onOpen) {
+                content
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityHint("Opens \(entry.title)")
+        } else {
+            content
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(accessibilityLabel)
+        }
+    }
+
+    private var accessibilityLabel: String {
+        "\(entry.kind.title): \(entry.title), \(TimelineDateFormatter.divider.string(from: entry.occurredAt))"
+    }
+
+    private var content: some View {
         HStack(alignment: .top, spacing: VowbaseSpace.medium) {
             Image(systemName: entry.kind.systemImage)
                 .font(.body.weight(.semibold))
@@ -890,8 +953,6 @@ private struct TimelineEntryRow: View {
             }
         }
         .padding(.vertical, VowbaseSpace.medium)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(entry.kind.title): \(entry.title), \(TimelineDateFormatter.divider.string(from: entry.occurredAt))")
     }
 }
 
@@ -921,7 +982,6 @@ struct TimelineComposer: View {
     let timelineStore: TimelineStore
     let weddingID: UUID
     let venues: [MVPVenue]
-    let requirements: [MoodboardRequirement]
 
     @State private var momentType: PlanningMomentType = .venueTour
     @State private var title = ""
@@ -929,60 +989,39 @@ struct TimelineComposer: View {
     @State private var notes = ""
     @State private var locationText = ""
     @State private var linkedVenueID: UUID?
-    @State private var selectedRequirementIDs = Set<UUID>()
+    @FocusState private var isTitleFocused: Bool
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Moment") {
+                    TextField("Title", text: $title)
+                        .textInputAutocapitalization(.sentences)
+                        .focused($isTitleFocused)
                     Picker("Type", selection: $momentType) {
                         ForEach(PlanningMomentType.allCases) { type in
                             Label(type.title, systemImage: type.systemImage).tag(type)
                         }
                     }
-                    TextField("Title", text: $title)
-                        .textInputAutocapitalization(.sentences)
                     DatePicker("When", selection: $occurredAt, displayedComponents: [.date, .hourAndMinute])
                 }
 
                 Section("Details") {
-                    TextField("Location (optional)", text: $locationText)
-                        .textInputAutocapitalization(.words)
-                    Picker("Linked venue", selection: $linkedVenueID) {
+                    Picker("Linked Venue", selection: $linkedVenueID) {
                         Text("None").tag(UUID?.none)
                         ForEach(venues) { venue in
                             Text(venue.name).tag(Optional(venue.id))
                         }
                     }
+                    TextField("Location (optional)", text: $locationText)
+                        .textInputAutocapitalization(.words)
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(3...7)
                 }
-
-                if !requirements.isEmpty {
-                    Section("Requirements") {
-                        ForEach(requirements) { requirement in
-                            Button {
-                                toggle(requirement.id)
-                            } label: {
-                                HStack {
-                                    Text(requirement.title)
-                                        .foregroundStyle(VowbaseTheme.ink)
-                                    Spacer()
-                                    if selectedRequirementIDs.contains(requirement.id) {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(VowbaseTheme.rose)
-                                            .accessibilityHidden(true)
-                                    }
-                                }
-                            }
-                            .accessibilityLabel("Requirement: \(requirement.title)")
-                            .accessibilityValue(selectedRequirementIDs.contains(requirement.id) ? "Selected" : "Not selected")
-                        }
-                    }
-                }
             }
-            .navigationTitle("Log a moment")
+            .navigationTitle("Add Moment")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { isTitleFocused = true }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -1014,14 +1053,6 @@ struct TimelineComposer: View {
         )
     }
 
-    private func toggle(_ requirementID: UUID) {
-        if selectedRequirementIDs.contains(requirementID) {
-            selectedRequirementIDs.remove(requirementID)
-        } else {
-            selectedRequirementIDs.insert(requirementID)
-        }
-    }
-
     private func save() async {
         let saved = await timelineStore.create(
             PlanningMomentDraft(
@@ -1032,7 +1063,7 @@ struct TimelineComposer: View {
                 locationText: locationText.timelineNilIfBlank,
                 linkedVenueID: linkedVenueID
             ),
-            requirementIDs: selectedRequirementIDs,
+            requirementIDs: [],
             weddingID: weddingID
         )
         if saved { dismiss() }
@@ -1047,6 +1078,7 @@ struct RequirementComposer: View {
     @State private var title = ""
     @State private var importance = "core"
     @State private var notes = ""
+    @FocusState private var isTitleFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -1054,6 +1086,7 @@ struct RequirementComposer: View {
                 Section("Requirement") {
                     TextField("Outdoor ceremony space", text: $title)
                         .textInputAutocapitalization(.sentences)
+                        .focused($isTitleFocused)
                     Picker("Importance", selection: $importance) {
                         Text("Must Have").tag("core")
                         Text("Nice to Have").tag("preference")
@@ -1062,8 +1095,9 @@ struct RequirementComposer: View {
                         .lineLimit(3...7)
                 }
             }
-            .navigationTitle("New requirement")
+            .navigationTitle("Add Requirement")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { isTitleFocused = true }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

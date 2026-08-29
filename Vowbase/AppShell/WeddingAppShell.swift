@@ -133,10 +133,9 @@ struct WeddingAppShell: View {
                     .padding(.top, 10)
 
                 if store.isLoading {
-                    ProgressView("Loading your wedding")
-                        .tint(VowbaseTheme.rose)
-                        .padding(24)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    WeddingLoadingOverlay()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .zIndex(1)
                 }
             }
             // Recomputes the impact readout whenever the selected venue
@@ -344,8 +343,7 @@ struct WeddingAppShell: View {
                 TimelineComposer(
                     timelineStore: timelineStore,
                     weddingID: weddingID,
-                    venues: store.venues,
-                    requirements: timelineStore.requirements
+                    venues: store.venues
                 )
                 .presentationDetents([.medium, .large])
             case let .requirement(weddingID):
@@ -416,12 +414,9 @@ struct WeddingAppShell: View {
             QuickAddOverlay(
                 isPresented: $isQuickAddPresented,
                 actions: [
-                    QuickAddAction(id: "moment", title: "Add Moment", icon: "clock.badge.plus", tint: VowbaseTheme.rose) {
+                    QuickAddAction(id: "moment", title: "Add Moment", icon: "sparkles", tint: VowbaseTheme.rose) {
                         guard let weddingID = store.wedding?.id else { return }
                         quickAdd = .moment(weddingID: weddingID)
-                    },
-                    QuickAddAction(id: "task", title: "Add Task", icon: "checkmark.circle.badge.plus", tint: VowbaseTheme.rose) {
-                        taskEditor = .add()
                     },
                     QuickAddAction(id: "requirement", title: "Add Requirement", icon: "list.bullet.clipboard", tint: VowbaseTheme.rose) {
                         guard let weddingID = store.wedding?.id else { return }
@@ -432,6 +427,9 @@ struct WeddingAppShell: View {
                     },
                     QuickAddAction(id: "guest", title: "Add Guest", icon: "person.badge.plus", tint: VowbaseTheme.guestBlue) {
                         quickAdd = .guest
+                    },
+                    QuickAddAction(id: "task", title: "Add Task", icon: "checkmark.circle.badge.plus", tint: VowbaseTheme.rose) {
+                        taskEditor = .add()
                     },
                 ]
             )
@@ -586,7 +584,13 @@ struct WeddingAppShell: View {
         case .tasks:
             TasksView(store: store, taskStore: taskStore, editor: $taskEditor)
         case .timeline:
-            PlanningTimelineView(store: store, taskStore: taskStore, timelineStore: timelineStore)
+            PlanningTimelineView(
+                store: store,
+                taskStore: taskStore,
+                timelineStore: timelineStore,
+                onOpenVenue: selectVenue,
+                onOpenGuest: openGuestDetails
+            )
         }
     }
 
@@ -716,6 +720,52 @@ struct WeddingAppShell: View {
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = nil
         guestClusterInsight = nil
+    }
+}
+
+/// Global workspace loads keep a single, quiet progress affordance centered
+/// over the canvas. The system progress control supplies motion appropriate
+/// to the user's accessibility settings; no decorative animation is added.
+private struct WeddingLoadingOverlay: View {
+    var body: some View {
+        VStack(spacing: VowbaseSpace.standard) {
+            ZStack {
+                Circle()
+                    .fill(VowbaseTheme.blush)
+                    .frame(width: 76, height: 76)
+
+                Circle()
+                    .stroke(VowbaseTheme.rose.opacity(0.18), lineWidth: 1)
+                    .frame(width: 62, height: 62)
+
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(VowbaseTheme.rose)
+            }
+
+            VStack(spacing: VowbaseSpace.xSmall) {
+                Text("Loading your wedding")
+                    .font(.system(size: 20, weight: .regular, design: .serif))
+                    .foregroundStyle(VowbaseTheme.ink)
+
+                Text("Bringing your plans together")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(VowbaseTheme.mutedInk)
+            }
+            .multilineTextAlignment(.center)
+        }
+        .padding(VowbaseSpace.large)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: VowbaseRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: VowbaseRadius.large, style: .continuous)
+                .stroke(VowbaseTheme.border.opacity(0.8), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 20, y: 8)
+        .padding(VowbaseSpace.large)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading your wedding")
+        .accessibilityValue("Bringing your plans together")
+        .accessibilityAddTraits(.updatesFrequently)
     }
 }
 

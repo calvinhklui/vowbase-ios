@@ -123,11 +123,12 @@ struct MapWorkspaceView: View {
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
-        // A canvas-optional lens (Tasks or Timeline, spec §2.1) contributes nothing to the
-        // map, so the live map behind it is noise. Frosting it keeps the sense
-        // of place without competing with the console's content.
+        // Tasks is canvas-optional, so frosting its map preserves a quiet
+        // backdrop. Timeline deliberately keeps its map live: venue and
+        // guest activity is navigable from that lens and should retain its
+        // geographic context.
         .overlay {
-            if lens.isCanvasOptional {
+            if lens == .tasks {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .ignoresSafeArea()
@@ -135,7 +136,7 @@ struct MapWorkspaceView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: lens.isCanvasOptional)
+        .animation(.easeInOut(duration: 0.3), value: lens == .tasks)
         .onAppear { updateCamera(animated: false, viewportHeight: viewportHeight) }
         .onChange(of: cameraKey(viewportHeight: viewportHeight)) {
             updateCamera(animated: true, viewportHeight: viewportHeight)
