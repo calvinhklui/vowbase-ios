@@ -57,3 +57,32 @@ struct VowbasePrimaryButtonStyle: ButtonStyle {
             .contentShape(RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous))
     }
 }
+
+/// A semantic confirmation action for the system navigation bar.
+///
+/// The toolbar owns sizing, hit testing, material, and pressed appearance so
+/// the control follows the current OS instead of drawing a parallel button.
+struct VowbaseConfirmationToolbarButton: View {
+    let accessibilityLabel: LocalizedStringKey
+    let isDisabled: Bool
+    let action: () -> Void
+
+    init(
+        _ accessibilityLabel: LocalizedStringKey = "Save",
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.accessibilityLabel = accessibilityLabel
+        self.isDisabled = isDisabled
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "checkmark")
+        }
+        .tint(VowbaseTheme.rose)
+        .disabled(isDisabled)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}

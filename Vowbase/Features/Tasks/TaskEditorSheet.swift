@@ -50,9 +50,11 @@ struct TaskEditorSheet: View {
                     Button("Cancel", action: dismiss.callAsFunction)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isNew ? "Add" : "Save") { save() }
-                        .fontWeight(.semibold)
-                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving || !canManageTasks)
+                    VowbaseConfirmationToolbarButton(
+                        isNew ? "Add Task" : "Save Task",
+                        isDisabled: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving || !canManageTasks,
+                        action: save
+                    )
                 }
             }
             .disabled(!canManageTasks || isSaving)

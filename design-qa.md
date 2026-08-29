@@ -68,3 +68,37 @@ The user intentionally superseded the original navigation composition after visu
 The approved Travel Coverage content, route styling, read-only venue rows, and privacy treatment remain unchanged. The differences from the original visual are explicit user-directed product changes rather than fidelity defects.
 
 final result: passed
+
+---
+
+# Design QA: Timeline edit actions
+
+## Evidence
+
+- Source reference: `/tmp/codex-remote-attachments/01a04f12-fba7-75b1-a8dc-143eb1bae21d/B6161F06-08BF-4212-A9C4-7A5945EEEA7B/1-Photo-1.jpg`
+- Implementation screenshot, moment: `/Users/calvin/.codex/visualizations/2026/08/29/01a04f12-fba7-75b1-a8dc-143eb1bae21d/timeline-edit-qa/moment-edit.png`
+- Implementation screenshot, requirement: `/Users/calvin/.codex/visualizations/2026/08/29/01a04f12-fba7-75b1-a8dc-143eb1bae21d/timeline-edit-qa/requirement-edit.png`
+- Focused implementation crop: `/Users/calvin/.codex/visualizations/2026/08/29/01a04f12-fba7-75b1-a8dc-143eb1bae21d/timeline-edit-qa/requirement-toolbar.png`
+- Final native-toolbar screenshot, moment: `/Users/calvin/.codex/visualizations/2026/08/29/01a04f12-fba7-75b1-a8dc-143eb1bae21d/timeline-edit-qa/moment-edit-native-toolbar.png`
+- Final native-toolbar screenshot, requirement: `/Users/calvin/.codex/visualizations/2026/08/29/01a04f12-fba7-75b1-a8dc-143eb1bae21d/timeline-edit-qa/requirement-edit-native-toolbar.png`
+- Delete confirmation screenshot: `/Users/calvin/.codex/visualizations/2026/08/29/01a04f12-fba7-75b1-a8dc-143eb1bae21d/timeline-edit-qa/delete-confirmation.png`
+- Viewport: iPhone Air Simulator, iOS 26.5, portrait, 420 x 912 points
+- Captured pixels: 1260 x 2736 at 3x scale
+- State: authenticated DEBUG fixture, Timeline selected, existing Moment and Requirement edit sheets at the medium detent
+
+## Comparison
+
+The source is a focused control-hierarchy reference rather than a complete Vowbase screen. The final implementation preserves its important relationship: a neutral secondary action sits immediately left of a Vowbase-pink confirmation action. Both actions are standard SwiftUI toolbar items; the OS navigation bar owns their sizing, material, hit targets, and pressed appearance.
+
+## Findings and iteration history
+
+1. Initial Moment capture confirmed the edit sheet, trash placement, and separate pink checkmark.
+2. Initial Requirement capture exposed a narrow-screen collision that clipped the text Cancel control beside the longer Edit Requirement title (P2).
+3. Replaced the Timeline edit sheets' text Cancel action with a standard xmark plus a Cancel accessibility label.
+4. Final Requirement capture confirms the title and all three actions render without clipping. The trash remains directly left of the pink confirmation control.
+5. The non-destructive confirmation-state fixture renders the destructive Delete Moment action, explanatory irreversible-action copy, and Cancel. The destructive action was not accepted.
+6. The custom confirmation circle was rejected because it fought the system toolbar layout and clipped at the modal edge. Replacing it with a native tinted toolbar button resolves the issue in both the Moment and longer-title Requirement sheets.
+
+## Final result
+
+Passed. No remaining P0, P1, or P2 visual differences for the requested edit-action hierarchy.

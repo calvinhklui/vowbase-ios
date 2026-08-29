@@ -35,6 +35,8 @@ struct TimelineTests {
         #expect(entries.first?.occurredAt == completed.completedAt)
         #expect(entries[1].kind == .taskAdded)
         #expect(entries[1].occurredAt == legacyDone.createdAt)
+        #expect(entries[2].destination == .moment(moment.id))
+        #expect(entries[3].destination == .requirement(requirement.id))
         #expect(entries.filter { $0.id == "task-\(completed.id.uuidString)" }.count == 1)
     }
 
@@ -234,6 +236,75 @@ struct TimelineTests {
         #expect(store.requirements.first?.description == nil)
     }
 
+    @Test("moments can be updated and deleted through the editor store path")
+    @MainActor
+    func updatesAndDeletesMoment() async throws {
+        let store = TimelineStore()
+        let created = await store.create(
+            PlanningMomentDraft(momentType: .meeting, title: "Meet florist", occurredAt: Date()),
+            requirementIDs: [],
+            weddingID: weddingID
+        )
+        #expect(created)
+        let moment = try #require(store.moments.first)
+
+        let updated = await store.update(
+            moment,
+            draft: PlanningMomentDraft(
+                momentType: .decision,
+                title: "Choose florist",
+                notes: "Shortlist reviewed",
+                occurredAt: moment.occurredAt,
+                locationText: "Studio"
+            )
+        )
+        #expect(updated)
+        #expect(store.moments.first?.title == "Choose florist")
+        #expect(store.moments.first?.momentType == .decision)
+        #expect(store.moments.first?.locationText == "Studio")
+
+        let savedMoment = try #require(store.moments.first)
+        let deleted = await store.delete(savedMoment)
+        #expect(deleted)
+        #expect(store.moments.isEmpty)
+    }
+
+    @Test("requirements can be updated and deleted through the editor store path")
+    @MainActor
+    func updatesAndDeletesRequirement() async throws {
+        let store = TimelineStore()
+        let created = await store.createRequirement(
+            MoodboardRequirementDraft(
+                importance: "core",
+                title: "Outdoor ceremony",
+                description: nil,
+                position: 0
+            ),
+            weddingID: weddingID
+        )
+        #expect(created)
+        let requirement = try #require(store.requirements.first)
+
+        let updated = await store.updateRequirement(
+            requirement,
+            draft: MoodboardRequirementDraft(
+                importance: "preference",
+                title: "Covered outdoor ceremony",
+                description: "Rain-ready",
+                position: requirement.position
+            )
+        )
+        #expect(updated)
+        #expect(store.requirements.first?.title == "Covered outdoor ceremony")
+        #expect(store.requirements.first?.importance == "preference")
+        #expect(store.requirements.first?.description == "Rain-ready")
+
+        let savedRequirement = try #require(store.requirements.first)
+        let deleted = await store.deleteRequirement(savedRequirement)
+        #expect(deleted)
+        #expect(store.requirements.isEmpty)
+    }
+
     @Test("a requirement-link failure keeps the persisted moment and avoids resubmission")
     @MainActor
     func retainsPersistedMomentAfterRequirementLinkFailure() async {
@@ -299,6 +370,8 @@ private final class PartiallyFailingTimelineRepository: TimelineRepository, @unc
     func planningMoments(weddingID _: UUID) async throws -> [PlanningMoment] { [] }
     func planningMomentRequirements(weddingID _: UUID) async throws -> [PlanningMomentRequirement] { [] }
     func createPlanningMoment(_: PlanningMomentDraft, weddingID _: UUID) async throws -> PlanningMoment { persistedMoment }
+    func updatePlanningMoment(id _: UUID, draft _: PlanningMomentDraft) async throws -> PlanningMoment { persistedMoment }
+    func deletePlanningMoment(id _: UUID) async throws {}
 
     func createPlanningMomentRequirements(momentID _: UUID, requirementIDs _: [UUID]) async throws {
         requirementInsertAttempts += 1

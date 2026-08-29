@@ -26,7 +26,9 @@ struct VowbaseApp: App {
                     VowbaseAuthenticatedContent(
                         testingWorkspace: true,
                         presentsInitialVenueDetail: ProcessInfo.processInfo.arguments.contains("-testingVenueDetail"),
-                        presentsInitialGuestInsight: ProcessInfo.processInfo.arguments.contains("-testingGuestInsight")
+                        presentsInitialGuestInsight: ProcessInfo.processInfo.arguments.contains("-testingGuestInsight"),
+                        presentsInitialTimelineMomentEditor: ProcessInfo.processInfo.arguments.contains("-testingTimelineMomentEditor"),
+                        presentsInitialTimelineRequirementEditor: ProcessInfo.processInfo.arguments.contains("-testingTimelineRequirementEditor")
                     )
                 } else if let dependencies {
                     VowbaseAppRoot(dependencies: dependencies)

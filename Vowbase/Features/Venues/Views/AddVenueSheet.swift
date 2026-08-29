@@ -40,10 +40,12 @@ struct AddVenueSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    VowbaseConfirmationToolbarButton(
+                        "Save Venue",
+                        isDisabled: name.trimmed.isEmpty || isSaving
+                    ) {
                         saveVenue()
                     }
-                    .disabled(name.trimmed.isEmpty || isSaving)
                 }
             }
             .onAppear { isNameFocused = true }

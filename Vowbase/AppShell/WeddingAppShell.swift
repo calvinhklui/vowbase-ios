@@ -6,15 +6,15 @@ import UIKit
 private enum QuickAddDestination: Identifiable {
     case venue
     case guest
-    case moment(weddingID: UUID)
-    case requirement(weddingID: UUID)
+    case moment(weddingID: UUID, moment: PlanningMoment?)
+    case requirement(weddingID: UUID, requirement: MoodboardRequirement?)
 
     var id: String {
         switch self {
         case .venue: "venue"
         case .guest: "guest"
-        case .moment: "moment"
-        case .requirement: "requirement"
+        case let .moment(_, moment): moment.map { "moment-\($0.id.uuidString)" } ?? "moment-add"
+        case let .requirement(_, requirement): requirement.map { "requirement-\($0.id.uuidString)" } ?? "requirement-add"
         }
     }
 }
@@ -77,6 +77,8 @@ struct WeddingAppShell: View {
         initialLens: PlanLens = .venues,
         presentsInitialVenueDetail: Bool = false,
         presentsInitialGuestInsight: Bool = false,
+        presentsInitialTimelineMomentEditor: Bool = false,
+        presentsInitialTimelineRequirementEditor: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
@@ -96,6 +98,11 @@ struct WeddingAppShell: View {
         _navigation = State(initialValue: initialNavigation)
         _guestClusterInsight = State(initialValue: initialGuestCluster)
         _venueDetailReturnDetent = State(initialValue: initialVenue == nil ? nil : .half)
+        if presentsInitialTimelineMomentEditor, let moment = timelineStore.moments.first {
+            _quickAdd = State(initialValue: .moment(weddingID: moment.weddingID, moment: moment))
+        } else if presentsInitialTimelineRequirementEditor, let requirement = timelineStore.requirements.first {
+            _quickAdd = State(initialValue: .requirement(weddingID: requirement.weddingID, requirement: requirement))
+        }
     }
 
     var body: some View {
@@ -339,16 +346,21 @@ struct WeddingAppShell: View {
             case .guest:
                 AddGuestSheet(store: store)
                     .presentationDetents([.medium, .large])
-            case let .moment(weddingID):
+            case let .moment(weddingID, moment):
                 TimelineComposer(
                     timelineStore: timelineStore,
                     weddingID: weddingID,
-                    venues: store.venues
+                    venues: store.venues,
+                    moment: moment
                 )
                 .presentationDetents([.medium, .large])
-            case let .requirement(weddingID):
-                RequirementComposer(timelineStore: timelineStore, weddingID: weddingID)
-                    .presentationDetents([.medium, .large])
+            case let .requirement(weddingID, requirement):
+                RequirementComposer(
+                    timelineStore: timelineStore,
+                    weddingID: weddingID,
+                    requirement: requirement
+                )
+                .presentationDetents([.medium, .large])
             }
         }
         .sheet(item: $taskEditor) { destination in
@@ -416,11 +428,11 @@ struct WeddingAppShell: View {
                 actions: [
                     QuickAddAction(id: "moment", title: "Add Moment", icon: "sparkles", tint: VowbaseTheme.rose) {
                         guard let weddingID = store.wedding?.id else { return }
-                        quickAdd = .moment(weddingID: weddingID)
+                        quickAdd = .moment(weddingID: weddingID, moment: nil)
                     },
                     QuickAddAction(id: "requirement", title: "Add Requirement", icon: "list.bullet.clipboard", tint: VowbaseTheme.rose) {
                         guard let weddingID = store.wedding?.id else { return }
-                        quickAdd = .requirement(weddingID: weddingID)
+                        quickAdd = .requirement(weddingID: weddingID, requirement: nil)
                     },
                     QuickAddAction(id: "venue", title: "Add Venue", icon: "mappin.and.ellipse", tint: VowbaseTheme.rose) {
                         quickAdd = .venue
@@ -588,6 +600,12 @@ struct WeddingAppShell: View {
                 store: store,
                 taskStore: taskStore,
                 timelineStore: timelineStore,
+                onOpenMoment: { moment in
+                    quickAdd = .moment(weddingID: moment.weddingID, moment: moment)
+                },
+                onOpenRequirement: { requirement in
+                    quickAdd = .requirement(weddingID: requirement.weddingID, requirement: requirement)
+                },
                 onOpenVenue: selectVenue,
                 onOpenGuest: openGuestDetails
             )

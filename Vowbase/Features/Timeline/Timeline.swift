@@ -208,6 +208,8 @@ protocol TimelineRepository: Sendable {
     func planningMoments(weddingID: UUID) async throws -> [PlanningMoment]
     func planningMomentRequirements(weddingID: UUID) async throws -> [PlanningMomentRequirement]
     func createPlanningMoment(_ draft: PlanningMomentDraft, weddingID: UUID) async throws -> PlanningMoment
+    func updatePlanningMoment(id: UUID, draft: PlanningMomentDraft) async throws -> PlanningMoment
+    func deletePlanningMoment(id: UUID) async throws
     func createPlanningMomentRequirements(momentID: UUID, requirementIDs: [UUID]) async throws
 }
 
@@ -248,6 +250,32 @@ final class SupabaseTimelineRepository: TimelineRepository, @unchecked Sendable 
                 .from("planning_moments")
                 .insert(PlanningMomentCreate(weddingID: weddingID, draft: draft))
                 .select(self.momentColumns)
+                .single()
+                .execute()
+                .value
+        }
+    }
+
+    func updatePlanningMoment(id: UUID, draft: PlanningMomentDraft) async throws -> PlanningMoment {
+        try await run {
+            try await self.provider.client
+                .from("planning_moments")
+                .update(PlanningMomentUpdate(draft: draft))
+                .eq("id", value: DomainRepositorySupport.uuid(id))
+                .select(self.momentColumns)
+                .single()
+                .execute()
+                .value
+        }
+    }
+
+    func deletePlanningMoment(id: UUID) async throws {
+        let _: TimelineDeleteReceipt = try await run {
+            try await self.provider.client
+                .from("planning_moments")
+                .delete()
+                .eq("id", value: DomainRepositorySupport.uuid(id))
+                .select("id")
                 .single()
                 .execute()
                 .value
@@ -311,6 +339,22 @@ private struct PlanningMomentCreate: Codable {
     }
 }
 
+private struct PlanningMomentUpdate: Encodable, Sendable {
+    let draft: PlanningMomentDraft
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: PlanningMomentDraft.CodingKeys.self)
+        try values.encode(draft.momentType, forKey: .momentType)
+        try values.encode(draft.title.trimmingCharacters(in: .whitespacesAndNewlines), forKey: .title)
+        try values.encode(draft.notes?.timelineNilIfBlank, forKey: .notes)
+        try values.encode(draft.occurredAt, forKey: .occurredAt)
+        try values.encode(draft.locationText?.timelineNilIfBlank, forKey: .locationText)
+        try values.encode(draft.linkedVenueID, forKey: .linkedVenueID)
+        try values.encode(draft.followUpTaskID, forKey: .followUpTaskID)
+        try values.encode(draft.details, forKey: .details)
+    }
+}
+
 private struct PlanningMomentRequirementCreate: Codable {
     let momentID: UUID
     let requirementID: UUID
@@ -319,6 +363,10 @@ private struct PlanningMomentRequirementCreate: Codable {
         case momentID = "moment_id"
         case requirementID = "requirement_id"
     }
+}
+
+private struct TimelineDeleteReceipt: Decodable, Sendable {
+    let id: UUID
 }
 
 // MARK: - Feed normalization and status
@@ -355,6 +403,8 @@ enum TimelineEntryKind: Equatable, Sendable {
 }
 
 enum TimelineEntryDestination: Equatable, Sendable {
+    case moment(UUID)
+    case requirement(UUID)
     case venue(UUID)
     case guest(UUID)
 }
@@ -396,7 +446,7 @@ enum TimelineFeed {
                 locationText: moment.locationText,
                 linkedVenueName: moment.linkedVenueID.flatMap { venueNames[$0] },
                 requirementNames: (requirementsByMoment[moment.id] ?? []).compactMap { requirementNames[$0.requirementID] }.sorted(),
-                destination: nil
+                destination: .moment(moment.id)
             )
         }
 
@@ -452,7 +502,7 @@ enum TimelineFeed {
                 locationText: nil,
                 linkedVenueName: nil,
                 requirementNames: [],
-                destination: nil
+                destination: .requirement(requirement.id)
             )
         }
 
@@ -627,6 +677,65 @@ final class TimelineStore {
     }
 
     @discardableResult
+    func update(_ moment: PlanningMoment, draft: PlanningMomentDraft) async -> Bool {
+        guard let validationMessage = draft.validationMessage else {
+            saveErrorMessage = nil
+            errorMessage = nil
+            isSaving = true
+            defer { isSaving = false }
+
+            do {
+                let saved: PlanningMoment
+                if let repository {
+                    saved = try await repository.updatePlanningMoment(id: moment.id, draft: draft)
+                } else {
+                    saved = PlanningMoment(
+                        id: moment.id,
+                        weddingID: moment.weddingID,
+                        momentType: draft.momentType,
+                        title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                        notes: draft.notes?.timelineNilIfBlank,
+                        occurredAt: draft.occurredAt,
+                        locationText: draft.locationText?.timelineNilIfBlank,
+                        createdBy: moment.createdBy,
+                        linkedVenueID: draft.linkedVenueID,
+                        followUpTaskID: draft.followUpTaskID,
+                        details: draft.details ?? moment.details,
+                        createdAt: moment.createdAt,
+                        updatedAt: Date()
+                    )
+                }
+                guard let index = moments.firstIndex(where: { $0.id == moment.id }) else { return false }
+                moments[index] = saved
+                return true
+            } catch {
+                saveErrorMessage = userFacingMessage(for: error, fallback: "We couldn't update that moment. Try again.")
+                return false
+            }
+        }
+        saveErrorMessage = validationMessage
+        return false
+    }
+
+    @discardableResult
+    func delete(_ moment: PlanningMoment) async -> Bool {
+        saveErrorMessage = nil
+        errorMessage = nil
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            try await repository?.deletePlanningMoment(id: moment.id)
+            moments.removeAll { $0.id == moment.id }
+            momentRequirements.removeAll { $0.momentID == moment.id }
+            return true
+        } catch {
+            saveErrorMessage = userFacingMessage(for: error, fallback: "We couldn't delete that moment. Try again.")
+            return false
+        }
+    }
+
+    @discardableResult
     func createRequirement(_ draft: MoodboardRequirementDraft, weddingID: UUID) async -> Bool {
         let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else {
@@ -668,6 +777,71 @@ final class TimelineStore {
         }
     }
 
+    @discardableResult
+    func updateRequirement(_ requirement: MoodboardRequirement, draft: MoodboardRequirementDraft) async -> Bool {
+        let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            saveErrorMessage = "Give this requirement a title."
+            return false
+        }
+
+        saveErrorMessage = nil
+        errorMessage = nil
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let normalized = MoodboardRequirementDraft(
+                importance: draft.importance,
+                title: title,
+                description: draft.description?.timelineNilIfBlank,
+                position: draft.position
+            )
+            let saved: MoodboardRequirement
+            if let inspirationRepository {
+                saved = try await inspirationRepository.updateMoodboardRequirement(id: requirement.id, draft: normalized)
+            } else {
+                saved = MoodboardRequirement(
+                    id: requirement.id,
+                    weddingID: requirement.weddingID,
+                    importance: normalized.importance,
+                    title: normalized.title,
+                    description: normalized.description,
+                    position: normalized.position,
+                    createdAt: requirement.createdAt,
+                    updatedAt: Date()
+                )
+            }
+            guard let index = requirements.firstIndex(where: { $0.id == requirement.id }) else { return false }
+            requirements[index] = saved
+            requirements.sort {
+                $0.position == $1.position ? $0.createdAt < $1.createdAt : $0.position < $1.position
+            }
+            return true
+        } catch {
+            saveErrorMessage = userFacingMessage(for: error, fallback: "We couldn't update that requirement. Try again.")
+            return false
+        }
+    }
+
+    @discardableResult
+    func deleteRequirement(_ requirement: MoodboardRequirement) async -> Bool {
+        saveErrorMessage = nil
+        errorMessage = nil
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            try await inspirationRepository?.deleteMoodboardRequirement(id: requirement.id)
+            requirements.removeAll { $0.id == requirement.id }
+            momentRequirements.removeAll { $0.requirementID == requirement.id }
+            return true
+        } catch {
+            saveErrorMessage = userFacingMessage(for: error, fallback: "We couldn't delete that requirement. Try again.")
+            return false
+        }
+    }
+
     func feed(tasks: [WeddingTask], venues: [MVPVenue], guests: [MVPGuest]) -> [TimelineEntry] {
         TimelineFeed.normalized(
             moments: moments,
@@ -689,6 +863,45 @@ final class TimelineStore {
     }
 }
 
+#if DEBUG
+extension TimelineStore {
+    static func testingWorkspace(weddingID: UUID) -> TimelineStore {
+        let store = TimelineStore()
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+        store.moments = [
+            PlanningMoment(
+                id: UUID(uuidString: "A8C4B8B9-8700-45A4-BA77-B3EF1D0FD101")!,
+                weddingID: weddingID,
+                momentType: .venueTour,
+                title: "Tour Riverside Pavilion",
+                notes: "Ask about the rain plan and ceremony turnaround.",
+                occurredAt: Date(timeIntervalSince1970: 1_800_000_000),
+                locationText: "Example City",
+                createdBy: UUID(uuidString: "3B4C76E4-E7A5-48A3-B351-439E9488273B")!,
+                linkedVenueID: UUID(uuidString: "4B836FCF-0575-41F8-960C-3C69E70F1D84")!,
+                followUpTaskID: nil,
+                details: .object([:]),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        store.requirements = [
+            MoodboardRequirement(
+                id: UUID(uuidString: "A8C4B8B9-8700-45A4-BA77-B3EF1D0FD102")!,
+                weddingID: weddingID,
+                importance: "core",
+                title: "Outdoor ceremony space",
+                description: "Room for every guest with a covered backup nearby.",
+                position: 0,
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        return store
+    }
+}
+#endif
+
 // MARK: - View
 
 @MainActor
@@ -696,6 +909,8 @@ struct PlanningTimelineView: View {
     let store: VowbaseWorkspaceStore
     let taskStore: TaskStore
     let timelineStore: TimelineStore
+    let onOpenMoment: (PlanningMoment) -> Void
+    let onOpenRequirement: (MoodboardRequirement) -> Void
     let onOpenVenue: (MVPVenue) -> Void
     let onOpenGuest: (MVPGuest) -> Void
 
@@ -703,12 +918,16 @@ struct PlanningTimelineView: View {
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
         timelineStore: TimelineStore,
+        onOpenMoment: @escaping (PlanningMoment) -> Void = { _ in },
+        onOpenRequirement: @escaping (MoodboardRequirement) -> Void = { _ in },
         onOpenVenue: @escaping (MVPVenue) -> Void = { _ in },
         onOpenGuest: @escaping (MVPGuest) -> Void = { _ in }
     ) {
         self.store = store
         self.taskStore = taskStore
         self.timelineStore = timelineStore
+        self.onOpenMoment = onOpenMoment
+        self.onOpenRequirement = onOpenRequirement
         self.onOpenVenue = onOpenVenue
         self.onOpenGuest = onOpenGuest
     }
@@ -821,6 +1040,12 @@ struct PlanningTimelineView: View {
 
     private func openAction(for entry: TimelineEntry) -> (() -> Void)? {
         switch entry.destination {
+        case let .moment(id):
+            guard let moment = timelineStore.moments.first(where: { $0.id == id }) else { return nil }
+            return { onOpenMoment(moment) }
+        case let .requirement(id):
+            guard let requirement = timelineStore.requirements.first(where: { $0.id == id }) else { return nil }
+            return { onOpenRequirement(requirement) }
         case let .venue(id):
             guard let venue = store.venues.first(where: { $0.id == id }) else { return nil }
             return { onOpenVenue(venue) }
@@ -982,14 +1207,45 @@ struct TimelineComposer: View {
     let timelineStore: TimelineStore
     let weddingID: UUID
     let venues: [MVPVenue]
+    let moment: PlanningMoment?
 
-    @State private var momentType: PlanningMomentType = .venueTour
-    @State private var title = ""
-    @State private var occurredAt = Date()
-    @State private var notes = ""
-    @State private var locationText = ""
+    @State private var momentType: PlanningMomentType
+    @State private var title: String
+    @State private var occurredAt: Date
+    @State private var notes: String
+    @State private var locationText: String
     @State private var linkedVenueID: UUID?
+    @State private var showsDeleteConfirmation = false
+    @State private var operationIsDelete = false
     @FocusState private var isTitleFocused: Bool
+
+    init(
+        timelineStore: TimelineStore,
+        weddingID: UUID,
+        venues: [MVPVenue],
+        moment: PlanningMoment? = nil
+    ) {
+        self.timelineStore = timelineStore
+        self.weddingID = weddingID
+        self.venues = venues
+        self.moment = moment
+        _momentType = State(initialValue: moment?.momentType ?? .venueTour)
+        _title = State(initialValue: moment?.title ?? "")
+        _occurredAt = State(initialValue: moment?.occurredAt ?? Date())
+        _notes = State(initialValue: moment?.notes ?? "")
+        _locationText = State(initialValue: moment?.locationText ?? "")
+        _linkedVenueID = State(initialValue: moment?.linkedVenueID)
+#if DEBUG
+        _showsDeleteConfirmation = State(
+            initialValue: moment != nil && ProcessInfo.processInfo.arguments.contains("-testingDeleteConfirmation")
+        )
+#endif
+    }
+
+    private var isEditing: Bool { moment != nil }
+    private var saveIsDisabled: Bool {
+        timelineStore.isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -1019,16 +1275,37 @@ struct TimelineComposer: View {
                         .lineLimit(3...7)
                 }
             }
-            .navigationTitle("Add Moment")
+            .navigationTitle(isEditing ? "Edit Moment" : "Add Moment")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear { isTitleFocused = true }
+            .onAppear {
+                if !isEditing { isTitleFocused = true }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                        .accessibilityLabel("Cancel")
+                        .disabled(timelineStore.isSaving)
+                }
+                if isEditing {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            showsDeleteConfirmation = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel("Delete Moment")
+                        .disabled(timelineStore.isSaving)
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await save() } }
-                        .disabled(timelineStore.isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    VowbaseConfirmationToolbarButton(
+                        isEditing ? "Save Moment" : "Add Moment",
+                        isDisabled: saveIsDisabled
+                    ) {
+                        Task { await save() }
+                    }
                 }
             }
             .overlay {
@@ -1038,10 +1315,16 @@ struct TimelineComposer: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous))
                 }
             }
-            .alert("We couldn’t save that moment", isPresented: saveErrorBinding) {
+            .alert(operationIsDelete ? "We couldn’t delete that moment" : "We couldn’t save that moment", isPresented: saveErrorBinding) {
                 Button("OK", role: .cancel) { timelineStore.saveErrorMessage = nil }
             } message: {
                 Text(timelineStore.saveErrorMessage ?? "Please try again.")
+            }
+            .alert("Delete this moment?", isPresented: $showsDeleteConfirmation) {
+                Button("Delete Moment", role: .destructive) { Task { await delete() } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This removes the moment from your wedding timeline. This can’t be undone.")
             }
         }
     }
@@ -1054,19 +1337,29 @@ struct TimelineComposer: View {
     }
 
     private func save() async {
-        let saved = await timelineStore.create(
-            PlanningMomentDraft(
-                momentType: momentType,
-                title: title,
-                notes: notes.timelineNilIfBlank,
-                occurredAt: occurredAt,
-                locationText: locationText.timelineNilIfBlank,
-                linkedVenueID: linkedVenueID
-            ),
-            requirementIDs: [],
-            weddingID: weddingID
+        operationIsDelete = false
+        let draft = PlanningMomentDraft(
+            momentType: momentType,
+            title: title,
+            notes: notes.timelineNilIfBlank,
+            occurredAt: occurredAt,
+            locationText: locationText.timelineNilIfBlank,
+            linkedVenueID: linkedVenueID,
+            followUpTaskID: moment?.followUpTaskID,
+            details: moment?.details
         )
+        let saved = if let moment {
+            await timelineStore.update(moment, draft: draft)
+        } else {
+            await timelineStore.create(draft, requirementIDs: [], weddingID: weddingID)
+        }
         if saved { dismiss() }
+    }
+
+    private func delete() async {
+        guard let moment else { return }
+        operationIsDelete = true
+        if await timelineStore.delete(moment) { dismiss() }
     }
 }
 
@@ -1074,11 +1367,37 @@ struct RequirementComposer: View {
     @Environment(\.dismiss) private var dismiss
     let timelineStore: TimelineStore
     let weddingID: UUID
+    let requirement: MoodboardRequirement?
 
-    @State private var title = ""
-    @State private var importance = "core"
-    @State private var notes = ""
+    @State private var title: String
+    @State private var importance: String
+    @State private var notes: String
+    @State private var showsDeleteConfirmation = false
+    @State private var operationIsDelete = false
     @FocusState private var isTitleFocused: Bool
+
+    init(
+        timelineStore: TimelineStore,
+        weddingID: UUID,
+        requirement: MoodboardRequirement? = nil
+    ) {
+        self.timelineStore = timelineStore
+        self.weddingID = weddingID
+        self.requirement = requirement
+        _title = State(initialValue: requirement?.title ?? "")
+        _importance = State(initialValue: requirement?.importance ?? "core")
+        _notes = State(initialValue: requirement?.description ?? "")
+#if DEBUG
+        _showsDeleteConfirmation = State(
+            initialValue: requirement != nil && ProcessInfo.processInfo.arguments.contains("-testingDeleteConfirmation")
+        )
+#endif
+    }
+
+    private var isEditing: Bool { requirement != nil }
+    private var saveIsDisabled: Bool {
+        timelineStore.isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -1095,16 +1414,37 @@ struct RequirementComposer: View {
                         .lineLimit(3...7)
                 }
             }
-            .navigationTitle("Add Requirement")
+            .navigationTitle(isEditing ? "Edit Requirement" : "Add Requirement")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear { isTitleFocused = true }
+            .onAppear {
+                if !isEditing { isTitleFocused = true }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                        .accessibilityLabel("Cancel")
+                        .disabled(timelineStore.isSaving)
+                }
+                if isEditing {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            showsDeleteConfirmation = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel("Delete Requirement")
+                        .disabled(timelineStore.isSaving)
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { Task { await save() } }
-                        .disabled(timelineStore.isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    VowbaseConfirmationToolbarButton(
+                        isEditing ? "Save Requirement" : "Add Requirement",
+                        isDisabled: saveIsDisabled
+                    ) {
+                        Task { await save() }
+                    }
                 }
             }
             .overlay {
@@ -1114,10 +1454,16 @@ struct RequirementComposer: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous))
                 }
             }
-            .alert("We couldn’t save that requirement", isPresented: saveErrorBinding) {
+            .alert(operationIsDelete ? "We couldn’t delete that requirement" : "We couldn’t save that requirement", isPresented: saveErrorBinding) {
                 Button("OK", role: .cancel) { timelineStore.saveErrorMessage = nil }
             } message: {
                 Text(timelineStore.saveErrorMessage ?? "Please try again.")
+            }
+            .alert("Delete this requirement?", isPresented: $showsDeleteConfirmation) {
+                Button("Delete Requirement", role: .destructive) { Task { await delete() } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This removes the requirement from your wedding timeline. This can’t be undone.")
             }
         }
     }
@@ -1130,17 +1476,25 @@ struct RequirementComposer: View {
     }
 
     private func save() async {
-        let nextPosition = (timelineStore.requirements.map(\.position).max() ?? -1) + 1
-        let saved = await timelineStore.createRequirement(
-            MoodboardRequirementDraft(
-                importance: importance,
-                title: title,
-                description: notes.timelineNilIfBlank,
-                position: nextPosition
-            ),
-            weddingID: weddingID
+        operationIsDelete = false
+        let draft = MoodboardRequirementDraft(
+            importance: importance,
+            title: title,
+            description: notes.timelineNilIfBlank,
+            position: requirement?.position ?? ((timelineStore.requirements.map(\.position).max() ?? -1) + 1)
         )
+        let saved = if let requirement {
+            await timelineStore.updateRequirement(requirement, draft: draft)
+        } else {
+            await timelineStore.createRequirement(draft, weddingID: weddingID)
+        }
         if saved { dismiss() }
+    }
+
+    private func delete() async {
+        guard let requirement else { return }
+        operationIsDelete = true
+        if await timelineStore.deleteRequirement(requirement) { dismiss() }
     }
 }
 

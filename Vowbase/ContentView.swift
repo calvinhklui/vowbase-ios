@@ -24,6 +24,8 @@ struct VowbaseAuthenticatedContent: View {
     private let initialLens: PlanLens
     private let presentsInitialVenueDetail: Bool
     private let presentsInitialGuestInsight: Bool
+    private let presentsInitialTimelineMomentEditor: Bool
+    private let presentsInitialTimelineRequirementEditor: Bool
     let onSignOut: () -> Void
 
     init(
@@ -34,6 +36,8 @@ struct VowbaseAuthenticatedContent: View {
         initialLens = .venues
         presentsInitialVenueDetail = false
         presentsInitialGuestInsight = false
+        presentsInitialTimelineMomentEditor = false
+        presentsInitialTimelineRequirementEditor = false
         _store = State(initialValue: VowbaseWorkspaceStore(repositories: repositories))
         _taskStore = State(initialValue: TaskStore(repository: repositories?.tasks))
         _timelineStore = State(initialValue: TimelineStore(
@@ -47,17 +51,21 @@ struct VowbaseAuthenticatedContent: View {
         testingWorkspace: Bool,
         presentsInitialVenueDetail: Bool = false,
         presentsInitialGuestInsight: Bool = false,
+        presentsInitialTimelineMomentEditor: Bool = false,
+        presentsInitialTimelineRequirementEditor: Bool = false,
         onSignOut: @escaping () -> Void = {}
     ) {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
-        initialLens = .venues
+        initialLens = presentsInitialTimelineMomentEditor || presentsInitialTimelineRequirementEditor ? .timeline : .venues
         self.presentsInitialVenueDetail = presentsInitialVenueDetail
         self.presentsInitialGuestInsight = presentsInitialGuestInsight
+        self.presentsInitialTimelineMomentEditor = presentsInitialTimelineMomentEditor
+        self.presentsInitialTimelineRequirementEditor = presentsInitialTimelineRequirementEditor
         _store = State(initialValue: VowbaseWorkspaceStore(testingWorkspace: true))
         let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
         _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
-        _timelineStore = State(initialValue: TimelineStore())
+        _timelineStore = State(initialValue: TimelineStore.testingWorkspace(weddingID: weddingID))
     }
 #endif
 
@@ -78,6 +86,8 @@ struct VowbaseAuthenticatedContent: View {
                     initialLens: initialLens,
                     presentsInitialVenueDetail: presentsInitialVenueDetail,
                     presentsInitialGuestInsight: presentsInitialGuestInsight,
+                    presentsInitialTimelineMomentEditor: presentsInitialTimelineMomentEditor,
+                    presentsInitialTimelineRequirementEditor: presentsInitialTimelineRequirementEditor,
                     onSignOut: onSignOut
                 )
                     .transition(.opacity.combined(with: .scale(scale: 0.985)))

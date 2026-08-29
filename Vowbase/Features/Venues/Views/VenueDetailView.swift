@@ -224,11 +224,9 @@ struct VenueDetailView: View {
                     .accessibilityLabel("Close editing")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    VowbaseConfirmationToolbarButton("Save Venue", isDisabled: isSavingDetails) {
                         saveDetails()
                     }
-                    .fontWeight(.semibold)
-                    .disabled(isSavingDetails)
                 }
             } else {
                 ToolbarItemGroup(placement: .topBarTrailing) {

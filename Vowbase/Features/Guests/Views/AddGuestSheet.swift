@@ -64,8 +64,9 @@ struct AddGuestSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .disabled(!canSave)
+                    VowbaseConfirmationToolbarButton("Save Guest", isDisabled: !canSave) {
+                        save()
+                    }
                 }
             }
             .onAppear { isFirstNameFocused = true }
