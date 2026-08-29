@@ -43,6 +43,12 @@ struct MapWorkspaceView: View {
     @State private var position: MapCameraPosition = .automatic
 
     var body: some View {
+        GeometryReader { proxy in
+            map(viewportHeight: proxy.size.height)
+        }
+    }
+
+    private func map(viewportHeight: CGFloat) -> some View {
         Map(position: $position) {
             ForEach(store.venues) { venue in
                 if let coordinate = venue.coordinate {
@@ -117,7 +123,6 @@ struct MapWorkspaceView: View {
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
-        .safeAreaPadding(.bottom, consoleInset)
         // A canvas-optional lens (Tasks or Timeline, spec §2.1) contributes nothing to the
         // map, so the live map behind it is noise. Frosting it keeps the sense
         // of place without competing with the console's content.
@@ -131,8 +136,10 @@ struct MapWorkspaceView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: lens.isCanvasOptional)
-        .onAppear { updateCamera(animated: false) }
-        .onChange(of: cameraKey) { updateCamera(animated: true) }
+        .onAppear { updateCamera(animated: false, viewportHeight: viewportHeight) }
+        .onChange(of: cameraKey(viewportHeight: viewportHeight)) {
+            updateCamera(animated: true, viewportHeight: viewportHeight)
+        }
     }
 
     // MARK: Camera
@@ -140,7 +147,7 @@ struct MapWorkspaceView: View {
     /// Everything the frame depends on, collapsed into one value so a single
     /// `onChange` covers lens switches, selection changes, and the moment the
     /// data finishes loading.
-    private var cameraKey: String {
+    private func cameraKey(viewportHeight: CGFloat) -> String {
         [
             lens.rawValue,
             store.selectedVenueID?.uuidString ?? "none",
@@ -150,6 +157,8 @@ struct MapWorkspaceView: View {
             String(focusToken),
             String(store.venues.count),
             String(store.clusters.count),
+            String(format: "%.1f", consoleInset),
+            String(format: "%.1f", viewportHeight),
         ].joined(separator: "|")
     }
 
@@ -211,8 +220,13 @@ struct MapWorkspaceView: View {
         .init(latitude: (start.latitude + end.latitude) / 2, longitude: (start.longitude + end.longitude) / 2)
     }
 
-    private func updateCamera(animated: Bool) {
-        guard let region = Self.region(fitting: focusCoordinates) else { return }
+    private func updateCamera(animated: Bool, viewportHeight: CGFloat) {
+        guard let region = Self.region(
+            fitting: focusCoordinates,
+            centeredOn: selectedVenueCoordinate ?? selectedGuestCluster?.coordinate,
+            bottomObstruction: consoleInset,
+            viewportHeight: viewportHeight
+        ) else { return }
         if animated {
             withAnimation(.easeInOut(duration: 0.55)) { position = .region(region) }
         } else {
@@ -222,7 +236,12 @@ struct MapWorkspaceView: View {
 
     /// `nil` when there's nothing to frame — the caller leaves the camera
     /// where it is rather than snapping to an arbitrary default.
-    static func region(fitting coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
+    static func region(
+        fitting coordinates: [CLLocationCoordinate2D],
+        centeredOn focusCoordinate: CLLocationCoordinate2D? = nil,
+        bottomObstruction: CGFloat = 0,
+        viewportHeight: CGFloat = 0
+    ) -> MKCoordinateRegion? {
         guard let first = coordinates.first else { return nil }
 
         var minLatitude = first.latitude, maxLatitude = first.latitude
@@ -234,16 +253,31 @@ struct MapWorkspaceView: View {
             maxLongitude = max(maxLongitude, coordinate.longitude)
         }
 
-        return MKCoordinateRegion(
-            center: CLLocationCoordinate2D(
-                latitude: (minLatitude + maxLatitude) / 2,
-                longitude: (minLongitude + maxLongitude) / 2
-            ),
-            span: MKCoordinateSpan(
-                latitudeDelta: max((maxLatitude - minLatitude) * spanPadding, minimumSpan),
-                longitudeDelta: max((maxLongitude - minLongitude) * spanPadding, minimumSpan)
-            )
+        let boundsCenter = CLLocationCoordinate2D(
+            latitude: (minLatitude + maxLatitude) / 2,
+            longitude: (minLongitude + maxLongitude) / 2
         )
+        let frameCenter = focusCoordinate ?? boundsCenter
+        let latitudeExtent = coordinates.map { abs($0.latitude - frameCenter.latitude) }.max() ?? 0
+        let longitudeExtent = coordinates.map { abs($0.longitude - frameCenter.longitude) }.max() ?? 0
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(latitudeExtent * 2 * spanPadding, minimumSpan),
+            longitudeDelta: max(longitudeExtent * 2 * spanPadding, minimumSpan)
+        )
+
+        // The console overlays the bottom of the full-screen map. Move the
+        // camera south by half of that covered fraction so the focused
+        // coordinate renders at the centre of the uncovered map area. This is
+        // recomputed at every settled console detent.
+        let coveredFraction = viewportHeight > 0
+            ? min(max(bottomObstruction / viewportHeight, 0), 1)
+            : 0
+        let cameraCenter = CLLocationCoordinate2D(
+            latitude: frameCenter.latitude - (span.latitudeDelta * coveredFraction / 2),
+            longitude: frameCenter.longitude
+        )
+
+        return MKCoordinateRegion(center: cameraCenter, span: span)
     }
 
     /// Only ever real for the selected venue's own readout — spec §8: "cluster

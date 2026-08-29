@@ -262,7 +262,7 @@ struct VenueDetailView: View {
             }
             documentPreviewTemporaryURL = nil
         }) { preview in
-            VenueDocumentQuickLookPreview(url: preview.url)
+            VenueDocumentPreviewSheet(url: preview.url)
         }
         .fileImporter(
             isPresented: $isImportingDocument,
@@ -363,7 +363,8 @@ struct VenueDetailView: View {
         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
             VowbaseVenueImage(
                 url: nil,
-                placeholderSystemImage: "photo.badge.plus"
+                placeholderSystemImage: "photo.badge.plus",
+                placeholderIconSize: 18
             )
             .frame(width: width, height: height)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -1349,6 +1350,28 @@ private struct VenueDocumentQuickLookPreview: UIViewControllerRepresentable {
 
         func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> any QLPreviewItem {
             url as NSURL
+        }
+    }
+}
+
+private struct VenueDocumentPreviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let url: URL
+
+    var body: some View {
+        NavigationStack {
+            VenueDocumentQuickLookPreview(url: url)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .accessibilityLabel("Close document preview")
+                    }
+                }
         }
     }
 }

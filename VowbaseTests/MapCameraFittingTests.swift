@@ -110,6 +110,36 @@ struct MapCameraFittingTests {
         #expect(abs(midpoint.longitude - (-92.2)) < 0.0001)
     }
 
+    @Test("Focused coordinate stays central while the frame expands around related pins")
+    func focusedCoordinateAnchorsFrame() throws {
+        let focus = coordinate(40.0, -74.0)
+        let region = try #require(MapWorkspaceView.region(
+            fitting: [focus, coordinate(42.0, -70.0)],
+            centeredOn: focus
+        ))
+
+        #expect(abs(region.center.latitude - focus.latitude) < 0.0001)
+        #expect(abs(region.center.longitude - focus.longitude) < 0.0001)
+        #expect(abs(region.span.latitudeDelta - 6.4) < 0.0001)
+        #expect(abs(region.span.longitudeDelta - 12.8) < 0.0001)
+    }
+
+    @Test("Focused coordinate renders at the centre of the map above the console")
+    func consoleObstructionOffsetsCameraCenter() throws {
+        let focus = coordinate(40.0, -74.0)
+        let region = try #require(MapWorkspaceView.region(
+            fitting: [focus],
+            centeredOn: focus,
+            bottomObstruction: 600,
+            viewportHeight: 1_000
+        ))
+
+        // The 0.08-degree minimum span moves south by half of the 60% covered
+        // fraction, placing the focused pin halfway through the visible 40%.
+        #expect(abs(region.center.latitude - 39.976) < 0.0001)
+        #expect(abs(region.center.longitude - focus.longitude) < 0.0001)
+    }
+
     @Test("Cluster drill-in only returns guests in that city-level group")
     func clusterGuestMembership() throws {
         let store = VowbaseWorkspaceStore(testingWorkspace: true)

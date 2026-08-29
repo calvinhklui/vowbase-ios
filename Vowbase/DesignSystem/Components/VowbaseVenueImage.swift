@@ -6,6 +6,7 @@ struct VowbaseVenueImage: View {
     let url: URL?
     var cacheKey: String? = nil
     var placeholderSystemImage: String = "building.2"
+    var placeholderIconSize: CGFloat = 36
 
     @State private var image: UIImage?
 
@@ -57,7 +58,7 @@ struct VowbaseVenueImage: View {
 
     private var venueImagePlaceholder: some View {
         Image(systemName: placeholderSystemImage)
-            .font(.system(size: 36, weight: .light))
+            .font(.system(size: placeholderIconSize, weight: .light))
             .foregroundStyle(VowbaseTheme.rose.opacity(0.65))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(VowbaseTheme.blush)
