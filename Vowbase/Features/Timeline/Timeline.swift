@@ -326,12 +326,18 @@ private struct PlanningMomentRequirementCreate: Codable {
 enum TimelineEntryKind: Equatable, Sendable {
     case moment(PlanningMomentType)
     case completedTask
+    case taskAdded
+    case venueAdded
+    case guestAdded
     case requirement
 
     var title: String {
         switch self {
         case let .moment(type): type.title
         case .completedTask: "Task completed"
+        case .taskAdded: "Task added"
+        case .venueAdded: "Venue added"
+        case .guestAdded: "Guest added"
         case .requirement: "Requirement added"
         }
     }
@@ -340,6 +346,9 @@ enum TimelineEntryKind: Equatable, Sendable {
         switch self {
         case let .moment(type): type.systemImage
         case .completedTask: "checkmark.circle.fill"
+        case .taskAdded: "checklist"
+        case .venueAdded: "building.2"
+        case .guestAdded: "person.crop.circle"
         case .requirement: "list.bullet.clipboard"
         }
     }
@@ -362,7 +371,8 @@ enum TimelineFeed {
         momentRequirements: [PlanningMomentRequirement],
         tasks: [WeddingTask],
         requirements: [MoodboardRequirement],
-        venues: [MVPVenue]
+        venues: [MVPVenue],
+        guests: [MVPGuest]
     ) -> [TimelineEntry] {
         let requirementNames = Dictionary(uniqueKeysWithValues: requirements.map { ($0.id, $0.title) })
         let venueNames = Dictionary(uniqueKeysWithValues: venues.map { ($0.id, $0.name) })
@@ -381,13 +391,38 @@ enum TimelineFeed {
             )
         }
 
-        entries += tasks.compactMap { task in
-            guard let completedAt = task.completedAt else { return nil }
+        entries += tasks.map { task in
             return TimelineEntry(
                 id: "task-\(task.id.uuidString)",
-                kind: .completedTask,
+                kind: task.completedAt == nil ? .taskAdded : .completedTask,
                 title: task.title,
-                occurredAt: completedAt,
+                occurredAt: task.completedAt ?? task.createdAt,
+                notes: nil,
+                locationText: nil,
+                linkedVenueName: nil,
+                requirementNames: []
+            )
+        }
+
+        entries += venues.map { venue in
+            TimelineEntry(
+                id: "venue-\(venue.id.uuidString)",
+                kind: .venueAdded,
+                title: venue.name,
+                occurredAt: venue.createdAt,
+                notes: nil,
+                locationText: nil,
+                linkedVenueName: nil,
+                requirementNames: []
+            )
+        }
+
+        entries += guests.map { guest in
+            TimelineEntry(
+                id: "guest-\(guest.id.uuidString)",
+                kind: .guestAdded,
+                title: guest.name,
+                occurredAt: guest.createdAt,
                 notes: nil,
                 locationText: nil,
                 linkedVenueName: nil,
@@ -620,13 +655,14 @@ final class TimelineStore {
         }
     }
 
-    func feed(tasks: [WeddingTask], venues: [MVPVenue]) -> [TimelineEntry] {
+    func feed(tasks: [WeddingTask], venues: [MVPVenue], guests: [MVPGuest]) -> [TimelineEntry] {
         TimelineFeed.normalized(
             moments: moments,
             momentRequirements: momentRequirements,
             tasks: tasks,
             requirements: requirements,
-            venues: venues
+            venues: venues,
+            guests: guests
         )
     }
 
@@ -649,7 +685,9 @@ struct PlanningTimelineView: View {
     let timelineStore: TimelineStore
 
     private var weddingID: UUID? { store.wedding?.id }
-    private var entries: [TimelineEntry] { timelineStore.feed(tasks: taskStore.tasks, venues: store.venues) }
+    private var entries: [TimelineEntry] {
+        timelineStore.feed(tasks: taskStore.tasks, venues: store.venues, guests: store.guests)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -672,9 +710,9 @@ struct PlanningTimelineView: View {
                                 TimelineStatusRow(status: planningStatus)
                             }
                             ContentUnavailableView {
-                                Label("No moments yet", systemImage: "clock.arrow.circlepath")
+                                Label("No timeline activity yet", systemImage: "clock.arrow.circlepath")
                             } description: {
-                                Text("Log a venue tour, decision, meeting, payment, or another planning moment.")
+                                Text("Add a task, guest, venue, requirement, or planning moment to start your timeline.")
                             }
                         }
                         .padding(VowbaseControlMetric.screenInset)
@@ -716,9 +754,10 @@ struct PlanningTimelineView: View {
         }
         .task(id: weddingID) {
             guard let weddingID else { return }
+            async let workspace: Bool = store.load(presentsFailure: false)
             async let tasks: Void = taskStore.load(weddingID: weddingID)
             async let timeline: Void = timelineStore.load(weddingID: weddingID)
-            _ = await (tasks, timeline)
+            _ = await (workspace, tasks, timeline)
         }
     }
 
@@ -745,9 +784,10 @@ struct PlanningTimelineView: View {
 
     private func refresh() async {
         guard let weddingID else { return }
+        async let workspace: Bool = store.load(presentsFailure: false)
         async let tasks: Void = taskStore.load(weddingID: weddingID)
         async let timeline: Void = timelineStore.load(weddingID: weddingID)
-        _ = await (tasks, timeline)
+        _ = await (workspace, tasks, timeline)
     }
 }
 

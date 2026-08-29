@@ -9,8 +9,8 @@ struct TimelineTests {
     private let requirementID = UUID(uuidString: "22B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
     private let creatorID = UUID(uuidString: "33B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
 
-    @Test("normalization is reverse chronological and excludes legacy done tasks without completion timestamps")
-    func normalizesFeedWithoutFabricatingTaskHistory() {
+    @Test("normalization is reverse chronological and gives each task one lifecycle entry")
+    func normalizesFeedWithTaskCompletionPrecedence() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let moment = PlanningMoment(
             id: momentID, weddingID: weddingID, momentType: .decision, title: "Choose flowers",
@@ -27,11 +27,15 @@ struct TimelineTests {
 
         let entries = TimelineFeed.normalized(
             moments: [moment], momentRequirements: [], tasks: [legacyDone, completed],
-            requirements: [requirement], venues: []
+            requirements: [requirement], venues: [], guests: []
         )
 
-        #expect(entries.map(\.title) == ["Book band", "Choose flowers", "Warm lighting"])
-        #expect(!entries.contains { $0.title == "Old imported task" })
+        #expect(entries.map(\.title) == ["Book band", "Old imported task", "Choose flowers", "Warm lighting"])
+        #expect(entries.first?.kind == .completedTask)
+        #expect(entries.first?.occurredAt == completed.completedAt)
+        #expect(entries[1].kind == .taskAdded)
+        #expect(entries[1].occurredAt == legacyDone.createdAt)
+        #expect(entries.filter { $0.id == "task-\(completed.id.uuidString)" }.count == 1)
     }
 
     @Test("moment links resolve requirements and venue names")
@@ -51,11 +55,32 @@ struct TimelineTests {
         let entry = TimelineFeed.normalized(
             moments: [moment],
             momentRequirements: [.init(momentID: momentID, requirementID: requirementID, observation: nil, createdAt: now)],
-            tasks: [], requirements: [requirement], venues: [venue]
+            tasks: [], requirements: [requirement], venues: [venue], guests: []
         ).first
 
         #expect(entry?.linkedVenueName == "Riverside Pavilion")
         #expect(entry?.requirementNames == ["Water view"])
+    }
+
+    @Test("venue and guest additions use creation dates and preserve mixed-source ordering")
+    func normalizesVenueAndGuestAdditions() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let venue = MVPVenueFixture.make(name: "Riverside Pavilion", createdAt: now.addingTimeInterval(-60))
+        let guest = MVPGuestFixture.make(firstName: "Avery", lastName: "Ng", createdAt: now)
+        let addedTask = task(title: "Draft seating plan", status: .todo, completedAt: nil, createdAt: now.addingTimeInterval(-120))
+
+        let entries = TimelineFeed.normalized(
+            moments: [],
+            momentRequirements: [],
+            tasks: [addedTask],
+            requirements: [],
+            venues: [venue],
+            guests: [guest]
+        )
+
+        #expect(entries.map(\.title) == ["Avery Ng", "Riverside Pavilion", "Draft seating plan"])
+        #expect(entries.map(\.kind) == [.guestAdded, .venueAdded, .taskAdded])
+        #expect(entries.allSatisfy { $0.notes == nil && $0.locationText == nil })
     }
 
     @Test("on-track state follows conservative information and overdue boundaries")
@@ -281,14 +306,24 @@ private enum PartialSaveError: Error {
 }
 
 private enum MVPVenueFixture {
-    static func make(name: String) -> MVPVenue {
+    static func make(name: String, createdAt: Date = Date()) -> MVPVenue {
         MVPVenue(
-            id: UUID(), name: name, status: .toured, location: "Duluth", city: nil, state: nil,
+            id: UUID(), name: name, createdAt: createdAt, status: .toured, location: "Duluth", city: nil, state: nil,
             distanceMiles: nil, mapSearchQuery: "Duluth", fullAddress: nil, capacityMin: nil,
             capacityMax: nil, capacityTextOverride: nil, estimate: "", venueEstimateTextRaw: nil,
             travel: nil, allInEstimate: "", availableDates: "", summary: nil, website: nil,
             contactName: nil, contactEmail: nil, contactPhone: nil, latitude: nil, longitude: nil,
             coverPhotoURL: nil, coverPhotoCacheKey: "", photos: [], documents: [], ourNotes: nil
+        )
+    }
+}
+
+private enum MVPGuestFixture {
+    static func make(firstName: String, lastName: String, createdAt: Date) -> MVPGuest {
+        MVPGuest(
+            id: UUID(), firstName: firstName, lastName: lastName, createdAt: createdAt,
+            subtitle: nil, location: nil, email: nil, phone: nil, rsvp: .notInvited,
+            isMappable: false, customSearchText: ""
         )
     }
 }

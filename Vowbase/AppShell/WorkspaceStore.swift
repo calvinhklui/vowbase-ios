@@ -120,6 +120,7 @@ struct VenuePhotoDisplay: Identifiable, Hashable {
 struct MVPVenue: Identifiable, Hashable {
     let id: UUID
     let name: String
+    let createdAt: Date
     let status: VenueStatus
     let location: String
     let city: String?
@@ -203,6 +204,7 @@ struct MVPGuest: Identifiable, Hashable {
     let id: UUID
     let firstName: String
     let lastName: String
+    let createdAt: Date
     /// Row subtitle resolved from this wedding's own column definitions.
     /// Nil when no suitable column exists or the guest has no value for it.
     let subtitle: String?
@@ -1936,6 +1938,7 @@ private extension MVPVenue {
     ) {
         id = venue.id
         name = venue.name
+        createdAt = venue.createdAt
         status = venue.status
         location = venue.address?.nilIfBlank ?? venue.city?.nilIfBlank ?? "Location not added"
         fullAddress = VenueCoordinateRecovery.fullAddress(for: venue)
@@ -1974,6 +1977,7 @@ private extension MVPGuest {
         id = guest.id
         firstName = guest.firstName
         lastName = guest.lastName ?? ""
+        createdAt = guest.createdAt
         subtitle = GuestDisplayResolver.subtitle(for: guest, columns: columns)
         location = GuestLocationLabel.display(for: guest) ?? guest.address
         email = guest.email

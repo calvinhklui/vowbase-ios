@@ -599,7 +599,7 @@ struct WeddingAppShell: View {
         case .tasks:
             taskStore.isLoading
         case .timeline:
-            timelineStore.isLoading || taskStore.isLoading
+            timelineStore.isLoading || taskStore.isLoading || store.isLoading
         case .overview, .venues, .guests:
             store.isLoading
         }
@@ -610,9 +610,10 @@ struct WeddingAppShell: View {
             Task { await taskStore.load(weddingID: weddingID) }
         } else if navigation.selectedLens == .timeline, let weddingID = store.wedding?.id {
             Task {
+                async let workspace: Bool = store.load(presentsFailure: false)
                 async let tasks: Void = taskStore.load(weddingID: weddingID)
                 async let timeline: Void = timelineStore.load(weddingID: weddingID)
-                _ = await (tasks, timeline)
+                _ = await (workspace, tasks, timeline)
             }
         } else {
             Task { await store.load() }
