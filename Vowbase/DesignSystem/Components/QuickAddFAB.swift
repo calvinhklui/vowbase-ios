@@ -7,6 +7,7 @@ import UIKit
 /// action has a dismissible scrim and never feels like an unanchored popover.
 struct QuickAddFAB: View {
     let isExpanded: Bool
+    let accessibilityHint: String
     let action: () -> Void
 
     var body: some View {
@@ -25,15 +26,14 @@ struct QuickAddFAB: View {
         }
         .buttonStyle(QuickAddPressStyle())
         .accessibilityLabel(isExpanded ? "Close quick add" : "Quick add")
-        .accessibilityHint(isExpanded ? "Dismisses quick add actions" : "Shows actions to add a venue, guest, or task")
+        .accessibilityHint(isExpanded ? "Dismisses quick add actions" : accessibilityHint)
     }
 }
 
 /// A lens-specific FAB that opens its creation flow immediately.
 ///
-/// Overview uses `QuickAddOverlay` because it is the one place where the FAB
-/// represents multiple creation choices. The other lenses use this control so
-/// their action and accessibility semantics stay explicit.
+/// Lenses with a single creation choice use this control so their action and
+/// accessibility semantics stay explicit.
 struct DirectAddFAB: View {
     let title: String
     let systemImage: String
@@ -64,40 +64,25 @@ struct DirectAddFAB: View {
 /// caller to present its destination sheet without competing presentations.
 struct QuickAddPanel: View {
     @Binding var isPresented: Bool
-    let onAddVenue: () -> Void
-    let onAddGuest: () -> Void
-    let onAddTask: () -> Void
+    let actions: [QuickAddAction]
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 4) {
-            quickAddRow(
-                title: "Add Venue",
-                icon: "mappin.and.ellipse",
-                tint: VowbaseTheme.rose,
-                action: onAddVenue
-            )
+            ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                if index > 0 {
+                    Divider()
+                        .padding(.leading, 64)
+                }
 
-            Divider()
-                .padding(.leading, 64)
-
-            quickAddRow(
-                title: "Add Guest",
-                icon: "person.badge.plus",
-                tint: VowbaseTheme.guestBlue,
-                action: onAddGuest
-            )
-
-            Divider()
-                .padding(.leading, 64)
-
-            quickAddRow(
-                title: "Add Task",
-                icon: "checkmark.circle.badge.plus",
-                tint: VowbaseTheme.rose,
-                action: onAddTask
-            )
+                quickAddRow(
+                    title: action.title,
+                    icon: action.icon,
+                    tint: action.tint,
+                    action: action.action
+                )
+            }
         }
         .padding(8)
         .frame(minWidth: 240, maxWidth: 300)
@@ -154,15 +139,40 @@ struct QuickAddPanel: View {
     }
 }
 
+struct QuickAddAction: Identifiable {
+    let id: String
+    let title: String
+    let icon: String
+    let tint: Color
+    let action: () -> Void
+}
+
 /// A compact control that keeps its panel anchored directly above the FAB.
 ///
 /// The parent owns any full-screen dismissal backdrop so this view retains its
 /// intrinsic size when used with `.overlay(alignment: .bottomTrailing)`.
 struct QuickAddOverlay: View {
     @Binding var isPresented: Bool
-    let onAddVenue: () -> Void
-    let onAddGuest: () -> Void
-    let onAddTask: () -> Void
+    let actions: [QuickAddAction]
+
+    init(
+        isPresented: Binding<Bool>,
+        onAddVenue: @escaping () -> Void,
+        onAddGuest: @escaping () -> Void,
+        onAddTask: @escaping () -> Void
+    ) {
+        _isPresented = isPresented
+        actions = [
+            QuickAddAction(id: "venue", title: "Add Venue", icon: "mappin.and.ellipse", tint: VowbaseTheme.rose, action: onAddVenue),
+            QuickAddAction(id: "guest", title: "Add Guest", icon: "person.badge.plus", tint: VowbaseTheme.guestBlue, action: onAddGuest),
+            QuickAddAction(id: "task", title: "Add Task", icon: "checkmark.circle.badge.plus", tint: VowbaseTheme.rose, action: onAddTask),
+        ]
+    }
+
+    init(isPresented: Binding<Bool>, actions: [QuickAddAction]) {
+        _isPresented = isPresented
+        self.actions = actions
+    }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -171,13 +181,15 @@ struct QuickAddOverlay: View {
             if isPresented {
                 QuickAddPanel(
                     isPresented: $isPresented,
-                    onAddVenue: onAddVenue,
-                    onAddGuest: onAddGuest,
-                    onAddTask: onAddTask
+                    actions: actions
                 )
             }
 
-            QuickAddFAB(isExpanded: isPresented, action: toggle)
+            QuickAddFAB(
+                isExpanded: isPresented,
+                accessibilityHint: "Shows actions to \(actions.map(\.title).joined(separator: ", ").lowercased())",
+                action: toggle
+            )
         }
         .animation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08), value: isPresented)
     }

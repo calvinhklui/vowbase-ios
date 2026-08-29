@@ -578,6 +578,48 @@ final class TimelineStore {
         return false
     }
 
+    @discardableResult
+    func createRequirement(_ draft: MoodboardRequirementDraft, weddingID: UUID) async -> Bool {
+        let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            saveErrorMessage = "Give this requirement a title."
+            return false
+        }
+
+        saveErrorMessage = nil
+        errorMessage = nil
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let normalized = MoodboardRequirementDraft(
+                importance: draft.importance,
+                title: title,
+                description: draft.description?.timelineNilIfBlank,
+                position: draft.position
+            )
+            let saved: MoodboardRequirement
+            if let inspirationRepository {
+                saved = try await inspirationRepository.createMoodboardRequirement(normalized, weddingID: weddingID)
+            } else {
+                let now = Date()
+                saved = MoodboardRequirement(
+                    id: UUID(), weddingID: weddingID, importance: normalized.importance,
+                    title: normalized.title, description: normalized.description,
+                    position: normalized.position, createdAt: now, updatedAt: now
+                )
+            }
+            requirements.append(saved)
+            requirements.sort {
+                $0.position == $1.position ? $0.createdAt < $1.createdAt : $0.position < $1.position
+            }
+            return true
+        } catch {
+            saveErrorMessage = userFacingMessage(for: error, fallback: "We couldn't save that requirement. Try again.")
+            return false
+        }
+    }
+
     func feed(tasks: [WeddingTask], venues: [MVPVenue]) -> [TimelineEntry] {
         TimelineFeed.normalized(
             moments: moments,
@@ -605,7 +647,6 @@ struct PlanningTimelineView: View {
     let store: VowbaseWorkspaceStore
     let taskStore: TaskStore
     let timelineStore: TimelineStore
-    @State private var isComposerPresented = false
 
     private var weddingID: UUID? { store.wedding?.id }
     private var entries: [TimelineEntry] { timelineStore.feed(tasks: taskStore.tasks, venues: store.venues) }
@@ -615,8 +656,6 @@ struct PlanningTimelineView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Timeline").displayTitle()
                 Spacer()
-                Button("Log a moment", systemImage: "plus") { isComposerPresented = true }
-                    .accessibilityLabel("Log a moment")
             }
             .padding(.horizontal, VowbaseControlMetric.screenInset)
             .padding(.bottom, VowbaseSpace.small)
@@ -629,15 +668,13 @@ struct PlanningTimelineView: View {
                 } else if entries.isEmpty {
                     ScrollView {
                         VStack(spacing: VowbaseSpace.large) {
-                            TimelineStatusRow(status: TimelineOnTrackStatus.evaluate(weddingDate: store.wedding?.weddingDate, requirementCount: timelineStore.requirements.count, tasks: taskStore.tasks))
+                            if let planningStatus {
+                                TimelineStatusRow(status: planningStatus)
+                            }
                             ContentUnavailableView {
                                 Label("No moments yet", systemImage: "clock.arrow.circlepath")
                             } description: {
                                 Text("Log a venue tour, decision, meeting, payment, or another planning moment.")
-                            } actions: {
-                                Button("Log a moment") { isComposerPresented = true }
-                                    .buttonStyle(VowbasePrimaryButtonStyle())
-                                    .frame(maxWidth: 260)
                             }
                         }
                         .padding(VowbaseControlMetric.screenInset)
@@ -645,8 +682,10 @@ struct PlanningTimelineView: View {
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-                            TimelineStatusRow(status: TimelineOnTrackStatus.evaluate(weddingDate: store.wedding?.weddingDate, requirementCount: timelineStore.requirements.count, tasks: taskStore.tasks))
-                                .padding(.bottom, VowbaseSpace.medium)
+                            if let planningStatus {
+                                TimelineStatusRow(status: planningStatus)
+                                    .padding(.bottom, VowbaseSpace.medium)
+                            }
 
                             ForEach(Array(groupedEntries.enumerated()), id: \.offset) { _, group in
                                 Text(TimelineDateFormatter.divider.string(from: group.date).uppercased())
@@ -681,17 +720,16 @@ struct PlanningTimelineView: View {
             async let timeline: Void = timelineStore.load(weddingID: weddingID)
             _ = await (tasks, timeline)
         }
-        .sheet(isPresented: $isComposerPresented) {
-            if let weddingID {
-                TimelineComposer(
-                    timelineStore: timelineStore,
-                    weddingID: weddingID,
-                    venues: store.venues,
-                    requirements: timelineStore.requirements
-                )
-                .presentationDetents([.large])
-            }
-        }
+    }
+
+    private var planningStatus: TimelineOnTrackStatus? {
+        guard let weddingDate = store.wedding?.weddingDate,
+              WeddingCountdownFormatter.date(from: weddingDate) != nil else { return nil }
+        return TimelineOnTrackStatus.evaluate(
+            weddingDate: weddingDate,
+            requirementCount: timelineStore.requirements.count,
+            tasks: taskStore.tasks
+        )
     }
 
     private var groupedEntries: [(date: Date, entries: [TimelineEntry])] {
@@ -838,7 +876,7 @@ private struct TimelineErrorBanner: View {
     }
 }
 
-private struct TimelineComposer: View {
+struct TimelineComposer: View {
     @Environment(\.dismiss) private var dismiss
     let timelineStore: TimelineStore
     let weddingID: UUID
@@ -955,6 +993,77 @@ private struct TimelineComposer: View {
                 linkedVenueID: linkedVenueID
             ),
             requirementIDs: selectedRequirementIDs,
+            weddingID: weddingID
+        )
+        if saved { dismiss() }
+    }
+}
+
+struct RequirementComposer: View {
+    @Environment(\.dismiss) private var dismiss
+    let timelineStore: TimelineStore
+    let weddingID: UUID
+
+    @State private var title = ""
+    @State private var importance = "core"
+    @State private var notes = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Requirement") {
+                    TextField("Outdoor ceremony space", text: $title)
+                        .textInputAutocapitalization(.sentences)
+                    Picker("Importance", selection: $importance) {
+                        Text("Must Have").tag("core")
+                        Text("Nice to Have").tag("preference")
+                    }
+                    TextField("Notes (optional)", text: $notes, axis: .vertical)
+                        .lineLimit(3...7)
+                }
+            }
+            .navigationTitle("New requirement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") { Task { await save() } }
+                        .disabled(timelineStore.isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .overlay {
+                if timelineStore.isSaving {
+                    ProgressView("Saving requirement")
+                        .padding(VowbaseSpace.large)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: VowbaseRadius.standard, style: .continuous))
+                }
+            }
+            .alert("We couldn’t save that requirement", isPresented: saveErrorBinding) {
+                Button("OK", role: .cancel) { timelineStore.saveErrorMessage = nil }
+            } message: {
+                Text(timelineStore.saveErrorMessage ?? "Please try again.")
+            }
+        }
+    }
+
+    private var saveErrorBinding: Binding<Bool> {
+        Binding(
+            get: { timelineStore.saveErrorMessage != nil && !timelineStore.isSaving },
+            set: { if !$0 { timelineStore.saveErrorMessage = nil } }
+        )
+    }
+
+    private func save() async {
+        let nextPosition = (timelineStore.requirements.map(\.position).max() ?? -1) + 1
+        let saved = await timelineStore.createRequirement(
+            MoodboardRequirementDraft(
+                importance: importance,
+                title: title,
+                description: notes.timelineNilIfBlank,
+                position: nextPosition
+            ),
             weddingID: weddingID
         )
         if saved { dismiss() }

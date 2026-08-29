@@ -3,11 +3,20 @@ import UIKit
 
 // MARK: - App shell
 
-private enum QuickAddDestination: String, Identifiable {
+private enum QuickAddDestination: Identifiable {
     case venue
     case guest
+    case moment(weddingID: UUID)
+    case requirement(weddingID: UUID)
 
-    var id: String { rawValue }
+    var id: String {
+        switch self {
+        case .venue: "venue"
+        case .guest: "guest"
+        case .moment: "moment"
+        case .requirement: "requirement"
+        }
+    }
 }
 
 /// The authenticated app: one persistent map canvas, one persistent console
@@ -58,7 +67,7 @@ struct WeddingAppShell: View {
         .venues: .half,
         .guests: .half,
         .tasks: .full,
-        .timeline: .full,
+        .timeline: .half,
     ]
 
     init(
@@ -145,7 +154,7 @@ struct WeddingAppShell: View {
             // swallowed every tap — the menu appeared to work, dismissed on
             // selection, and silently never ran the action.
             .overlay {
-                if navigation.selectedLens == .overview && isQuickAddPresented {
+                if supportsQuickAddMenu && isQuickAddPresented {
                     Color.black.opacity(0.22)
                         .ignoresSafeArea()
                         .contentShape(Rectangle())
@@ -203,8 +212,10 @@ struct WeddingAppShell: View {
             .peek
         case .venues, .guests:
             .half
-        case .tasks, .timeline:
+        case .tasks:
             .full
+        case .timeline:
+            .half
         }
     }
 
@@ -214,8 +225,10 @@ struct WeddingAppShell: View {
             Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
         case .venues, .guests:
             Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
-        case .tasks, .timeline:
+        case .tasks:
             [ConsoleDetent.full.presentationDetent]
+        case .timeline:
+            Set([ConsoleDetent.peek, .half].map(\.presentationDetent))
         }
     }
 
@@ -269,7 +282,7 @@ struct WeddingAppShell: View {
             }
         }
         .overlay {
-            if showsConsoleFAB && navigation.selectedLens == .overview && isQuickAddPresented {
+            if showsConsoleFAB && supportsQuickAddMenu && isQuickAddPresented {
                 Color.black.opacity(0.22)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
@@ -327,6 +340,17 @@ struct WeddingAppShell: View {
             case .guest:
                 AddGuestSheet(store: store)
                     .presentationDetents([.medium, .large])
+            case let .moment(weddingID):
+                TimelineComposer(
+                    timelineStore: timelineStore,
+                    weddingID: weddingID,
+                    venues: store.venues,
+                    requirements: timelineStore.requirements
+                )
+                .presentationDetents([.medium, .large])
+            case let .requirement(weddingID):
+                RequirementComposer(timelineStore: timelineStore, weddingID: weddingID)
+                    .presentationDetents([.medium, .large])
             }
         }
         .sheet(item: $taskEditor) { destination in
@@ -355,18 +379,17 @@ struct WeddingAppShell: View {
     }
 
     /// At peek, focused-lens actions float above the map just like they do at
-    /// taller detents inside the console. Overview keeps its legacy quick-add
-    /// placement because it is the only multi-action entry point.
+    /// taller detents inside the console. Multi-action lenses keep the menu
+    /// anchored to this same control at either supported height.
     private var showsPeekFAB: Bool {
         currentDetent == .peek
             && isConsoleAtRoot
             && !isVenueNoteEditing
             && navigation.selectedLens != .tasks
-            && navigation.selectedLens != .timeline
     }
 
-    /// Overview keeps the multi-action quick-add menu. Each focused lens uses
-    /// the same floating placement but routes directly to its matching form.
+    /// Overview and Timeline use multi-action quick-add menus. The other
+    /// focused lenses route the same floating control to their matching form.
     @ViewBuilder
     private var activeLensFAB: some View {
         switch navigation.selectedLens {
@@ -390,8 +413,33 @@ struct WeddingAppShell: View {
                 taskEditor = .add()
             }
         case .timeline:
-            EmptyView()
+            QuickAddOverlay(
+                isPresented: $isQuickAddPresented,
+                actions: [
+                    QuickAddAction(id: "moment", title: "Add Moment", icon: "clock.badge.plus", tint: VowbaseTheme.rose) {
+                        guard let weddingID = store.wedding?.id else { return }
+                        quickAdd = .moment(weddingID: weddingID)
+                    },
+                    QuickAddAction(id: "task", title: "Add Task", icon: "checkmark.circle.badge.plus", tint: VowbaseTheme.rose) {
+                        taskEditor = .add()
+                    },
+                    QuickAddAction(id: "requirement", title: "Add Requirement", icon: "list.bullet.clipboard", tint: VowbaseTheme.rose) {
+                        guard let weddingID = store.wedding?.id else { return }
+                        quickAdd = .requirement(weddingID: weddingID)
+                    },
+                    QuickAddAction(id: "venue", title: "Add Venue", icon: "mappin.and.ellipse", tint: VowbaseTheme.rose) {
+                        quickAdd = .venue
+                    },
+                    QuickAddAction(id: "guest", title: "Add Guest", icon: "person.badge.plus", tint: VowbaseTheme.guestBlue) {
+                        quickAdd = .guest
+                    },
+                ]
+            )
         }
+    }
+
+    private var supportsQuickAddMenu: Bool {
+        navigation.selectedLens == .overview || navigation.selectedLens == .timeline
     }
 
     /// Whether the active lens's console is showing its own root content

@@ -178,6 +178,32 @@ struct TimelineTests {
         #expect(PlanningMomentDraft(momentType: .custom, title: " \n", occurredAt: Date()).validationMessage == "Give this moment a title.")
     }
 
+    @Test("timeline is the first visible lens")
+    func timelineIsFirstVisibleLens() {
+        #expect(PlanLens.visibleRailCases == [.timeline, .venues, .guests, .tasks])
+    }
+
+    @Test("requirement creation trims fields and appends to the timeline")
+    @MainActor
+    func createsRequirement() async {
+        let store = TimelineStore()
+
+        let saved = await store.createRequirement(
+            MoodboardRequirementDraft(
+                importance: "core",
+                title: "  Outdoor ceremony space  ",
+                description: "  ",
+                position: 0
+            ),
+            weddingID: weddingID
+        )
+
+        #expect(saved)
+        #expect(store.requirements.count == 1)
+        #expect(store.requirements.first?.title == "Outdoor ceremony space")
+        #expect(store.requirements.first?.description == nil)
+    }
+
     @Test("a requirement-link failure keeps the persisted moment and avoids resubmission")
     @MainActor
     func retainsPersistedMomentAfterRequirementLinkFailure() async {

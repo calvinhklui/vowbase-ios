@@ -69,4 +69,11 @@ struct MoodboardRequirement: Codable, Equatable, Sendable, Identifiable {
         updatedAt = try values.decode(Date.self, forKey: key(.updatedAtSnake, or: .updatedAtCamel))
     }
 }
+
+struct MoodboardRequirementDraft: Codable, Equatable, Sendable {
+    let importance: String
+    let title: String
+    let description: String?
+    let position: Int
+}
 struct MoodboardNote:Codable,Equatable,Sendable,Identifiable{let id:UUID;let weddingID:UUID;let title:String;let body:String;let positionX:Double;let positionY:Double;let width:Double;let height:Double;let createdAt:Date;let updatedAt:Date;enum CodingKeys:String,CodingKey{case id;case weddingID="weddingId";case title;case body;case positionX;case positionY;case width;case height;case createdAt;case updatedAt}}

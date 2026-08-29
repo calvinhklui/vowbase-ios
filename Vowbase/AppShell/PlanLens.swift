@@ -18,7 +18,7 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    static let visibleRailCases: [PlanLens] = [.venues, .guests, .tasks, .timeline]
+    static let visibleRailCases: [PlanLens] = [.timeline, .venues, .guests, .tasks]
 
     var title: LocalizedStringKey {
         switch self {
@@ -43,9 +43,9 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
     /// Whether this lens contributes anything to the map canvas.
     ///
     /// A canvas-optional lens draws no annotations, holds no camera authority,
-    /// and opens its console at `.full` rather than `.peek` — there is no map
-    /// selection for a peek rail to caption. Tasks is the first of these;
-    /// Budget will be the second. See spec §2.1.
+    /// and does not need a map selection for a peek rail to caption. Its
+    /// supported console detents remain a per-lens presentation decision in
+    /// `WeddingAppShell`. See spec §2.1.
     var isCanvasOptional: Bool {
         switch self {
         case .tasks, .timeline: true
