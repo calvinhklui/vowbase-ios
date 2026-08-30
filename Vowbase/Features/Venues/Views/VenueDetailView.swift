@@ -93,19 +93,17 @@ struct VenueDetailView: View {
         store.venues.first(where: { $0.id == venue.id }) ?? venue
     }
 
-    private var displayStatus: VenueStatus { optimisticStatus ?? currentVenue.status }
-    private var heroPhotoURL: URL? { selectedHeroPhotoURL ?? currentVenue.photoURL }
-    private var displayedPhotoItems: [VenuePhotoItem] {
+    private func displayedPhotoItems(for venue: MVPVenue) -> [VenuePhotoItem] {
         var items = [VenuePhotoItem]()
         var seen = Set<URL>()
-        if let coverURL = currentVenue.coverPhotoURL, seen.insert(coverURL).inserted {
+        if let coverURL = venue.coverPhotoURL, seen.insert(coverURL).inserted {
             items.append(.init(
-                id: "cover-\(currentVenue.id.uuidString)",
+                id: "cover-\(venue.id.uuidString)",
                 url: coverURL,
-                deletionTarget: .cover(venueID: currentVenue.id)
+                deletionTarget: .cover(venueID: venue.id)
             ))
         }
-        for display in currentVenue.photos {
+        for display in venue.photos {
             guard let url = display.url, seen.insert(url).inserted else { continue }
             items.append(.init(
                 id: display.id.uuidString,
@@ -117,13 +115,19 @@ struct VenueDetailView: View {
     }
 
     var body: some View {
+        // `store.venues` builds display models on demand. Resolve this venue once per
+        // render pass, then reuse that snapshot for the scroll content and chrome.
+        let currentVenue = self.currentVenue
+        let photoItems = displayedPhotoItems(for: currentVenue)
+        let heroPhotoURL = selectedHeroPhotoURL ?? currentVenue.photoURL
+
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                heroPhoto
-                if !displayedPhotoItems.isEmpty {
+                heroPhoto(photoItems: photoItems, venue: currentVenue, heroPhotoURL: heroPhotoURL)
+                if !photoItems.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
-                            ForEach(displayedPhotoItems) { photo in
+                            ForEach(photoItems) { photo in
                                 Button {
                                     selectedHeroPhotoURL = photo.url == currentVenue.photoURL ? nil : photo.url
                                 } label: {
@@ -169,11 +173,11 @@ struct VenueDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    venueHeader
+                    venueHeader(venue: currentVenue)
                     errorCaption(.name)
                     errorCaption(.status)
 
-                    locationRow
+                    locationRow(venue: currentVenue)
                 }
 
                 if let summary = currentVenue.summary?.nilIfBlank {
@@ -182,17 +186,17 @@ struct VenueDetailView: View {
                 }
 
                 LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], alignment: .leading, spacing: 18) {
-                    capacityCell
-                    factCell(icon: "dollarsign.circle", field: .estimate, placeholder: "Add venue est.", caption: "venue est.")
-                    factCell(icon: "dollarsign.square", field: .allInEstimate, placeholder: "Add all-in est.", caption: "all-in est.")
-                    factCell(icon: "calendar", field: .availableDates, placeholder: "Add dates", caption: "available dates")
+                    capacityCell(venue: currentVenue)
+                    factCell(venue: currentVenue, icon: "dollarsign.circle", field: .estimate, placeholder: "Add venue est.", caption: "venue est.")
+                    factCell(venue: currentVenue, icon: "dollarsign.square", field: .allInEstimate, placeholder: "Add all-in est.", caption: "all-in est.")
+                    factCell(venue: currentVenue, icon: "calendar", field: .availableDates, placeholder: "Add dates", caption: "available dates")
                 }
                 .padding()
                 .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                detailsSection
-                documentsSection
-                notesSection
+                detailsSection(venue: currentVenue)
+                documentsSection(venue: currentVenue)
+                notesSection(venue: currentVenue)
             }
             .padding(16)
             .containerRelativeFrame(.horizontal, alignment: .leading)
@@ -326,8 +330,12 @@ struct VenueDetailView: View {
     }
 
     @ViewBuilder
-    private var heroPhoto: some View {
-        if displayedPhotoItems.isEmpty {
+    private func heroPhoto(
+        photoItems: [VenuePhotoItem],
+        venue: MVPVenue,
+        heroPhotoURL: URL?
+    ) -> some View {
+        if photoItems.isEmpty {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 VowbaseVenueImage(
                     url: nil,
@@ -350,7 +358,7 @@ struct VenueDetailView: View {
         } else {
             VowbaseVenueImage(
                 url: heroPhotoURL,
-                cacheKey: selectedHeroPhotoURL == nil ? currentVenue.coverPhotoCacheKey : nil
+                cacheKey: selectedHeroPhotoURL == nil ? venue.coverPhotoCacheKey : nil
             )
             .frame(height: 270)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -424,23 +432,24 @@ struct VenueDetailView: View {
 
     // MARK: - Shared field editing
 
-    private var venueHeader: some View {
+    private func venueHeader(venue: MVPVenue) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                venueTitle(prefersIntrinsicWidth: true)
-                statusMenu
+                venueTitle(venue: venue, prefersIntrinsicWidth: true)
+                statusMenu(for: venue)
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                venueTitle(prefersIntrinsicWidth: false)
-                statusMenu
+                venueTitle(venue: venue, prefersIntrinsicWidth: false)
+                statusMenu(for: venue)
             }
         }
     }
 
-    private func venueTitle(prefersIntrinsicWidth: Bool) -> some View {
+    private func venueTitle(venue: MVPVenue, prefersIntrinsicWidth: Bool) -> some View {
         inlineTextField(
             .name,
+            venue: venue,
             placeholder: "Venue name",
             font: VowbaseType.screenDisplay,
             autocapitalization: .words
@@ -448,7 +457,7 @@ struct VenueDetailView: View {
         .fixedSize(horizontal: prefersIntrinsicWidth, vertical: true)
     }
 
-    private var statusMenu: some View {
+    private func statusMenu(for venue: MVPVenue) -> some View {
         Menu {
             ForEach([
                 VenueStatus.considering, .contacted, .toured,
@@ -457,7 +466,7 @@ struct VenueDetailView: View {
                 Button(status.title) { commitStatus(status) }
             }
         } label: {
-            StatusCapsule(status: displayStatus)
+            StatusCapsule(status: optimisticStatus ?? venue.status)
                 .fixedSize()
         }
     }
@@ -465,6 +474,7 @@ struct VenueDetailView: View {
     @ViewBuilder
     private func inlineTextField(
         _ field: VenueEditableField,
+        venue: MVPVenue,
         placeholder: String,
         font: Font,
         keyboardType: UIKeyboardType = .default,
@@ -481,7 +491,7 @@ struct VenueDetailView: View {
                 .submitLabel(.done)
                 .onSubmit { focusedField = nil }
         } else {
-            let value = displayValue(for: field)
+            let value = displayValue(for: field, venue: venue)
             Button {
                 beginEditingSimple(field)
             } label: {
@@ -508,7 +518,7 @@ struct VenueDetailView: View {
     }
 
     @ViewBuilder
-    private var detailsSection: some View {
+    private func detailsSection(venue: MVPVenue) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Details")
                 .font(.title2.weight(.semibold))
@@ -516,7 +526,7 @@ struct VenueDetailView: View {
             if isDetailsEditing {
                 detailsEditor
             } else {
-                detailsReadOnly
+                detailsReadOnly(venue: venue)
             }
         }
         .padding()
@@ -527,35 +537,35 @@ struct VenueDetailView: View {
         }
     }
 
-    private var detailsReadOnly: some View {
+    private func detailsReadOnly(venue: MVPVenue) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             detailReadOnlyRow(
                 title: "Website",
-                value: currentVenue.website,
+                value: venue.website,
                 placeholder: "Not added",
                 icon: "link",
-                destination: websiteURL(from: currentVenue.website)
+                destination: websiteURL(from: venue.website)
             )
             detailReadOnlyRow(
                 title: "Contact",
-                value: currentVenue.contactName,
+                value: venue.contactName,
                 placeholder: "Not added",
                 icon: "person",
                 destination: nil
             )
             detailReadOnlyRow(
                 title: "Email",
-                value: currentVenue.contactEmail,
+                value: venue.contactEmail,
                 placeholder: "Not added",
                 icon: "envelope",
-                destination: emailURL(from: currentVenue.contactEmail)
+                destination: emailURL(from: venue.contactEmail)
             )
             detailReadOnlyRow(
                 title: "Phone",
-                value: currentVenue.contactPhone,
+                value: venue.contactPhone,
                 placeholder: "Not added",
                 icon: "phone",
-                destination: phoneURL(from: currentVenue.contactPhone)
+                destination: phoneURL(from: venue.contactPhone)
             )
 
         }
@@ -570,7 +580,7 @@ struct VenueDetailView: View {
         }
     }
 
-    private var notesSection: some View {
+    private func notesSection(venue: MVPVenue) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Notes")
                 .font(.title2.weight(.semibold))
@@ -582,7 +592,7 @@ struct VenueDetailView: View {
                     .lineLimit(3...)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                noteDisplay(displayValue(for: .notes))
+                noteDisplay(displayValue(for: .notes, venue: venue))
                     .textSelection(.enabled)
             }
 
@@ -655,7 +665,7 @@ struct VenueDetailView: View {
     }
 
     @ViewBuilder
-    private var documentsSection: some View {
+    private func documentsSection(venue: MVPVenue) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Documents")
@@ -675,8 +685,8 @@ struct VenueDetailView: View {
                 .accessibilityLabel("Upload venue document")
             }
 
-            let documents = currentVenue.documents
-            if store.isLoadingVenueDocuments(for: currentVenue.id), documents.isEmpty {
+            let documents = venue.documents
+            if store.isLoadingVenueDocuments(for: venue.id), documents.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView()
                     Text("Loading documents…")
@@ -689,23 +699,29 @@ struct VenueDetailView: View {
                     .foregroundStyle(VowbaseTheme.mutedInk)
                     .padding(.vertical, 4)
             } else {
-                List {
+                LazyVStack(spacing: 0) {
                     ForEach(documents) { document in
                         documentRow(document)
-                            .listRowInsets(.init(top: 8, leading: 0, bottom: 8, trailing: 0))
-                            .listRowBackground(Color.clear)
+                            .padding(.vertical, 8)
+                            .frame(height: 64)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button("Delete", systemImage: "trash", role: .destructive) {
                                     pendingDocumentDeletion = document
                                 }
                             }
+                            .contextMenu {
+                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                    pendingDocumentDeletion = document
+                                }
+                            }
+                            .accessibilityAction(named: "Delete") {
+                                pendingDocumentDeletion = document
+                            }
+                        if document.id != documents.last?.id {
+                            Divider()
+                        }
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .scrollDisabled(true)
-                .environment(\.defaultMinListRowHeight, 1)
-                .frame(height: CGFloat(documents.count) * 64)
             }
 
             if isUploadingDocument {
@@ -714,7 +730,7 @@ struct VenueDetailView: View {
                     .foregroundStyle(VowbaseTheme.mutedInk)
             }
 
-            if let error = store.venueDocumentError(for: currentVenue.id) ?? documentDownloadError {
+            if let error = store.venueDocumentError(for: venue.id) ?? documentDownloadError {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(VowbaseTheme.rose)
@@ -761,10 +777,16 @@ struct VenueDetailView: View {
     }
 
     @ViewBuilder
-    private func factCell(icon: String, field: VenueEditableField, placeholder: String, caption: String) -> some View {
+    private func factCell(
+        venue: MVPVenue,
+        icon: String,
+        field: VenueEditableField,
+        placeholder: String,
+        caption: String
+    ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Label {
-                inlineTextField(field, placeholder: placeholder, font: .system(size: 16, weight: .semibold))
+                inlineTextField(field, venue: venue, placeholder: placeholder, font: .system(size: 16, weight: .semibold))
             } icon: {
                 Image(systemName: icon)
             }
@@ -777,7 +799,7 @@ struct VenueDetailView: View {
     }
 
     @ViewBuilder
-    private var capacityCell: some View {
+    private func capacityCell(venue: MVPVenue) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Label {
                 if editingField == .capacityMin || editingField == .capacityMax {
@@ -800,11 +822,11 @@ struct VenueDetailView: View {
                     Button {
                         beginEditingCapacity()
                     } label: {
-                        Text(capacityDisplayValue)
+                        Text(capacityDisplayValue(for: venue))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(
                                 flashingFields.contains(.capacityMin) ? VowbaseTheme.rose :
-                                    isCapacityUnset ? VowbaseTheme.mutedInk : VowbaseTheme.ink
+                                    isCapacityUnset(for: venue) ? VowbaseTheme.mutedInk : VowbaseTheme.ink
                             )
                             .lineLimit(1)
                     }
@@ -821,17 +843,17 @@ struct VenueDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var isCapacityUnset: Bool {
-        currentVenue.capacityMin == nil && currentVenue.capacityMax == nil && currentVenue.capacityTextOverride == nil
+    private func isCapacityUnset(for venue: MVPVenue) -> Bool {
+        venue.capacityMin == nil && venue.capacityMax == nil && venue.capacityTextOverride == nil
     }
 
-    private var capacityDisplayValue: String {
+    private func capacityDisplayValue(for venue: MVPVenue) -> String {
         if let override = optimisticValues[.capacityMin] { return override }
-        return isCapacityUnset ? "Add capacity" : currentVenue.capacity
+        return isCapacityUnset(for: venue) ? "Add capacity" : venue.capacity
     }
 
     @ViewBuilder
-    private var locationRow: some View {
+    private func locationRow(venue: MVPVenue) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if editingField == .location {
                 AppleMapsAddressField(
@@ -855,7 +877,7 @@ struct VenueDetailView: View {
                     Button {
                         beginEditingLocation()
                     } label: {
-                        Label(displayValue(for: .location), systemImage: "mappin.and.ellipse")
+                        Label(displayValue(for: .location, venue: venue), systemImage: "mappin.and.ellipse")
                             .font(.subheadline)
                             .foregroundStyle(flashingFields.contains(.location) ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
                             .multilineTextAlignment(.leading)
@@ -869,7 +891,7 @@ struct VenueDetailView: View {
                         .foregroundStyle(VowbaseTheme.rose)
                 }
             }
-            if currentVenue.coordinate == nil {
+            if venue.coordinate == nil {
                 Text("Not on map")
                     .font(.caption)
                     .foregroundStyle(VowbaseTheme.mutedInk)
@@ -882,6 +904,10 @@ struct VenueDetailView: View {
 
     private func displayValue(for field: VenueEditableField) -> String {
         optimisticValues[field] ?? rawStringValue(for: field)
+    }
+
+    private func displayValue(for field: VenueEditableField, venue: MVPVenue) -> String {
+        optimisticValues[field] ?? rawStringValue(for: field, venue: venue)
     }
 
     private func beginDetailsEditing() {
@@ -1067,17 +1093,21 @@ struct VenueDetailView: View {
     }
 
     private func rawStringValue(for field: VenueEditableField) -> String {
+        rawStringValue(for: field, venue: currentVenue)
+    }
+
+    private func rawStringValue(for field: VenueEditableField, venue: MVPVenue) -> String {
         switch field {
-        case .name: currentVenue.name
-        case .estimate: currentVenue.venueEstimateTextRaw ?? ""
-        case .allInEstimate: currentVenue.allInEstimate == "Not added" ? "" : currentVenue.allInEstimate
-        case .availableDates: currentVenue.availableDates == "Not added" ? "" : currentVenue.availableDates
-        case .notes: currentVenue.ourNotes ?? ""
-        case .website: currentVenue.website ?? ""
-        case .contactName: currentVenue.contactName ?? ""
-        case .contactEmail: currentVenue.contactEmail ?? ""
-        case .contactPhone: currentVenue.contactPhone ?? ""
-        case .location: currentVenue.location == "Location not added" ? "" : currentVenue.location
+        case .name: venue.name
+        case .estimate: venue.venueEstimateTextRaw ?? ""
+        case .allInEstimate: venue.allInEstimate == "Not added" ? "" : venue.allInEstimate
+        case .availableDates: venue.availableDates == "Not added" ? "" : venue.availableDates
+        case .notes: venue.ourNotes ?? ""
+        case .website: venue.website ?? ""
+        case .contactName: venue.contactName ?? ""
+        case .contactEmail: venue.contactEmail ?? ""
+        case .contactPhone: venue.contactPhone ?? ""
+        case .location: venue.location == "Location not added" ? "" : venue.location
         case .status, .capacityMin, .capacityMax: ""
         }
     }

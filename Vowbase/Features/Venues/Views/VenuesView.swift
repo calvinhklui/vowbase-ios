@@ -10,6 +10,9 @@ struct VenuesView: View {
     let store: VowbaseWorkspaceStore
     let onAddVenue: () -> Void
     let onReturnToMap: () -> Void
+    /// Routes a list selection through the shell so the persistent map and
+    /// console navigation update in one transaction.
+    let onSelectVenue: (MVPVenue) -> Void
     let onViewOnMap: (MVPVenue) -> Void
     let allowsVerticalScrolling: Bool
     let onRequestExpansion: () -> Void
@@ -49,10 +52,13 @@ struct VenuesView: View {
                         } else {
                             LazyVStack(spacing: 0) {
                                 ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
-                                    NavigationLink(value: venue) {
+                                    Button {
+                                        onSelectVenue(venue)
+                                    } label: {
                                         CompactVenueRow(venue: venue)
                                     }
                                     .buttonStyle(.plain)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
                                     if index < visibleVenues.count - 1 {
                                         Divider()

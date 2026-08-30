@@ -66,9 +66,8 @@ struct WeddingAppShell: View {
     @State private var isVenueNoteEditing = false
     @State private var isSignOutConfirmationPresented = false
     @State private var mapFocusToken = 0
-    /// List-driven details use a full-height navigation host, while a venue
-    /// opened directly from the map preserves the current detent. Back returns
-    /// to the detent captured by whichever route opened the detail.
+    /// Venue details preserve their launch detent. Back returns to the detent
+    /// captured by the shared list/map selection route.
     @State private var venueDetailReturnDetent: ConsoleDetent?
     @State private var guestDetailReturnDetent: ConsoleDetent?
 
@@ -141,6 +140,12 @@ struct WeddingAppShell: View {
                     onOpenVenueInMaps: openInMaps,
                     onClearFocus: clearMapFocus
                 )
+                // Lens changes affect the map canvas, but must not carry an
+                // explicit animation transaction into the persistent sheet.
+                // In particular, Tasks replaces the allowed detents with
+                // `.full`; animating that transaction through the sheet made
+                // its bottom-safe-area rail briefly interpolate at mid-screen.
+                .animation(.snappy(duration: 0.28), value: navigation.selectedLens)
 
                 ContextBar(
                     store: store,
@@ -184,7 +189,6 @@ struct WeddingAppShell: View {
                 }
             )
         }
-        .animation(.snappy(duration: 0.28), value: navigation.selectedLens)
         .onChange(of: navigation.selectedLens) {
             isQuickAddPresented = false
         }
@@ -498,13 +502,6 @@ struct WeddingAppShell: View {
             get: { navigation.venuesPath },
             set: { newPath in
                 let wasShowingDetail = !navigation.venuesPath.isEmpty
-                if !wasShowingDetail, !newPath.isEmpty {
-                    // List navigation mutates this binding and promotes the
-                    // detail to full. Map taps mutate the path directly so
-                    // their current detent remains unchanged.
-                    venueDetailReturnDetent = currentDetent
-                    lensDetents[.venues] = .full
-                }
                 navigation.venuesPath = newPath
                 guard wasShowingDetail, newPath.isEmpty else { return }
 
@@ -603,6 +600,7 @@ struct WeddingAppShell: View {
                 store: store,
                 onAddVenue: { presentQuickAdd(.venue) },
                 onReturnToMap: { navigation.selectedLens = .venues },
+                onSelectVenue: selectVenue,
                 onViewOnMap: showVenueOnMap,
                 allowsVerticalScrolling: currentDetent == .full,
                 onRequestExpansion: expandCurrentConsole,
@@ -699,6 +697,7 @@ struct WeddingAppShell: View {
 
     private func selectVenue(_ venue: MVPVenue) {
         let preservedDetent = currentDetent
+        let requiresRecentering = store.selectedVenueID == venue.id
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = nil
         store.selectedVenueID = venue.id
@@ -707,6 +706,12 @@ struct WeddingAppShell: View {
         venueDetailReturnDetent = preservedDetent
         lensDetents[.venues] = preservedDetent
         navigation.venuesPath.append(venue)
+        // A changed venue ID already changes MapWorkspaceView's camera key.
+        // Recenter only for the rare same-venue selection, avoiding a second
+        // camera update for the normal list/map selection path.
+        if requiresRecentering {
+            mapFocusToken += 1
+        }
     }
 
     private func selectGuestCluster(_ cluster: GuestCluster) {
@@ -1027,13 +1032,19 @@ private struct LensRail<TrailingAction: View>: View {
         .padding(6)
         .frame(maxWidth: .infinity)
         .frame(height: Self.contentHeight)
+        // Keep the selected-item feedback, but confine it to the rail's
+        // static contents. The selection also changes sheet detents for
+        // Tasks, whose full-only presentation must remain under UIKit's
+        // native sheet transition rather than this animation transaction.
+        .animation(
+            reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08),
+            value: selection
+        )
     }
 
     private func select(_ lens: PlanLens) {
         UISelectionFeedbackGenerator().selectionChanged()
-        withAnimation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08)) {
-            selection = lens
-        }
+        selection = lens
     }
 }
 
