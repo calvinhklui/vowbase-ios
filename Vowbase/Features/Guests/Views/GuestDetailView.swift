@@ -16,6 +16,10 @@ struct GuestDetailView: View {
     @State private var isConfirmingDeletion = false
     @State private var undo: GuestUndo?
 
+    private var shareURL: URL? {
+        store.wedding.map { VowbaseDeepLink.guest(weddingID: $0.id, guestID: guest.id).url }
+    }
+
     init(
         guest: MVPGuest,
         store: VowbaseWorkspaceStore,
@@ -56,7 +60,14 @@ struct GuestDetailView: View {
         .navigationTitle("Guest")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let shareURL {
+                    ShareLink(item: shareURL) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Share guest")
+                }
+
                 Menu {
                     Button("Delete Guest", role: .destructive) { isConfirmingDeletion = true }
                 } label: {

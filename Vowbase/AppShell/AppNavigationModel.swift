@@ -1,6 +1,75 @@
 import Observation
 import SwiftUI
 
+enum VowbaseDeepLink: Equatable, Sendable {
+    case venue(weddingID: UUID, venueID: UUID)
+    case guest(weddingID: UUID, guestID: UUID)
+
+    private static let origin = URL(string: "https://vowbase.app")!
+
+    var weddingID: UUID {
+        switch self {
+        case let .venue(weddingID, _), let .guest(weddingID, _):
+            weddingID
+        }
+    }
+
+    var url: URL {
+        let collection: String
+        let recordID: UUID
+        switch self {
+        case let .venue(_, venueID):
+            collection = "venues"
+            recordID = venueID
+        case let .guest(_, guestID):
+            collection = "guests"
+            recordID = guestID
+        }
+        return Self.origin
+            .appending(path: "app/w/\(weddingID.uuidString.lowercased())")
+            .appending(path: collection)
+            .appending(path: recordID.uuidString.lowercased())
+    }
+
+    static func parse(_ url: URL) -> VowbaseDeepLink? {
+        guard url.scheme?.lowercased() == "https",
+              url.host?.lowercased() == "vowbase.app"
+        else { return nil }
+
+        let components = url.pathComponents.filter { $0 != "/" }
+        guard components.count == 5,
+              components[0] == "app",
+              components[1] == "w",
+              let weddingID = UUID(uuidString: components[2]),
+              let recordID = UUID(uuidString: components[4])
+        else { return nil }
+
+        switch components[3] {
+        case "venues": return .venue(weddingID: weddingID, venueID: recordID)
+        case "guests": return .guest(weddingID: weddingID, guestID: recordID)
+        default: return nil
+        }
+    }
+}
+
+@MainActor
+@Observable
+final class VowbaseDeepLinkRouter {
+    private(set) var pending: VowbaseDeepLink?
+
+    @discardableResult
+    func handle(_ url: URL) -> Bool {
+        guard let link = VowbaseDeepLink.parse(url) else { return false }
+        pending = link
+        return true
+    }
+
+    func consume(_ link: VowbaseDeepLink) {
+        guard pending == link else { return }
+        pending = nil
+    }
+}
+
 /// A sheet that can be presented from the authenticated wedding workspace.
 ///
 /// Associated values are raw identifiers so this app-shell layer remains

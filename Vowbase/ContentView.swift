@@ -21,18 +21,22 @@ struct VowbaseAuthenticatedContent: View {
     @State private var taskStore: TaskStore
     @State private var timelineStore: TimelineStore
     @State private var presentationState = WorkspacePresentationState.loading
+    @State private var initialDeepLink: VowbaseDeepLink?
     private let initialLens: PlanLens
     private let presentsInitialVenueDetail: Bool
     private let presentsInitialGuestInsight: Bool
     private let presentsInitialTimelineMomentEditor: Bool
     private let presentsInitialTimelineRequirementEditor: Bool
+    private let deepLinkRouter: VowbaseDeepLinkRouter?
     let onSignOut: () -> Void
 
     init(
         repositories: RepositoryContainer? = nil,
+        deepLinkRouter: VowbaseDeepLinkRouter? = nil,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.onSignOut = onSignOut
+        self.deepLinkRouter = deepLinkRouter
         initialLens = .timeline
         presentsInitialVenueDetail = false
         presentsInitialGuestInsight = false
@@ -44,6 +48,7 @@ struct VowbaseAuthenticatedContent: View {
             repository: repositories?.timeline,
             inspirationRepository: repositories?.inspiration
         ))
+        _initialDeepLink = State(initialValue: nil)
     }
 
 #if DEBUG
@@ -57,6 +62,7 @@ struct VowbaseAuthenticatedContent: View {
     ) {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
+        deepLinkRouter = nil
         initialLens = presentsInitialVenueDetail && !presentsInitialTimelineMomentEditor && !presentsInitialTimelineRequirementEditor
             ? .venues
             : .timeline
@@ -68,6 +74,7 @@ struct VowbaseAuthenticatedContent: View {
         let weddingID = UUID(uuidString: "79B779C0-7E5B-4F9D-94F3-00C13DCEE5B4")!
         _taskStore = State(initialValue: TaskStore.testingWorkspace(weddingID: weddingID))
         _timelineStore = State(initialValue: TimelineStore.testingWorkspace(weddingID: weddingID))
+        _initialDeepLink = State(initialValue: nil)
     }
 #endif
 
@@ -90,6 +97,7 @@ struct VowbaseAuthenticatedContent: View {
                     presentsInitialGuestInsight: presentsInitialGuestInsight,
                     presentsInitialTimelineMomentEditor: presentsInitialTimelineMomentEditor,
                     presentsInitialTimelineRequirementEditor: presentsInitialTimelineRequirementEditor,
+                    initialDeepLink: initialDeepLink,
                     onSignOut: onSignOut
                 )
                     .transition(.opacity.combined(with: .scale(scale: 0.985)))
@@ -102,15 +110,38 @@ struct VowbaseAuthenticatedContent: View {
         }
         .animation(.easeInOut(duration: 0.32), value: presentationState)
         .task { await loadWorkspace() }
+        .onChange(of: deepLinkRouter?.pending) { _, pending in
+            guard pending != nil else { return }
+            Task { await loadWorkspace() }
+        }
     }
 
     @MainActor
     private func loadWorkspace() async {
         presentationState = .loading
-        let loaded = await store.load(presentsFailure: false)
+        let pending = deepLinkRouter?.pending
+        let loaded = await store.load(weddingID: pending?.weddingID, presentsFailure: false)
         guard !Task.isCancelled else { return }
 
         if loaded {
+            if let pending {
+                let recordExists = switch pending {
+                case let .venue(_, venueID): store.venues.contains { $0.id == venueID }
+                case let .guest(_, guestID): store.guests.contains { $0.id == guestID }
+                }
+                guard recordExists else {
+                    deepLinkRouter?.consume(pending)
+                    initialDeepLink = nil
+                    presentationState = .failed(
+                        "This record isn’t available. It may have been removed, or you may not have access to this workspace."
+                    )
+                    return
+                }
+                initialDeepLink = pending
+                deepLinkRouter?.consume(pending)
+            } else {
+                initialDeepLink = nil
+            }
             presentationState = .ready
         } else {
             presentationState = .failed(

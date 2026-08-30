@@ -89,24 +89,50 @@ struct WeddingAppShell: View {
         presentsInitialGuestInsight: Bool = false,
         presentsInitialTimelineMomentEditor: Bool = false,
         presentsInitialTimelineRequirementEditor: Bool = false,
+        initialDeepLink: VowbaseDeepLink? = nil,
         onSignOut: @escaping () -> Void = {}
     ) {
         self.store = store
         self.taskStore = taskStore
         self.timelineStore = timelineStore
         self.onSignOut = onSignOut
-        let initialVenue = presentsInitialVenueDetail ? store.venues.first : nil
-        let initialGuestCluster = initialVenue == nil && presentsInitialGuestInsight ? store.clusters.first : nil
+        let linkedVenue: MVPVenue? = if case let .venue(_, venueID) = initialDeepLink {
+            store.venues.first { $0.id == venueID }
+        } else {
+            nil
+        }
+        let linkedGuest: MVPGuest? = if case let .guest(_, guestID) = initialDeepLink {
+            store.guests.first { $0.id == guestID }
+        } else {
+            nil
+        }
+        let initialVenue = linkedVenue ?? (presentsInitialVenueDetail ? store.venues.first : nil)
+        let initialGuestCluster = initialVenue == nil && linkedGuest == nil && presentsInitialGuestInsight ? store.clusters.first : nil
         let initialNavigation = AppNavigationModel(
-            selectedLens: initialGuestCluster == nil ? initialLens : .guests
+            selectedLens: initialVenue != nil ? .venues : (linkedGuest != nil || initialGuestCluster != nil ? .guests : initialLens)
         )
         if let initialVenue {
             initialNavigation.venuesPath.append(initialVenue)
             store.selectedVenueID = initialVenue.id
         }
+        if let linkedGuest {
+            initialNavigation.guestsPath.append(linkedGuest)
+        }
         initialNavigation.selectedGuestClusterID = initialGuestCluster?.id
         _navigation = State(initialValue: initialNavigation)
         _venueDetailReturnDetent = State(initialValue: initialVenue == nil ? nil : .half)
+        _guestDetailReturnDetent = State(initialValue: linkedGuest == nil ? nil : .half)
+        var initialDetents: [PlanLens: ConsoleDetent] = [
+            .overview: .peek,
+            .venues: .half,
+            .guests: .half,
+            .tasks: .full,
+            .timeline: .half,
+        ]
+        if linkedGuest != nil {
+            initialDetents[.guests] = .full
+        }
+        _lensDetents = State(initialValue: initialDetents)
         if presentsInitialTimelineMomentEditor, let moment = timelineStore.moments.first {
             _presentedModal = State(initialValue: .quickAdd(.moment(weddingID: moment.weddingID, moment: moment)))
         } else if presentsInitialTimelineRequirementEditor, let requirement = timelineStore.requirements.first {

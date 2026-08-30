@@ -4,6 +4,7 @@ import SwiftUI
 struct VowbaseApp: App {
     private let dependencies: AppDependencies?
     private let authCallbackHandler: AuthCallbackHandler?
+    @State private var deepLinkRouter = VowbaseDeepLinkRouter()
 
     init() {
         do {
@@ -31,24 +32,25 @@ struct VowbaseApp: App {
                         presentsInitialTimelineRequirementEditor: ProcessInfo.processInfo.arguments.contains("-testingTimelineRequirementEditor")
                     )
                 } else if let dependencies {
-                    VowbaseAppRoot(dependencies: dependencies)
+                    VowbaseAppRoot(dependencies: dependencies, deepLinkRouter: deepLinkRouter)
                 } else {
                     VowbaseConfigurationErrorView()
                 }
 #else
                 if let dependencies {
-                    VowbaseAppRoot(dependencies: dependencies)
+                    VowbaseAppRoot(dependencies: dependencies, deepLinkRouter: deepLinkRouter)
                 } else {
                     VowbaseConfigurationErrorView()
                 }
 #endif
             }
             .onOpenURL { [authCallbackHandler] url in
-                    guard let authCallbackHandler else { return }
-                    Task {
-                        _ = await authCallbackHandler.enqueue(url)
-                    }
+                if deepLinkRouter.handle(url) { return }
+                guard let authCallbackHandler else { return }
+                Task {
+                    _ = await authCallbackHandler.enqueue(url)
                 }
+            }
         }
     }
 }

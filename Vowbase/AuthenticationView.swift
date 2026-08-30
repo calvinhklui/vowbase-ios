@@ -155,10 +155,12 @@ final class AuthenticationCoordinator {
 
 struct VowbaseAppRoot: View {
     let dependencies: AppDependencies
+    let deepLinkRouter: VowbaseDeepLinkRouter
     @State private var coordinator: AuthenticationCoordinator
 
-    init(dependencies: AppDependencies) {
+    init(dependencies: AppDependencies, deepLinkRouter: VowbaseDeepLinkRouter) {
         self.dependencies = dependencies
+        self.deepLinkRouter = deepLinkRouter
         _coordinator = State(initialValue: AuthenticationCoordinator(auth: dependencies.auth))
     }
 
@@ -183,6 +185,7 @@ struct VowbaseAppRoot: View {
         if case .signedIn = coordinator.state {
             VowbaseAuthenticatedContent(
                 repositories: dependencies.repositories,
+                deepLinkRouter: deepLinkRouter,
                 onSignOut: coordinator.signOut
             )
         } else if coordinator.state == .loading {

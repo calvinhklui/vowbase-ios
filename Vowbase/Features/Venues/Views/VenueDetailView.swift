@@ -69,6 +69,10 @@ struct VenueDetailView: View {
     @State private var locationDraft = ""
     @State private var locationSelection: AppleMapsAddressSelection?
 
+    private var shareURL: URL? {
+        store.wedding.map { VowbaseDeepLink.venue(weddingID: $0.id, venueID: venue.id).url }
+    }
+
     init(
         venue: MVPVenue,
         store: VowbaseWorkspaceStore,
@@ -240,6 +244,13 @@ struct VenueDetailView: View {
                         Image(systemName: "pencil")
                     }
                     .accessibilityLabel("Edit venue details and notes")
+
+                    if let shareURL {
+                        ShareLink(item: shareURL) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .accessibilityLabel("Share venue")
+                    }
 
                     Button {
                         isConfirmingDeletion = true

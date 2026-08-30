@@ -636,20 +636,27 @@ final class VowbaseWorkspaceStore {
     }
 
     @discardableResult
-    func load(presentsFailure: Bool = true) async -> Bool {
+    func load(weddingID requestedWeddingID: UUID? = nil, presentsFailure: Bool = true) async -> Bool {
         guard let repositories else { return wedding != nil }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            guard let membership = try await repositories.workspace.memberships().first else {
+            let memberships = try await repositories.workspace.memberships()
+            let targetWeddingID = requestedWeddingID ?? activeMembership?.weddingId
+            let membership = targetWeddingID.flatMap { targetID in
+                memberships.first { $0.weddingId == targetID }
+            } ?? (targetWeddingID == nil ? memberships.first : nil)
+            guard let membership else {
                 venueRecords = []
                 guestRecords = []
                 customColumnRecords = []
                 wedding = nil
                 activeMembership = nil
-                errorMessage = "This account is not a member of a wedding workspace yet."
+                errorMessage = requestedWeddingID == nil
+                    ? "This account is not a member of a wedding workspace yet."
+                    : "This record isn’t available. It may have been removed, or you may not have access to this workspace."
                 if presentsFailure { presentLoadFailure() }
                 return false
             }
