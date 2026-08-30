@@ -33,7 +33,7 @@ struct VowbaseAuthenticatedContent: View {
         onSignOut: @escaping () -> Void = {}
     ) {
         self.onSignOut = onSignOut
-        initialLens = .venues
+        initialLens = .timeline
         presentsInitialVenueDetail = false
         presentsInitialGuestInsight = false
         presentsInitialTimelineMomentEditor = false
@@ -57,7 +57,9 @@ struct VowbaseAuthenticatedContent: View {
     ) {
         precondition(testingWorkspace)
         self.onSignOut = onSignOut
-        initialLens = presentsInitialTimelineMomentEditor || presentsInitialTimelineRequirementEditor ? .timeline : .venues
+        initialLens = presentsInitialVenueDetail && !presentsInitialTimelineMomentEditor && !presentsInitialTimelineRequirementEditor
+            ? .venues
+            : .timeline
         self.presentsInitialVenueDetail = presentsInitialVenueDetail
         self.presentsInitialGuestInsight = presentsInitialGuestInsight
         self.presentsInitialTimelineMomentEditor = presentsInitialTimelineMomentEditor

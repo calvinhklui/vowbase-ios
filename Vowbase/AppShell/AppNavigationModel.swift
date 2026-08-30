@@ -46,7 +46,7 @@ enum SheetDestination: Identifiable, Hashable {
 @MainActor
 @Observable
 final class AppNavigationModel {
-    /// The currently visible lens. Venues is the default visible destination.
+    /// The currently visible lens. Timeline is the default visible destination.
     var selectedLens: PlanLens
 
     /// Independent navigation stacks preserve each lens's drill-in state.
@@ -71,7 +71,7 @@ final class AppNavigationModel {
     /// The city-level guest group currently presented over the active lens.
     var selectedGuestClusterID: String?
 
-    init(selectedLens: PlanLens = .venues) {
+    init(selectedLens: PlanLens = .timeline) {
         self.selectedLens = selectedLens
     }
 

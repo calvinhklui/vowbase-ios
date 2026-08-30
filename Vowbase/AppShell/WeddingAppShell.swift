@@ -19,6 +19,23 @@ private enum QuickAddDestination: Identifiable {
     }
 }
 
+/// The console owns one modal route at a time. Keeping every editor and
+/// insight on one sheet host avoids competing presentation transactions from
+/// sibling `.sheet` modifiers on the persistent console.
+private enum WorkspaceModal: Identifiable {
+    case quickAdd(QuickAddDestination)
+    case task(TaskEditorDestination)
+    case guestCluster(GuestCluster)
+
+    var id: String {
+        switch self {
+        case let .quickAdd(destination): "quick-add-\(destination.id)"
+        case let .task(destination): "task-\(destination.id)"
+        case let .guestCluster(cluster): "guest-cluster-\(cluster.id)"
+        }
+    }
+}
+
 /// The authenticated app: one persistent map canvas, one persistent console
 /// sheet whose content depends on the active lens. See
 /// `docs/vowbase-ios-map-command-center-ux-spec.md` §2, §7.
@@ -47,9 +64,8 @@ struct WeddingAppShell: View {
     let timelineStore: TimelineStore
     let onSignOut: () -> Void
     @State private var navigation: AppNavigationModel
-    @State private var quickAdd: QuickAddDestination?
-    @State private var taskEditor: TaskEditorDestination?
-    @State private var guestClusterInsight: GuestCluster?
+    @State private var presentedModal: WorkspaceModal?
+    @State private var guestClusterModalWasPresented = false
     @State private var pendingGuestDetail: MVPGuest?
     @State private var isQuickAddPresented = false
     @State private var isVenueNoteEditing = false
@@ -74,7 +90,7 @@ struct WeddingAppShell: View {
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
         timelineStore: TimelineStore,
-        initialLens: PlanLens = .venues,
+        initialLens: PlanLens = .timeline,
         presentsInitialVenueDetail: Bool = false,
         presentsInitialGuestInsight: Bool = false,
         presentsInitialTimelineMomentEditor: Bool = false,
@@ -96,12 +112,14 @@ struct WeddingAppShell: View {
         }
         initialNavigation.selectedGuestClusterID = initialGuestCluster?.id
         _navigation = State(initialValue: initialNavigation)
-        _guestClusterInsight = State(initialValue: initialGuestCluster)
         _venueDetailReturnDetent = State(initialValue: initialVenue == nil ? nil : .half)
         if presentsInitialTimelineMomentEditor, let moment = timelineStore.moments.first {
-            _quickAdd = State(initialValue: .moment(weddingID: moment.weddingID, moment: moment))
+            _presentedModal = State(initialValue: .quickAdd(.moment(weddingID: moment.weddingID, moment: moment)))
         } else if presentsInitialTimelineRequirementEditor, let requirement = timelineStore.requirements.first {
-            _quickAdd = State(initialValue: .requirement(weddingID: requirement.weddingID, requirement: requirement))
+            _presentedModal = State(initialValue: .quickAdd(.requirement(weddingID: requirement.weddingID, requirement: requirement)))
+        } else if let initialGuestCluster {
+            _presentedModal = State(initialValue: .guestCluster(initialGuestCluster))
+            _guestClusterModalWasPresented = State(initialValue: true)
         }
     }
 
@@ -234,7 +252,7 @@ struct WeddingAppShell: View {
         case .tasks:
             [ConsoleDetent.full.presentationDetent]
         case .timeline:
-            Set([ConsoleDetent.peek, .half].map(\.presentationDetent))
+            Set([ConsoleDetent.peek, .half, .full].map(\.presentationDetent))
         }
     }
 
@@ -338,47 +356,53 @@ struct WeddingAppShell: View {
         // presentation context and UIKit silently drops it — which is what
         // made every Quick Add action a no-op. Presenting from the console
         // stacks the new sheet on top of it instead.
-        .sheet(item: $quickAdd) { destination in
-            switch destination {
-            case .venue:
-                AddVenueSheet(store: store)
-                    .presentationDetents([.medium, .large])
-            case .guest:
-                AddGuestSheet(store: store)
-                    .presentationDetents([.medium, .large])
-            case let .moment(weddingID, moment):
-                TimelineComposer(
-                    timelineStore: timelineStore,
-                    weddingID: weddingID,
-                    venues: store.venues,
-                    moment: moment
+        .sheet(item: $presentedModal, onDismiss: finishGuestClusterInsightDismissal) { modal in
+            switch modal {
+            case let .quickAdd(destination):
+                quickAddSheet(destination)
+            case let .task(destination):
+                TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
+                    .presentationDetents([.large])
+            case let .guestCluster(cluster):
+                TravelCoverageConsole(
+                    store: store,
+                    cluster: cluster,
+                    onOpenGuestDetails: { guest in
+                        pendingGuestDetail = guest
+                        presentedModal = nil
+                    }
                 )
-                .presentationDetents([.medium, .large])
-            case let .requirement(weddingID, requirement):
-                RequirementComposer(
-                    timelineStore: timelineStore,
-                    weddingID: weddingID,
-                    requirement: requirement
-                )
-                .presentationDetents([.medium, .large])
+                    .presentationDetents([.fraction(0.52), .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(VowbaseTheme.background)
             }
         }
-        .sheet(item: $taskEditor) { destination in
-            TaskEditorSheet(destination: destination, taskStore: taskStore, weddingID: store.wedding?.id, canManageTasks: store.canManageTasks)
-                .presentationDetents([.large])
-        }
-        .sheet(item: $guestClusterInsight, onDismiss: finishGuestClusterInsightDismissal) { cluster in
-            TravelCoverageConsole(
-                store: store,
-                cluster: cluster,
-                onOpenGuestDetails: { guest in
-                    pendingGuestDetail = guest
-                    guestClusterInsight = nil
-                }
+    }
+
+    @ViewBuilder
+    private func quickAddSheet(_ destination: QuickAddDestination) -> some View {
+        switch destination {
+        case .venue:
+            AddVenueSheet(store: store)
+                .presentationDetents([.medium, .large])
+        case .guest:
+            AddGuestSheet(store: store)
+                .presentationDetents([.medium, .large])
+        case let .moment(weddingID, moment):
+            TimelineComposer(
+                timelineStore: timelineStore,
+                weddingID: weddingID,
+                venues: store.venues,
+                moment: moment
             )
-                .presentationDetents([.fraction(0.52), .large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(VowbaseTheme.background)
+            .presentationDetents([.medium, .large])
+        case let .requirement(weddingID, requirement):
+            RequirementComposer(
+                timelineStore: timelineStore,
+                weddingID: weddingID,
+                requirement: requirement
+            )
+            .presentationDetents([.medium, .large])
         }
     }
 
@@ -406,21 +430,21 @@ struct WeddingAppShell: View {
         case .overview:
             QuickAddOverlay(
                 isPresented: $isQuickAddPresented,
-                onAddVenue: { quickAdd = .venue },
-                onAddGuest: { quickAdd = .guest },
-                onAddTask: { taskEditor = .add() }
+                onAddVenue: { presentQuickAdd(.venue) },
+                onAddGuest: { presentQuickAdd(.guest) },
+                onAddTask: { presentTaskEditor(.add()) }
             )
         case .venues:
             DirectAddFAB(title: "Add Venue", systemImage: "plus") {
-                quickAdd = .venue
+                presentQuickAdd(.venue)
             }
         case .guests:
             DirectAddFAB(title: "Add Guest", systemImage: "plus") {
-                quickAdd = .guest
+                presentQuickAdd(.guest)
             }
         case .tasks:
             DirectAddFAB(title: "Add Task", systemImage: "plus") {
-                taskEditor = .add()
+                presentTaskEditor(.add())
             }
         case .timeline:
             QuickAddOverlay(
@@ -428,20 +452,20 @@ struct WeddingAppShell: View {
                 actions: [
                     QuickAddAction(id: "moment", title: "Add Moment", icon: "sparkles", tint: VowbaseTheme.rose) {
                         guard let weddingID = store.wedding?.id else { return }
-                        quickAdd = .moment(weddingID: weddingID, moment: nil)
+                        presentQuickAdd(.moment(weddingID: weddingID, moment: nil))
                     },
                     QuickAddAction(id: "requirement", title: "Add Requirement", icon: "list.bullet.clipboard", tint: VowbaseTheme.rose) {
                         guard let weddingID = store.wedding?.id else { return }
-                        quickAdd = .requirement(weddingID: weddingID, requirement: nil)
+                        presentQuickAdd(.requirement(weddingID: weddingID, requirement: nil))
                     },
                     QuickAddAction(id: "venue", title: "Add Venue", icon: "mappin.and.ellipse", tint: VowbaseTheme.rose) {
-                        quickAdd = .venue
+                        presentQuickAdd(.venue)
                     },
                     QuickAddAction(id: "guest", title: "Add Guest", icon: "person.badge.plus", tint: VowbaseTheme.guestBlue) {
-                        quickAdd = .guest
+                        presentQuickAdd(.guest)
                     },
                     QuickAddAction(id: "task", title: "Add Task", icon: "checkmark.circle.badge.plus", tint: VowbaseTheme.rose) {
-                        taskEditor = .add()
+                        presentTaskEditor(.add())
                     },
                 ]
             )
@@ -456,7 +480,7 @@ struct WeddingAppShell: View {
     /// rather than something it pushed to internally.
     /// Overview and Tasks never push from the console, so they're always
     /// "at root" — Overview's rail has no detail destination, and Tasks
-    /// edits via a sheet (`taskEditor`), not a push.
+    /// edits via the shared modal route, not a push.
     private var isConsoleAtRoot: Bool {
         switch navigation.selectedLens {
         case .overview, .tasks, .timeline:
@@ -471,8 +495,45 @@ struct WeddingAppShell: View {
     private var selectedLensBinding: Binding<PlanLens> {
         Binding(
             get: { navigation.selectedLens },
-            set: { navigation.selectedLens = $0 }
+            set: { selectedLens in
+                let isReselection = navigation.selectedLens == selectedLens
+                navigation.selectLens(selectedLens)
+                guard isReselection else { return }
+
+                switch selectedLens {
+                case .venues:
+                    venuesPathBinding.wrappedValue = NavigationPath()
+                case .guests:
+                    guestsPathBinding.wrappedValue = NavigationPath()
+                case .overview, .tasks, .timeline:
+                    navigation.resetNavigation(for: selectedLens)
+                }
+            }
         )
+    }
+
+    private var taskEditorBinding: Binding<TaskEditorDestination?> {
+        Binding(
+            get: {
+                guard case let .task(destination)? = presentedModal else { return nil }
+                return destination
+            },
+            set: { destination in
+                if let destination {
+                    presentTaskEditor(destination)
+                } else if case .task? = presentedModal {
+                    presentedModal = nil
+                }
+            }
+        )
+    }
+
+    private func presentQuickAdd(_ destination: QuickAddDestination) {
+        presentedModal = .quickAdd(destination)
+    }
+
+    private func presentTaskEditor(_ destination: TaskEditorDestination) {
+        presentedModal = .task(destination)
     }
 
     private var venuesPathBinding: Binding<NavigationPath> {
@@ -541,7 +602,7 @@ struct WeddingAppShell: View {
             navigation.selectedLens = .venues
         case .unavailable(.noMappableGuests):
             navigation.selectedLens = .guests
-            quickAdd = .guest
+            presentQuickAdd(.guest)
         case .unavailable(.requestFailed):
             Task { await store.refreshTravelImpact() }
         case .ready:
@@ -563,12 +624,12 @@ struct WeddingAppShell: View {
                     NeedsYouModule(
                         store: store,
                         taskStore: taskStore,
-                        onSelectTask: { task in taskEditor = .edit(task.id) },
+                        onSelectTask: { task in presentTaskEditor(.edit(task.id)) },
                         onSelectNudge: { nudge in navigation.selectedLens = nudge.destination },
-                        onPromoteNudge: { nudge in taskEditor = .add(prefillTitle: nudge.message) }
+                        onPromoteNudge: { nudge in presentTaskEditor(.add(prefillTitle: nudge.message)) }
                     )
                     ReachModule(store: store, onTapReadout: handleImpactRowTap)
-                    GuestsModule(store: store, onAddGuest: { quickAdd = .guest })
+                    GuestsModule(store: store, onAddGuest: { presentQuickAdd(.guest) })
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
@@ -576,7 +637,7 @@ struct WeddingAppShell: View {
         case .venues:
             VenuesView(
                 store: store,
-                onAddVenue: { quickAdd = .venue },
+                onAddVenue: { presentQuickAdd(.venue) },
                 onReturnToMap: { navigation.selectedLens = .venues },
                 onViewOnMap: showVenueOnMap,
                 allowsVerticalScrolling: currentDetent == .full,
@@ -594,17 +655,17 @@ struct WeddingAppShell: View {
                 path: guestsPathBinding
             )
         case .tasks:
-            TasksView(store: store, taskStore: taskStore, editor: $taskEditor)
+            TasksView(store: store, taskStore: taskStore, editor: taskEditorBinding)
         case .timeline:
             PlanningTimelineView(
                 store: store,
                 taskStore: taskStore,
                 timelineStore: timelineStore,
                 onOpenMoment: { moment in
-                    quickAdd = .moment(weddingID: moment.weddingID, moment: moment)
+                    presentQuickAdd(.moment(weddingID: moment.weddingID, moment: moment))
                 },
                 onOpenRequirement: { requirement in
-                    quickAdd = .requirement(weddingID: requirement.weddingID, requirement: requirement)
+                    presentQuickAdd(.requirement(weddingID: requirement.weddingID, requirement: requirement))
                 },
                 onOpenVenue: selectVenue,
                 onOpenGuest: openGuestDetails
@@ -688,7 +749,8 @@ struct WeddingAppShell: View {
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = cluster.id
         store.selectedVenueID = nil
-        guestClusterInsight = cluster
+        guestClusterModalWasPresented = true
+        presentedModal = .guestCluster(cluster)
     }
 
     private func clearGuestClusterInsight() {
@@ -697,6 +759,8 @@ struct WeddingAppShell: View {
     }
 
     private func finishGuestClusterInsightDismissal() {
+        guard guestClusterModalWasPresented else { return }
+        guestClusterModalWasPresented = false
         clearGuestClusterInsight()
         guard let guest = pendingGuestDetail else { return }
         pendingGuestDetail = nil
@@ -737,7 +801,9 @@ struct WeddingAppShell: View {
         store.selectedVenueID = nil
         navigation.selectedGuestID = nil
         navigation.selectedGuestClusterID = nil
-        guestClusterInsight = nil
+        if case .guestCluster? = presentedModal {
+            presentedModal = nil
+        }
     }
 }
 
@@ -969,8 +1035,6 @@ private struct LensRail: View {
     }
 
     private func select(_ lens: PlanLens) {
-        guard selection != lens else { return }
-
         UISelectionFeedbackGenerator().selectionChanged()
         withAnimation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08)) {
             selection = lens
