@@ -112,6 +112,16 @@ struct TimelineTests {
         #expect(compactDate == TimelineCompactDate(weekday: "FRI", dayNumber: "14"))
     }
 
+    @Test("progressive loading advances in bounded batches and stops at the feed size")
+    func advancesProgressiveLoadingWindow() {
+        #expect(TimelineProgressiveLoading.batchSize == 80)
+        #expect(TimelineProgressiveLoading.nextLimit(currentLimit: 80, totalCount: 250) == 160)
+        #expect(TimelineProgressiveLoading.nextLimit(currentLimit: 160, totalCount: 250) == 240)
+        #expect(TimelineProgressiveLoading.nextLimit(currentLimit: 240, totalCount: 250) == 250)
+        #expect(TimelineProgressiveLoading.nextLimit(currentLimit: 250, totalCount: 250) == 250)
+        #expect(TimelineProgressiveLoading.nextLimit(currentLimit: -10, totalCount: -1) == 0)
+    }
+
     @Test("on-track state follows conservative information and overdue boundaries")
     func evaluatesPlanningStatusBoundaries() {
         let calendar = Calendar.current

@@ -935,6 +935,7 @@ struct PlanningTimelineView: View {
     let onOpenRequirement: (MoodboardRequirement) -> Void
     let onOpenVenue: (MVPVenue) -> Void
     let onOpenGuest: (MVPGuest) -> Void
+    @State private var visibleEntryLimit = TimelineProgressiveLoading.batchSize
 
     init(
         store: VowbaseWorkspaceStore,
@@ -960,6 +961,10 @@ struct PlanningTimelineView: View {
     }
 
     var body: some View {
+        let timelineEntries = entries
+        let visibleEntries = Array(timelineEntries.prefix(visibleEntryLimit))
+        let groupedEntries = TimelineDatePresentation.monthSections(for: visibleEntries)
+
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Timeline").displayTitle()
@@ -969,11 +974,11 @@ struct PlanningTimelineView: View {
             .padding(.bottom, VowbaseSpace.small)
 
             Group {
-                if timelineStore.isLoading && entries.isEmpty {
+                if timelineStore.isLoading && timelineEntries.isEmpty {
                     ProgressView("Loading timeline")
                         .tint(VowbaseTheme.rose)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if entries.isEmpty {
+                } else if timelineEntries.isEmpty {
                     ScrollView {
                         VStack(spacing: VowbaseSpace.large) {
                             if let planningStatus {
@@ -995,7 +1000,7 @@ struct PlanningTimelineView: View {
                                     .padding(.bottom, VowbaseSpace.medium)
                             }
 
-                            ForEach(Array(groupedEntries.enumerated()), id: \.offset) { _, group in
+                            ForEach(groupedEntries) { group in
                                 Text(TimelineDatePresentation.monthHeader(for: group.month))
                                     .font(VowbaseType.eyebrow)
                                     .foregroundStyle(VowbaseTheme.mutedInk)
@@ -1007,6 +1012,20 @@ struct PlanningTimelineView: View {
                                     TimelineEntryRow(entry: entry, onOpen: openAction(for: entry))
                                     Divider()
                                 }
+                            }
+
+                            if visibleEntries.count < timelineEntries.count {
+                                ProgressView("Loading earlier activity")
+                                    .tint(VowbaseTheme.rose)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, VowbaseSpace.large)
+                                    .id(visibleEntryLimit)
+                                    .onAppear {
+                                        visibleEntryLimit = TimelineProgressiveLoading.nextLimit(
+                                            currentLimit: visibleEntryLimit,
+                                            totalCount: timelineEntries.count
+                                        )
+                                    }
                             }
                         }
                         .padding(.horizontal, VowbaseControlMetric.screenInset)
@@ -1023,6 +1042,7 @@ struct PlanningTimelineView: View {
             }
         }
         .task(id: weddingID) {
+            visibleEntryLimit = TimelineProgressiveLoading.batchSize
             guard let weddingID else { return }
             async let workspace: Bool = store.load(presentsFailure: false)
             async let tasks: Void = taskStore.load(weddingID: weddingID)
@@ -1039,10 +1059,6 @@ struct PlanningTimelineView: View {
             requirementCount: timelineStore.requirements.count,
             tasks: taskStore.tasks
         )
-    }
-
-    private var groupedEntries: [TimelineMonthSection] {
-        TimelineDatePresentation.monthSections(for: entries)
     }
 
     private func refresh() async {
@@ -1070,6 +1086,14 @@ struct PlanningTimelineView: View {
         case nil:
             return nil
         }
+    }
+}
+
+enum TimelineProgressiveLoading {
+    static let batchSize = 80
+
+    static func nextLimit(currentLimit: Int, totalCount: Int) -> Int {
+        min(max(currentLimit, 0) + batchSize, max(totalCount, 0))
     }
 }
 
