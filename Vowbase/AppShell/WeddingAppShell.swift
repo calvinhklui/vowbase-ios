@@ -280,7 +280,7 @@ struct WeddingAppShell: View {
     /// above it just wastes vertical space on a second, redundant header.
     @ViewBuilder
     private var consoleSheet: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: consoleContentSpacing) {
             if isConsoleAtRoot {
                 // `VowbaseTheme.border` reads as a hairline separator, not a
                 // grab handle — too faint at this size against the console's
@@ -573,6 +573,13 @@ struct WeddingAppShell: View {
                 guestDetailReturnDetent = nil
             }
         )
+    }
+
+    /// Tasks keeps its count subline in the shell-owned header. Its content
+    /// therefore uses the same title-to-content rhythm as Timeline, whose
+    /// title lives at the root of its content view.
+    private var consoleContentSpacing: CGFloat {
+        navigation.selectedLens == .tasks ? VowbaseSpace.small : 14
     }
 
     @ViewBuilder

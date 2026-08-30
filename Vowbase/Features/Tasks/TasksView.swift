@@ -70,7 +70,6 @@ struct TasksView: View {
                 }
             }
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
             }
             .vowbaseScrollClearance()
             .navigationBarHidden(true)

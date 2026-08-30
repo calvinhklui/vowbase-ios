@@ -32,7 +32,7 @@ struct VenuesView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ConsoleHeader(venues: store.venues)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, VowbaseSpace.small)
 
                     if !store.venues.isEmpty {
                         VenueMetricPills(venues: store.venues, selectedStatus: $selectedStatus)
@@ -65,7 +65,6 @@ struct VenuesView: View {
                     .padding(.top, 18)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
             }
             .consoleVerticalScrollHandoff(
                 allowsVerticalScrolling: allowsVerticalScrolling,

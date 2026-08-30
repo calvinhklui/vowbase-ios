@@ -996,7 +996,7 @@ struct PlanningTimelineView: View {
                             }
 
                             ForEach(Array(groupedEntries.enumerated()), id: \.offset) { _, group in
-                                Text(TimelineDateFormatter.divider.string(from: group.date).uppercased())
+                                Text(TimelineDatePresentation.monthHeader(for: group.month))
                                     .font(VowbaseType.eyebrow)
                                     .foregroundStyle(VowbaseTheme.mutedInk)
                                     .padding(.top, VowbaseSpace.medium)
@@ -1041,15 +1041,8 @@ struct PlanningTimelineView: View {
         )
     }
 
-    private var groupedEntries: [(date: Date, entries: [TimelineEntry])] {
-        let calendar = Calendar.current
-        return entries.reduce(into: [(date: Date, entries: [TimelineEntry])]()) { result, entry in
-            if let index = result.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: entry.occurredAt) }) {
-                result[index].entries.append(entry)
-            } else {
-                result.append((calendar.startOfDay(for: entry.occurredAt), [entry]))
-            }
-        }
+    private var groupedEntries: [TimelineMonthSection] {
+        TimelineDatePresentation.monthSections(for: entries)
     }
 
     private func refresh() async {
@@ -1080,22 +1073,66 @@ struct PlanningTimelineView: View {
     }
 }
 
-private enum TimelineDateFormatter {
-    static let divider: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }()
+struct TimelineMonthSection: Identifiable, Equatable, Sendable {
+    let month: Date
+    let entries: [TimelineEntry]
 
-    static let entry: DateFormatter = {
+    var id: Date { month }
+}
+
+struct TimelineCompactDate: Equatable, Sendable {
+    let weekday: String
+    let dayNumber: String
+}
+
+enum TimelineDatePresentation {
+    static func monthSections(for entries: [TimelineEntry], calendar: Calendar = .current) -> [TimelineMonthSection] {
+        let chronologicalEntries = entries.sorted {
+            if $0.occurredAt != $1.occurredAt { return $0.occurredAt > $1.occurredAt }
+            return $0.id < $1.id
+        }
+        let grouped = Dictionary(grouping: chronologicalEntries) { entry in
+            calendar.dateInterval(of: .month, for: entry.occurredAt)?.start ?? calendar.startOfDay(for: entry.occurredAt)
+        }
+
+        return grouped
+            .map { TimelineMonthSection(month: $0.key, entries: $0.value) }
+            .sorted { $0.month > $1.month }
+    }
+
+    static func monthHeader(for date: Date, calendar: Calendar = .current, locale: Locale = .current) -> String {
+        formatter(dateFormat: "LLLL yyyy", calendar: calendar, locale: locale)
+            .string(from: date)
+            .uppercased(with: locale)
+    }
+
+    static func compactDate(for date: Date, calendar: Calendar = .current, locale: Locale = .current) -> TimelineCompactDate {
+        TimelineCompactDate(
+            weekday: formatter(dateFormat: "EEE", calendar: calendar, locale: locale)
+                .string(from: date)
+                .uppercased(with: locale),
+            dayNumber: formatter(dateFormat: "d", calendar: calendar, locale: locale).string(from: date)
+        )
+    }
+
+    static func accessibleDate(for date: Date, calendar: Calendar = .current, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateStyle = .long
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    private static func formatter(dateFormat: String, calendar: Calendar, locale: Locale) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = dateFormat
         return formatter
-    }()
+    }
 }
 
 private struct TimelineStatusRow: View {
@@ -1151,7 +1188,7 @@ private struct TimelineEntryRow: View {
     }
 
     private var accessibilityLabel: String {
-        "\(entry.kind.title): \(entry.title), \(TimelineDateFormatter.divider.string(from: entry.occurredAt))"
+        "\(entry.kind.title): \(entry.title), \(TimelineDatePresentation.accessibleDate(for: entry.occurredAt))"
     }
 
     private var content: some View {
@@ -1169,9 +1206,7 @@ private struct TimelineEntryRow: View {
                         .foregroundStyle(VowbaseTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: VowbaseSpace.small)
-                    Text(TimelineDateFormatter.entry.string(from: entry.occurredAt))
-                        .font(VowbaseType.caption)
-                        .foregroundStyle(VowbaseTheme.mutedInk)
+                    TimelineDateMarker(date: entry.occurredAt)
                 }
                 Text(entry.kind.title)
                     .font(VowbaseType.caption)
@@ -1200,6 +1235,28 @@ private struct TimelineEntryRow: View {
             }
         }
         .padding(.vertical, VowbaseSpace.medium)
+    }
+}
+
+private struct TimelineDateMarker: View {
+    let date: Date
+
+    private var compactDate: TimelineCompactDate {
+        TimelineDatePresentation.compactDate(for: date)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(compactDate.weekday)
+                .font(VowbaseType.eyebrow)
+                .foregroundStyle(VowbaseTheme.mutedInk)
+            Text(compactDate.dayNumber)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(VowbaseTheme.ink)
+        }
+        .frame(width: 40, height: 42)
+        .background(VowbaseTheme.blush.opacity(0.7), in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous))
+        .accessibilityHidden(true)
     }
 }
 

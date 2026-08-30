@@ -145,11 +145,6 @@ struct ConsolePresentationBackground: View {
 /// The impact readout (§8) isn't wired yet — Phase 4 — so a selected venue's
 /// second line shows its location rather than a fabricated travel figure.
 struct ConsoleHeader: View {
-    /// Root lens titles share one editorial scale across Venues, Guests, and
-    /// Tasks. 30 pt is roughly 15% larger than the former Guests baseline and
-    /// continues to follow the title-sized Dynamic Type category.
-    @ScaledMetric(relativeTo: .title2) private var tabTitlePointSize: CGFloat = 30
-
     let title: String
     let trailing: String?
     let subline: String?
@@ -176,7 +171,7 @@ struct ConsoleHeader: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.system(size: tabTitlePointSize, weight: .regular, design: .serif))
+                    .displayTitle()
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 if let trailing {

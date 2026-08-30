@@ -111,6 +111,33 @@ enum WeddingCountdownFormatter {
     }
 }
 
+enum WeddingTitleFormatter {
+    static func string(coupleNames: String?, weddingName: String?) -> String {
+        if let coupleNames = coupleNames?.trimmed.nilIfBlank {
+            if endsWithWedding(coupleNames) {
+                return coupleNames
+            }
+            if endsWithPossessive(coupleNames) {
+                return "\(coupleNames) Wedding"
+            }
+            return "\(coupleNames)’s Wedding"
+        }
+
+        return weddingName?.trimmed.nilIfBlank ?? "Your wedding"
+    }
+
+    private static func endsWithWedding(_ title: String) -> Bool {
+        title
+            .split(whereSeparator: { !$0.isLetter })
+            .last?
+            .caseInsensitiveCompare("Wedding") == .orderedSame
+    }
+
+    private static func endsWithPossessive(_ title: String) -> Bool {
+        title.hasSuffix("’s") || title.hasSuffix("'s")
+    }
+}
+
 struct VenuePhotoDisplay: Identifiable, Hashable {
     let photo: VenuePhoto
     let url: URL?
@@ -509,7 +536,9 @@ final class VowbaseWorkspaceStore {
         let columns = customColumnRecords
         return guestRecords.map { MVPGuest($0, columns: columns) }
     }
-    var weddingTitle: String { wedding?.coupleNames ?? wedding?.name ?? "Your wedding" }
+    var weddingTitle: String {
+        WeddingTitleFormatter.string(coupleNames: wedding?.coupleNames, weddingName: wedding?.name)
+    }
     var isVenueDocumentsLoading: Bool { !loadingVenueDocumentIDs.isEmpty }
 
     func isLoadingVenueDocuments(for venueID: UUID) -> Bool {

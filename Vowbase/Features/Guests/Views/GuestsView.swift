@@ -38,7 +38,7 @@ struct GuestsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ConsoleHeader(guests: store.allGuestRecords)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, VowbaseSpace.small)
 
                     metricCards
 
@@ -54,7 +54,6 @@ struct GuestsView: View {
                         .padding(.top, 18)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
             }
             .consoleVerticalScrollHandoff(
                 allowsVerticalScrolling: allowsVerticalScrolling,

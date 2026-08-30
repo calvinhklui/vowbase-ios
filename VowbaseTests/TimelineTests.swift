@@ -90,6 +90,28 @@ struct TimelineTests {
         #expect(entries[2].destination == nil)
     }
 
+    @Test("date presentation groups chronologically by month and exposes compact calendar dates")
+    func groupsEntriesByMonthAndFormatsCompactDates() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let locale = Locale(identifier: "en_US_POSIX")
+        let august14 = calendar.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12))!
+        let august31 = calendar.date(from: DateComponents(year: 2026, month: 8, day: 31, hour: 12))!
+        let september1 = calendar.date(from: DateComponents(year: 2026, month: 9, day: 1, hour: 12))!
+        let entries = [
+            timelineEntry(title: "August 14", occurredAt: august14),
+            timelineEntry(title: "September 1", occurredAt: september1),
+            timelineEntry(title: "August 31", occurredAt: august31),
+        ]
+
+        let sections = TimelineDatePresentation.monthSections(for: entries, calendar: calendar)
+        let compactDate = TimelineDatePresentation.compactDate(for: august14, calendar: calendar, locale: locale)
+
+        #expect(sections.map { TimelineDatePresentation.monthHeader(for: $0.month, calendar: calendar, locale: locale) } == ["SEPTEMBER 2026", "AUGUST 2026"])
+        #expect(sections.map { $0.entries.map(\.title) } == [["September 1"], ["August 31", "August 14"]])
+        #expect(compactDate == TimelineCompactDate(weekday: "FRI", dayNumber: "14"))
+    }
+
     @Test("on-track state follows conservative information and overdue boundaries")
     func evaluatesPlanningStatusBoundaries() {
         let calendar = Calendar.current
@@ -391,6 +413,20 @@ struct TimelineTests {
             id: UUID(), weddingID: weddingID, title: title, description: nil, status: status,
             priority: .medium, ownerUserID: nil, ownerLabel: nil, dueDate: dueDate,
             completedAt: completedAt, createdAt: createdAt
+        )
+    }
+
+    private func timelineEntry(title: String, occurredAt: Date) -> TimelineEntry {
+        TimelineEntry(
+            id: title,
+            kind: .taskAdded,
+            title: title,
+            occurredAt: occurredAt,
+            notes: nil,
+            locationText: nil,
+            linkedVenueName: nil,
+            requirementNames: [],
+            destination: nil
         )
     }
 
