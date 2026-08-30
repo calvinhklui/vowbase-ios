@@ -47,16 +47,11 @@ private enum WorkspaceModal: Identifiable {
 ///   current detent gives it rather than swapping in a separate peek-only
 ///   view.
 /// - A `.sheet` always renders above everything in the view it's presented
-///   from, so the lens rail lives *inside* the console's own content (pinned
-///   to its bottom) rather than as an overlay on the canvas — otherwise the
-///   sheet would cover it at every detent. The Quick Add FAB follows suit:
-///   at `.peek` it floats on the canvas just above the console, but past
-///   peek the console covers most or all of the screen, so the same FAB moves
-///   inside the console itself (bottom-trailing, above the rail) or it would
-///   be unreachable. Both the FAB's position and the map's camera inset are
-///   driven off `currentDetent` rather than the live drag position — SwiftUI
-///   exposes no API for the latter on a system sheet, so both snap to
-///   wherever the console has settled rather than tracking it continuously.
+///   from, so the app navigation bar lives *inside* the console's own content
+///   (pinned to its bottom) rather than as an overlay on the canvas. Its
+///   contextual Quick Add action is a standalone trailing circle in that bar,
+///   keeping the action reachable at every detent without moving it between
+///   presentation layers.
 @MainActor
 struct WeddingAppShell: View {
     let store: VowbaseWorkspaceStore
@@ -173,35 +168,6 @@ struct WeddingAppShell: View {
             .task(id: navigation.selectedGuestClusterID) {
                 await store.refreshClusterTravel(clusterID: navigation.selectedGuestClusterID)
             }
-            // The scrim is applied *before* the FAB overlay so it layers
-            // underneath it. Applied after, it covered the expanded panel and
-            // swallowed every tap — the menu appeared to work, dismissed on
-            // selection, and silently never ran the action.
-            .overlay {
-                if supportsQuickAddMenu && isQuickAddPresented {
-                    Color.black.opacity(0.22)
-                        .ignoresSafeArea()
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.snappy(duration: 0.22, extraBounce: 0.04)) {
-                                isQuickAddPresented = false
-                            }
-                        }
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                // At peek, the console is short enough that the FAB reads as
-                // part of the canvas floating just above it. Past peek it
-                // moves inside `consoleSheet` itself, or the console would
-                // cover it.
-                if showsPeekFAB {
-                    activeLensFAB
-                        .padding(.trailing, VowbaseControlMetric.screenInset)
-                        .padding(.bottom, consoleHeight + 12)
-                }
-            }
             .sheet(isPresented: .constant(true)) {
                 consoleSheet
             }
@@ -300,13 +266,8 @@ struct WeddingAppShell: View {
             consoleContent
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isVenueNoteEditing {
-                LensRail(selection: selectedLensBinding)
-            }
-        }
         .overlay {
-            if showsConsoleFAB && supportsQuickAddMenu && isQuickAddPresented {
+            if showsNavigationFAB && supportsQuickAddMenu && isQuickAddPresented {
                 Color.black.opacity(0.22)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
@@ -319,11 +280,16 @@ struct WeddingAppShell: View {
                     .transition(.opacity)
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            if showsConsoleFAB {
-                activeLensFAB
-                    .padding(.trailing, VowbaseControlMetric.screenInset)
-                    .padding(.bottom, LensRail.occupiedHeight + VowbaseSpace.medium)
+        // Apply the inset after the scrim so the native navigation glass and
+        // its expanded Quick Add panel remain above the dismiss layer.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !isVenueNoteEditing {
+                LensRail(
+                    selection: selectedLensBinding,
+                    showsTrailingAction: showsNavigationFAB
+                ) {
+                    activeLensFAB
+                }
             }
         }
         .presentationDetents(availableDetents(for: navigation.selectedLens), selection: detentBinding)
@@ -406,20 +372,11 @@ struct WeddingAppShell: View {
         }
     }
 
-    /// Past peek, keep the same full-size FAB inside the console and above the
-    /// lens rail. Pushed venue/guest details and venue-note editing suppress it.
-    private var showsConsoleFAB: Bool {
-        currentDetent != .peek && isConsoleAtRoot && !isVenueNoteEditing
-    }
-
-    /// At peek, focused-lens actions float above the map just like they do at
-    /// taller detents inside the console. Multi-action lenses keep the menu
-    /// anchored to this same control at either supported height.
-    private var showsPeekFAB: Bool {
-        currentDetent == .peek
-            && isConsoleAtRoot
-            && !isVenueNoteEditing
-            && navigation.selectedLens != .tasks
+    /// The contextual action occupies the standalone trailing circle in the
+    /// app navigation bar. Pushed venue/guest details and venue-note editing
+    /// suppress it just as they did when it floated above the bar.
+    private var showsNavigationFAB: Bool {
+        isConsoleAtRoot && !isVenueNoteEditing
     }
 
     /// Overview and Timeline use multi-action quick-add menus. The other
@@ -984,11 +941,12 @@ private struct TravelCoverageConsole: View {
 /// The lens rail. Replaces the plain tab bar: each slot is a `PlanLens`, so a
 /// new lens (Vendors, Lodging, …) is a new `PlanLens` case, not a new control.
 /// See spec §9.
-private struct LensRail: View {
+private struct LensRail<TrailingAction: View>: View {
     @Binding var selection: PlanLens
+    let showsTrailingAction: Bool
+    let trailingAction: TrailingAction
 
-    static let contentHeight: CGFloat = 70
-    static let occupiedHeight = contentHeight + 16
+    static var contentHeight: CGFloat { 70 }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -1005,24 +963,54 @@ private struct LensRail: View {
         colorScheme == .dark ? .white.opacity(0.18) : VowbaseTheme.ink.opacity(0.08)
     }
 
+    init(
+        selection: Binding<PlanLens>,
+        showsTrailingAction: Bool,
+        @ViewBuilder trailingAction: () -> TrailingAction
+    ) {
+        _selection = selection
+        self.showsTrailingAction = showsTrailingAction
+        self.trailingAction = trailingAction()
+    }
+
     var body: some View {
         Group {
             if #available(iOS 26, *) {
-                railContent
-                    .glassEffect(.regular.tint(railTint), in: Capsule())
-            } else {
-                railContent
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .overlay {
-                        Capsule()
-                            .stroke(railStroke, lineWidth: 1)
+                GlassEffectContainer(spacing: 8) {
+                    navigationContent {
+                        railContent
+                            .glassEffect(.regular.tint(railTint), in: Capsule())
                     }
-                    .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+                }
+            } else {
+                navigationContent {
+                    railContent
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .overlay {
+                            Capsule()
+                                .stroke(railStroke, lineWidth: 1)
+                        }
+                        .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+                    }
             }
         }
         .padding(.horizontal, VowbaseControlMetric.screenInset)
         .padding(.top, 10)
         .padding(.bottom, 6)
+    }
+
+    private func navigationContent<Rail: View>(
+        @ViewBuilder rail: () -> Rail
+    ) -> some View {
+        HStack(alignment: .bottom, spacing: VowbaseSpace.medium) {
+            rail()
+                .frame(maxWidth: .infinity)
+
+            if showsTrailingAction {
+                trailingAction
+                    .frame(width: VowbaseControlMetric.fabDiameter, height: VowbaseControlMetric.fabDiameter)
+            }
+        }
     }
 
     private var railContent: some View {

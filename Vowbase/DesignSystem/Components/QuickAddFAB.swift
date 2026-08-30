@@ -10,7 +10,21 @@ struct QuickAddFAB: View {
     let accessibilityHint: String
     let action: () -> Void
 
+    @ViewBuilder
     var body: some View {
+        if #available(iOS 26, *) {
+            button
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(VowbaseTheme.rose).interactive(), in: Circle())
+        } else {
+            button
+                .buttonStyle(QuickAddPressStyle())
+                .background(VowbaseTheme.rose, in: Circle())
+                .shadow(color: VowbaseTheme.rose.opacity(0.32), radius: 14, y: 7)
+        }
+    }
+
+    private var button: some View {
         Button {
             QuickAddHaptics.impact()
             action()
@@ -19,12 +33,9 @@ struct QuickAddFAB: View {
                 .font(.system(size: 23, weight: .semibold))
                 .frame(width: VowbaseControlMetric.fabDiameter, height: VowbaseControlMetric.fabDiameter)
                 .foregroundStyle(.white)
-                .background(VowbaseTheme.rose, in: Circle())
                 .contentShape(Circle())
                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                .shadow(color: VowbaseTheme.rose.opacity(0.32), radius: 14, y: 7)
         }
-        .buttonStyle(QuickAddPressStyle())
         .accessibilityLabel(isExpanded ? "Close quick add" : "Quick add")
         .accessibilityHint(isExpanded ? "Dismisses quick add actions" : accessibilityHint)
     }
@@ -39,7 +50,21 @@ struct DirectAddFAB: View {
     let systemImage: String
     let action: () -> Void
 
+    @ViewBuilder
     var body: some View {
+        if #available(iOS 26, *) {
+            button
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(VowbaseTheme.rose).interactive(), in: Circle())
+        } else {
+            button
+                .buttonStyle(QuickAddPressStyle())
+                .background(VowbaseTheme.rose, in: Circle())
+                .shadow(color: VowbaseTheme.rose.opacity(0.32), radius: 14, y: 7)
+        }
+    }
+
+    private var button: some View {
         Button {
             QuickAddHaptics.impact()
             action()
@@ -48,11 +73,8 @@ struct DirectAddFAB: View {
                 .font(.system(size: 22, weight: .semibold))
                 .frame(width: VowbaseControlMetric.fabDiameter, height: VowbaseControlMetric.fabDiameter)
                 .foregroundStyle(.white)
-                .background(VowbaseTheme.rose, in: Circle())
                 .contentShape(Circle())
-                .shadow(color: VowbaseTheme.rose.opacity(0.32), radius: 14, y: 7)
         }
-        .buttonStyle(QuickAddPressStyle())
         .accessibilityLabel(title)
         .accessibilityHint("Opens the \(title.lowercased()) form")
     }
@@ -177,19 +199,20 @@ struct QuickAddOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 12) {
+        QuickAddFAB(
+            isExpanded: isPresented,
+            accessibilityHint: "Shows actions to \(actions.map(\.title).joined(separator: ", ").lowercased())",
+            action: toggle
+        )
+        .overlay(alignment: .bottomTrailing) {
             if isPresented {
                 QuickAddPanel(
                     isPresented: $isPresented,
                     actions: actions
                 )
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.bottom, VowbaseControlMetric.fabDiameter + VowbaseSpace.medium)
             }
-
-            QuickAddFAB(
-                isExpanded: isPresented,
-                accessibilityHint: "Shows actions to \(actions.map(\.title).joined(separator: ", ").lowercased())",
-                action: toggle
-            )
         }
         .animation(reduceMotion ? .linear(duration: 0.12) : .snappy(duration: 0.28, extraBounce: 0.08), value: isPresented)
     }

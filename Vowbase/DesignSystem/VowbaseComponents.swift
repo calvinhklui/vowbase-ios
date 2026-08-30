@@ -15,11 +15,9 @@ extension View {
         modifier(VowbaseCardModifier(padding: padding))
     }
 
-    /// Bottom breathing room for scrollable screens under the floating tab bar and,
-    /// where present, the Quick Add FAB. The FAB is an app-shell overlay, so it stays
-    /// visible on screens pushed within a tab's own NavigationStack (e.g. Venue Detail) —
-    /// pass `includesQuickAdd: false` only for scroll views with no app chrome at all,
-    /// such as a full-screen `.sheet`.
+    /// Bottom breathing room for scrollable screens above the app navigation bar.
+    /// The contextual Quick Add action now occupies the bar's standalone trailing
+    /// circle instead of consuming additional vertical space above it.
     func vowbaseScrollClearance(includesQuickAdd: Bool = true) -> some View {
         contentMargins(
             .bottom,
