@@ -1199,39 +1199,39 @@ private struct TimelineEntryRow: View {
                 .frame(width: 24)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: VowbaseSpace.small) {
+            HStack(alignment: .top, spacing: VowbaseSpace.small) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(entry.title)
                         .font(VowbaseType.headline)
                         .foregroundStyle(VowbaseTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: VowbaseSpace.small)
-                    TimelineDateMarker(date: entry.occurredAt)
-                }
-                Text(entry.kind.title)
-                    .font(VowbaseType.caption)
-                    .foregroundStyle(VowbaseTheme.mutedInk)
-                if let notes = entry.notes {
-                    Text(notes)
-                        .font(VowbaseType.secondary)
-                        .foregroundStyle(VowbaseTheme.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if let locationText = entry.locationText {
-                    Label(locationText, systemImage: "mappin")
+                    Text(entry.kind.title)
                         .font(VowbaseType.caption)
                         .foregroundStyle(VowbaseTheme.mutedInk)
+                    if let notes = entry.notes {
+                        Text(notes)
+                            .font(VowbaseType.secondary)
+                            .foregroundStyle(VowbaseTheme.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let locationText = entry.locationText {
+                        Label(locationText, systemImage: "mappin")
+                            .font(VowbaseType.caption)
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+                    if let venue = entry.linkedVenueName {
+                        Label(venue, systemImage: "building.2")
+                            .font(VowbaseType.caption)
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
+                    if !entry.requirementNames.isEmpty {
+                        Label(entry.requirementNames.joined(separator: ", "), systemImage: "list.bullet")
+                            .font(VowbaseType.caption)
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                    }
                 }
-                if let venue = entry.linkedVenueName {
-                    Label(venue, systemImage: "building.2")
-                        .font(VowbaseType.caption)
-                        .foregroundStyle(VowbaseTheme.mutedInk)
-                }
-                if !entry.requirementNames.isEmpty {
-                    Label(entry.requirementNames.joined(separator: ", "), systemImage: "list.bullet")
-                        .font(VowbaseType.caption)
-                        .foregroundStyle(VowbaseTheme.mutedInk)
-                }
+                Spacer(minLength: VowbaseSpace.small)
+                TimelineDateMarker(date: entry.occurredAt)
             }
         }
         .padding(.vertical, VowbaseSpace.medium)
@@ -1249,13 +1249,12 @@ private struct TimelineDateMarker: View {
         VStack(spacing: 0) {
             Text(compactDate.weekday)
                 .font(VowbaseType.eyebrow)
-                .foregroundStyle(VowbaseTheme.mutedInk)
+                .foregroundStyle(VowbaseTheme.rose)
             Text(compactDate.dayNumber)
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .foregroundStyle(VowbaseTheme.ink)
         }
-        .frame(width: 40, height: 42)
-        .background(VowbaseTheme.blush.opacity(0.7), in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous))
+        .frame(width: 40)
         .accessibilityHidden(true)
     }
 }
