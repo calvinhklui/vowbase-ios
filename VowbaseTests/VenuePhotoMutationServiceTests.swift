@@ -249,6 +249,7 @@ struct VenuePhotoMutationServiceTests {
             latitude: nil,
             longitude: nil,
             photoURL: photoURL,
+            customFields: .object([:]),
             createdAt: .now,
             updatedAt: .now
         )
@@ -303,7 +304,7 @@ private actor VenuePhotoMetadataSpy: VenuePhotoMetadataMutating {
         await log.record("metadata.delete")
     }
 
-    func clearCoverPhoto(venueID: UUID) async throws -> Venue {
+    func clearCoverPhoto(venueID: UUID, weddingID: UUID) async throws -> Venue {
         clearedCoverVenueIDs.append(venueID)
         await log.record("cover.clear")
         return Venue(
@@ -332,6 +333,7 @@ private actor VenuePhotoMetadataSpy: VenuePhotoMetadataMutating {
             latitude: nil,
             longitude: nil,
             photoURL: nil,
+            customFields: .object([:]),
             createdAt: .now,
             updatedAt: .now
         )

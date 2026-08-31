@@ -198,6 +198,7 @@ struct VenueDetailView: View {
                 .padding()
                 .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
+                venueCustomFieldsSection(venue: currentVenue)
                 detailsSection(venue: currentVenue)
                 documentsSection(venue: currentVenue)
                 notesSection(venue: currentVenue)
@@ -337,6 +338,40 @@ struct VenueDetailView: View {
                 return
             }
             dismiss()
+        }
+    }
+
+    @ViewBuilder
+    private func venueCustomFieldsSection(venue: MVPVenue) -> some View {
+        let columns = store.visibleVenueCustomColumns
+        if store.venueCustomFieldsUnavailable {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Custom Fields").font(.title2.weight(.semibold))
+                Text("Custom fields couldn’t be loaded. The rest of this venue is up to date.")
+                    .font(.footnote).foregroundStyle(VowbaseTheme.mutedInk)
+            }
+        } else if !columns.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Custom Fields").font(.title2.weight(.semibold))
+                    Spacer()
+                    NavigationLink(value: VenuesRoute.customFields) {
+                        Image(systemName: "list.bullet.rectangle")
+                    }
+                    .accessibilityLabel("Manage fields")
+                }
+                ForEach(columns) { column in
+                    VenueCustomFieldDetailRow(
+                        column: column,
+                        stored: VenueCustomFields.value(in: store.venueRecord(id: venue.id)?.customFields ?? .object([:]), for: column.key),
+                        state: store.venueCustomFieldSaveState(.init(venueID: venue.id, key: column.key)),
+                        commit: { store.commitVenueCustomField(column, for: venue.id, value: $0) }
+                    )
+                }
+            }
+            .padding()
+            .background(VowbaseTheme.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(VowbaseTheme.border, lineWidth: 1) }
         }
     }
 
@@ -1437,4 +1472,81 @@ private struct NoteDisplayLine {
 private extension String {
     var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
     var nilIfBlank: String? { trimmed.isEmpty ? nil : trimmed }
+}
+
+private struct VenueCustomFieldDetailRow: View {
+    let column: VenueCustomColumn
+    let stored: JSONValue?
+    let state: VenueCustomFieldSaveState?
+    let commit: (JSONValue?) -> Void
+    @State private var draftText: String?
+
+    var body: some View {
+        if VenueCustomFields.isUnsupported(stored, kind: column.kind) {
+            LabeledContent(column.label) { Button("Clear") { commit(nil) }.tint(VowbaseTheme.rose) }
+        } else {
+            switch column.kind {
+            case .checkbox:
+                Toggle(column.label, isOn: Binding(get: { stored == .bool(true) }, set: { commit($0 ? .bool(true) : .bool(false)) }))
+                    .tint(VowbaseTheme.rose)
+            case .select:
+                LabeledContent(column.label) {
+                    Menu {
+                        ForEach(VenueCustomFields.options(in: column), id: \.self) { option in
+                            Button(option) { commit(.string(option)) }
+                        }
+                        if stored != nil { Divider(); Button("Clear", role: .destructive) { commit(nil) } }
+                    } label: { Text(VenueCustomFields.displayText(stored, kind: .select) ?? "Not set") }
+                }
+            case .text, .number:
+                LabeledContent(column.label) {
+                    HStack(spacing: 8) {
+                        TextField(
+                            "Not set",
+                            text: Binding(
+                                get: {
+                                    draftText
+                                        ?? VenueCustomFields.displayText(stored, kind: column.kind)
+                                        ?? ""
+                                },
+                                set: { draftText = $0 }
+                            )
+                        )
+                        .multilineTextAlignment(.trailing)
+                        .keyboardType(column.kind == .number ? .decimalPad : .default)
+                        .onSubmit {
+                            commit(VenueCustomFields.encode(draftText ?? "", kind: column.kind))
+                            draftText = nil
+                        }
+                        if stored != nil {
+                            Button("Clear") {
+                                draftText = nil
+                                commit(nil)
+                            }
+                            .font(.caption)
+                        }
+                    }
+                }
+            case .rank:
+                LabeledContent(column.label) {
+                    HStack(spacing: 4) {
+                        ForEach(1...5, id: \.self) { score in
+                            Button("\(score)") { commit(.number(Double(score))) }
+                                .buttonStyle(.bordered)
+                                .tint(rank == score ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
+                                .accessibilityLabel("\(column.label), \(score) of 5")
+                        }
+                        if rank != nil { Button("Clear") { commit(nil) }.font(.caption) }
+                    }
+                }
+            }
+        }
+        if case .saving? = state { ProgressView().controlSize(.mini) }
+        if case .failed? = state { Text("Couldn’t save. Try again.").font(.caption).foregroundStyle(VowbaseTheme.rose) }
+    }
+
+    private var rank: Int? {
+        guard case let .number(value)? = stored, value.rounded() == value, (1...5).contains(Int(value)) else { return nil }
+        return Int(value)
+    }
 }

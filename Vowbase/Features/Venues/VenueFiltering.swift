@@ -52,7 +52,15 @@ enum VenueQuery {
             venue.contactPhone,
             venue.website,
             venue.summary,
-            venue.ourNotes
+            venue.ourNotes,
+            VenueCustomFields.object(in: venue.customFields).values.compactMap { value in
+                switch value {
+                case let .string(text): text
+                case let .number(number): String(number)
+                case let .bool(flag): flag ? "Yes" : "No"
+                case .array, .object, .null: nil
+                }
+            }.joined(separator: " ")
         ]
         .compactMap { $0 }
         .joined(separator: " ")

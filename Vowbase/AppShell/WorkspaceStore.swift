@@ -262,6 +262,7 @@ struct MVPGuest: Identifiable, Hashable {
 final class VowbaseWorkspaceStore {
     private let repositories: RepositoryContainer?
     private var venueRecords = [Venue]()
+    private var venueCustomColumnRecords = [VenueCustomColumn]()
     private var venueGalleries = [UUID: [VenuePhoto]]()
     private var venueDocuments = [UUID: [VenueDocument]]()
     private var loadingVenueDocumentIDs = Set<UUID>()
@@ -290,6 +291,9 @@ final class VowbaseWorkspaceStore {
     /// replaces the whole JSON object, so two concurrent row commits would
     /// clobber one another without this chain.
     private var customFieldWrites = [UUID: Task<Void, Never>]()
+    /// The venue RPC merges supplied JSON keys atomically, but serializing
+    /// locally keeps per-row save indicators deterministic as well.
+    private var venueCustomFieldWrites = [UUID: Task<Void, Never>]()
 
     var selectedVenueID: UUID?
     var isGlobalMenuOpen = false
@@ -315,9 +319,13 @@ final class VowbaseWorkspaceStore {
     /// Set when column definitions fail to load. Custom-field rows are hidden
     /// rather than shown broken, and the guest list stays usable.
     var customFieldsUnavailable = false
+    /// Venue definitions load independently of venue rows and guest fields.
+    /// A failure hides only venue custom controls, leaving the venue lens usable.
+    var venueCustomFieldsUnavailable = false
 
     /// Per-row save state for inline editing, keyed by guest and field.
     private(set) var fieldSaveStates = [GuestFieldKey: GuestFieldSaveState]()
+    private(set) var venueFieldSaveStates = [VenueCustomFieldKey: VenueCustomFieldSaveState]()
 
     init(repositories: RepositoryContainer? = nil) {
         self.repositories = repositories
@@ -375,6 +383,7 @@ final class VowbaseWorkspaceStore {
                 latitude: 46.72,
                 longitude: -92.10,
                 photoURL: nil,
+                customFields: .object(["reception": .number(4)]),
                 createdAt: createdAt,
                 updatedAt: createdAt
             ),
@@ -404,6 +413,7 @@ final class VowbaseWorkspaceStore {
                 latitude: 46.67,
                 longitude: -92.22,
                 photoURL: nil,
+                customFields: .object(["reception": .number(3)]),
                 createdAt: createdAt,
                 updatedAt: createdAt
             ),
@@ -433,6 +443,7 @@ final class VowbaseWorkspaceStore {
                 latitude: 46.75,
                 longitude: -92.34,
                 photoURL: nil,
+                customFields: .object(["reception": .number(5)]),
                 createdAt: createdAt,
                 updatedAt: createdAt
             )
@@ -463,11 +474,18 @@ final class VowbaseWorkspaceStore {
             GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C03")!, weddingID: weddingID, key: "plus_one", label: "Plus one", kind: .checkbox, options: .array([]), position: 2, hidden: false, createdAt: createdAt, updatedAt: createdAt),
             GuestCustomColumn(id: UUID(uuidString: "0B2F1C8A-1C1E-4C0B-9E6E-6C5E1A2B3C04")!, weddingID: weddingID, key: "table", label: "Table", kind: .number, options: .array([]), position: 3, hidden: false, createdAt: createdAt, updatedAt: createdAt)
         ]
+        venueCustomColumnRecords = [
+            VenueCustomColumn(id: UUID(), weddingID: weddingID, key: "reception", label: "Reception", kind: .rank, options: .array([]), position: 0, hidden: false, createdAt: createdAt, updatedAt: createdAt)
+        ]
     }
 #endif
 
     var venues: [MVPVenue] {
         venueDisplays(for: venueRecords)
+    }
+
+    func venueRecord(id: UUID) -> Venue? {
+        venueRecords.first { $0.id == id }
     }
 
     /// Search and ordering stay local because every listed venue is already
@@ -556,6 +574,18 @@ final class VowbaseWorkspaceStore {
     /// Empty while definitions are unavailable so rows never render broken.
     var visibleCustomColumns: [GuestCustomColumn] {
         customFieldsUnavailable ? [] : GuestDisplayResolver.visibleColumns(customColumnRecords)
+    }
+
+    var visibleVenueCustomColumns: [VenueCustomColumn] {
+        venueCustomFieldsUnavailable ? [] : VenueDisplayResolver.visibleColumns(venueCustomColumnRecords)
+    }
+
+    var allVenueCustomColumns: [VenueCustomColumn] {
+        VenueDisplayResolver.orderedColumns(venueCustomColumnRecords)
+    }
+
+    func venueCustomFieldSaveState(_ key: VenueCustomFieldKey) -> VenueCustomFieldSaveState? {
+        venueFieldSaveStates[key]
     }
 
     /// Every column including hidden ones, for the administration screen.
@@ -649,6 +679,7 @@ final class VowbaseWorkspaceStore {
             } ?? (targetWeddingID == nil ? memberships.first : nil)
             guard let membership else {
                 venueRecords = []
+                venueCustomColumnRecords = []
                 guestRecords = []
                 customColumnRecords = []
                 wedding = nil
@@ -667,6 +698,7 @@ final class VowbaseWorkspaceStore {
             // Column definitions degrade on their own: losing them should hide
             // custom fields, never take the guest list down with them.
             async let columns = try? repositories.guests.customColumns(weddingID: membership.weddingId)
+            async let venueColumns = try? repositories.venues.customColumns(weddingID: membership.weddingId)
             venueRecords = try await venues
             guestRecords = try await guests
             if let loadedColumns = await columns {
@@ -675,6 +707,13 @@ final class VowbaseWorkspaceStore {
             } else {
                 customColumnRecords = []
                 customFieldsUnavailable = true
+            }
+            if let loadedVenueColumns = await venueColumns {
+                venueCustomColumnRecords = VenueDisplayResolver.orderedColumns(loadedVenueColumns)
+                venueCustomFieldsUnavailable = false
+            } else {
+                venueCustomColumnRecords = []
+                venueCustomFieldsUnavailable = true
             }
             let currentVenueIDs = Set(venueRecords.map(\.id))
             venueGalleries = venueGalleries.filter { currentVenueIDs.contains($0.key) }
@@ -915,7 +954,8 @@ final class VowbaseWorkspaceStore {
         name: String,
         location: String,
         selection: AppleMapsAddressSelection? = nil,
-        status: VenueStatus
+        status: VenueStatus,
+        customFields: [String: JSONValue] = [:]
     ) async -> Bool {
         guard let repositories, let weddingID = wedding?.id else { return unavailable() }
         do {
@@ -944,7 +984,8 @@ final class VowbaseWorkspaceStore {
                     ourNotes: nil,
                     latitude: selection?.latitude ?? resolvedLocation.latitude,
                     longitude: selection?.longitude ?? resolvedLocation.longitude,
-                    photoURL: nil
+                    photoURL: nil,
+                    customFields: .object(customFields)
                 ),
                 weddingID: weddingID
             )
@@ -991,9 +1032,9 @@ final class VowbaseWorkspaceStore {
     /// their own per-row failure state (spec §4.3), never a global alert or banner.
     @discardableResult
     func patchVenue(id: UUID, _ patch: VenuePatch) async -> Venue? {
-        guard let repositories else { return nil }
+        guard let repositories, let weddingID = wedding?.id else { return nil }
         do {
-            let updated = try await repositories.venues.updateVenue(id: id, patch: patch)
+            let updated = try await repositories.venues.updateVenue(id: id, weddingID: weddingID, patch: patch)
             replace(updated, in: &venueRecords)
             if patch.address != .unchanged
                 || patch.latitude != .unchanged || patch.longitude != .unchanged {
@@ -1007,6 +1048,115 @@ final class VowbaseWorkspaceStore {
             return updated
         } catch {
             return nil
+        }
+    }
+
+    // MARK: - Venue custom fields
+
+    func venueUsageCount(for column: VenueCustomColumn) -> Int {
+        venueRecords.count { VenueCustomFields.value(in: $0.customFields, for: column.key) != nil }
+    }
+
+    func proposedVenueCustomKey(for label: String) -> String {
+        let slug = label.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : "_" }.joined()
+            .split(separator: "_", omittingEmptySubsequences: true).joined(separator: "_")
+        let base = slug.isEmpty ? "field" : slug
+        let existing = Set(venueCustomColumnRecords.map(\.key))
+        guard existing.contains(base) else { return base }
+        var suffix = 2
+        while existing.contains("\(base)_\(suffix)") { suffix += 1 }
+        return "\(base)_\(suffix)"
+    }
+
+    @discardableResult
+    func createVenueCustomColumn(label: String, kind: VenueCustomColumnKind, options: [String]) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        do {
+            let column = try await repositories.venues.createCustomColumn(
+                .init(key: proposedVenueCustomKey(for: trimmed), label: trimmed, kind: kind,
+                      options: .array(options.map(JSONValue.string)),
+                      position: (venueCustomColumnRecords.map(\.position).max() ?? -1) + 1,
+                      hidden: false),
+                weddingID: weddingID
+            )
+            venueCustomColumnRecords = VenueDisplayResolver.orderedColumns(venueCustomColumnRecords + [column])
+            return true
+        } catch { errorMessage = userMessage(for: error); return false }
+    }
+
+    @discardableResult
+    func updateVenueCustomColumn(_ column: VenueCustomColumn, label: String? = nil, kind: VenueCustomColumnKind? = nil, options: [String]? = nil, hidden: Bool? = nil) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        // The database is authoritative for this guard. Keep the UI honest too.
+        guard kind == nil || kind == column.kind || venueUsageCount(for: column) == 0 else { return false }
+        do {
+            let updated = try await repositories.venues.updateCustomColumn(
+                id: column.id, weddingID: weddingID,
+                patch: .init(label: label?.trimmingCharacters(in: .whitespacesAndNewlines), kind: kind,
+                             options: options.map { .array($0.map(JSONValue.string)) }, hidden: hidden)
+            )
+            replace(updated, in: &venueCustomColumnRecords)
+            venueCustomColumnRecords = VenueDisplayResolver.orderedColumns(venueCustomColumnRecords)
+            return true
+        } catch { errorMessage = userMessage(for: error); return false }
+    }
+
+    func reorderVenueCustomColumns(from source: IndexSet, to destination: Int) async {
+        guard let repositories, let weddingID = wedding?.id else { _ = unavailable(); return }
+        var ordered = VenueDisplayResolver.orderedColumns(venueCustomColumnRecords)
+        ordered.move(fromOffsets: source, toOffset: destination)
+        venueCustomColumnRecords = ordered
+        for (position, column) in ordered.enumerated() where column.position != position {
+            do {
+                let updated = try await repositories.venues.updateCustomColumn(id: column.id, weddingID: weddingID, patch: .init(position: position))
+                replace(updated, in: &venueCustomColumnRecords)
+            } catch { errorMessage = userMessage(for: error); await load(); return }
+        }
+        venueCustomColumnRecords = VenueDisplayResolver.orderedColumns(venueCustomColumnRecords)
+    }
+
+    @discardableResult
+    func deleteVenueCustomColumn(_ column: VenueCustomColumn) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        do {
+            try await repositories.venues.deleteCustomColumn(id: column.id, weddingID: weddingID)
+            venueCustomColumnRecords.removeAll { $0.id == column.id }
+            // Cleanup is database-atomic. Refresh rows to reconcile the result.
+            venueRecords = try await repositories.venues.venues(weddingID: weddingID)
+            return true
+        } catch { errorMessage = userMessage(for: error); return false }
+    }
+
+    func commitVenueCustomField(_ column: VenueCustomColumn, for venueID: UUID, value: JSONValue?) {
+        let previous = venueCustomFieldWrites[venueID]
+        venueCustomFieldWrites[venueID] = Task { [weak self] in
+            await previous?.value
+            guard let self, !Task.isCancelled else { return }
+            await self.writeVenueCustomField(column, venueID: venueID, value: value)
+        }
+    }
+
+    private func writeVenueCustomField(_ column: VenueCustomColumn, venueID: UUID, value: JSONValue?) async {
+        guard let repositories, let weddingID = wedding?.id, venueRecords.contains(where: { $0.id == venueID }) else { return }
+        let stateKey = VenueCustomFieldKey(venueID: venueID, key: column.key)
+        venueFieldSaveStates[stateKey] = .saving
+        do {
+            let updated = try await repositories.venues.patchCustomFields(
+                venueID: venueID, weddingID: weddingID, updates: [column.key: value ?? .null]
+            )
+            replace(updated, in: &venueRecords)
+            venueFieldSaveStates[stateKey] = .saved
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1.2))
+                guard self?.venueFieldSaveStates[stateKey] == .saved else { return }
+                self?.venueFieldSaveStates[stateKey] = nil
+            }
+        } catch is CancellationError {
+            venueFieldSaveStates[stateKey] = nil
+        } catch {
+            venueFieldSaveStates[stateKey] = .failed(pendingValue: VenueCustomFields.displayText(value, kind: column.kind))
         }
     }
 

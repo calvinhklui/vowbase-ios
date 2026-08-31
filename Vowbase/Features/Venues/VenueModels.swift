@@ -1,5 +1,141 @@
 import Foundation
 enum VenueStatus: String, Codable, Equatable, Sendable { case considering, contacted, toured, shortlisted, negotiating, booked, passed }
+enum VenueCustomColumnKind: String, Codable, Equatable, Sendable, CaseIterable {
+    case text, number, select, checkbox, rank
+}
+
+struct VenueCustomFieldKey: Hashable, Sendable {
+    let venueID: UUID
+    let key: String
+}
+
+enum VenueCustomFieldSaveState: Equatable, Sendable {
+    case saving, saved
+    case failed(pendingValue: String?)
+}
+
+/// The wedding-scoped schema for values in `venues.custom_fields`.
+///
+/// `key` and `weddingID` are intentionally absent from the patch model: they
+/// are immutable database identity, not editable presentation attributes.
+struct VenueCustomColumn: Codable, Equatable, Sendable, Identifiable {
+    let id: UUID
+    let weddingID: UUID
+    let key: String
+    let label: String
+    let kind: VenueCustomColumnKind
+    let options: JSONValue
+    let position: Int
+    let hidden: Bool
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, key, label, kind, options, position, hidden
+        case weddingID = "wedding_id"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct VenueCustomColumnDraft: Codable, Equatable, Sendable {
+    let key: String
+    let label: String
+    let kind: VenueCustomColumnKind
+    let options: JSONValue
+    let position: Int?
+    let hidden: Bool?
+
+    init(key: String, label: String, kind: VenueCustomColumnKind, options: JSONValue = .array([]), position: Int? = nil, hidden: Bool? = nil) {
+        self.key = key; self.label = label; self.kind = kind; self.options = options; self.position = position; self.hidden = hidden
+    }
+}
+
+struct VenueCustomColumnPatch: Codable, Equatable, Sendable {
+    let label: String?
+    let kind: VenueCustomColumnKind?
+    let options: JSONValue?
+    let position: Int?
+    let hidden: Bool?
+
+    init(label: String? = nil, kind: VenueCustomColumnKind? = nil, options: JSONValue? = nil, position: Int? = nil, hidden: Bool? = nil) {
+        self.label = label; self.kind = kind; self.options = options; self.position = position; self.hidden = hidden
+    }
+}
+
+/// RFC 7396-style partial values sent to the scoped RPC. `JSONValue.null`
+/// removes that key; omitted dictionary keys remain unchanged.
+struct VenueCustomFieldsPatch: Codable, Equatable, Sendable {
+    let updates: [String: JSONValue]
+    init(updates: [String: JSONValue]) { self.updates = updates }
+}
+
+enum VenueCustomFields {
+    static func object(in value: JSONValue) -> [String: JSONValue] {
+        guard case let .object(fields) = value else { return [:] }
+        return fields
+    }
+
+    static func value(in value: JSONValue, for key: String) -> JSONValue? {
+        guard let stored = object(in: value)[key], stored != .null else { return nil }
+        return stored
+    }
+
+    static func displayText(_ value: JSONValue?, kind: VenueCustomColumnKind) -> String? {
+        guard let value else { return nil }
+        switch value {
+        case let .string(text):
+            return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : text
+        case let .number(number):
+            return number.rounded() == number && number.magnitude < 1e15 ? String(Int(number)) : String(number)
+        case let .bool(flag): return flag ? "Yes" : "No"
+        case .array, .object, .null: return nil
+        }
+    }
+
+    static func isUnsupported(_ value: JSONValue?, kind: VenueCustomColumnKind) -> Bool {
+        guard let value else { return false }
+        switch (value, kind) {
+        case (.string, .text), (.string, .select), (.number, .number), (.bool, .checkbox): return false
+        case (.number, .text), (.string, .number): return false
+        case let (.number(score), .rank): return score.rounded() != score || !(1...5).contains(Int(score))
+        default: return true
+        }
+    }
+
+    static func encode(_ text: String, kind: VenueCustomColumnKind) -> JSONValue? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        switch kind {
+        case .text, .select: return .string(trimmed)
+        case .number: return Double(trimmed).map(JSONValue.number)
+        case .checkbox: return .bool(true)
+        case .rank:
+            guard let score = Int(trimmed), (1...5).contains(score) else { return nil }
+            return .number(Double(score))
+        }
+    }
+
+    static func options(in column: VenueCustomColumn) -> [String] {
+        guard case let .array(values) = column.options else { return [] }
+        return values.compactMap { if case let .string(value) = $0 { value } else { nil } }
+    }
+}
+
+enum VenueDisplayResolver {
+    static func orderedColumns(_ columns: [VenueCustomColumn]) -> [VenueCustomColumn] {
+        columns.sorted {
+            $0.position == $1.position
+                ? $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending
+                : $0.position < $1.position
+        }
+    }
+
+    static func visibleColumns(_ columns: [VenueCustomColumn]) -> [VenueCustomColumn] {
+        orderedColumns(columns).filter { !$0.hidden }
+    }
+}
+
 struct Venue: Codable, Equatable, Sendable, Identifiable {
     let id: UUID
     let weddingID: UUID
@@ -26,6 +162,7 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
     let latitude: Double?
     let longitude: Double?
     let photoURL: String?
+    let customFields: JSONValue
     let createdAt: Date
     let updatedAt: Date
 
@@ -46,6 +183,7 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         case availableDatesText = "available_dates_text"
         case ourNotes = "our_notes"
         case photoURL = "photo_url"
+        case customFields = "custom_fields"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -65,8 +203,9 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         canonicalVenueEstimateText ?? "Not added"
     }
 }
-struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?
-enum CodingKeys:String,CodingKey{case name;case status;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"}}
+struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?;let customFields: JSONValue
+init(name: String, status: VenueStatus?, address: String?, city: String?, state: String?, country: String?, contactName: String?, contactEmail: String?, contactPhone: String?, website: String?, capacityMin: Int?, capacityMax: Int?, priceEstimate: Double?, priceNotes: String?, ourNotes: String?, latitude: Double?, longitude: Double?, photoURL: String?, customFields: JSONValue = .object([:])) { self.name=name; self.status=status; self.address=address; self.city=city; self.state=state; self.country=country; self.contactName=contactName; self.contactEmail=contactEmail; self.contactPhone=contactPhone; self.website=website; self.capacityMin=capacityMin; self.capacityMax=capacityMax; self.priceEstimate=priceEstimate; self.priceNotes=priceNotes; self.ourNotes=ourNotes; self.latitude=latitude; self.longitude=longitude; self.photoURL=photoURL; self.customFields=customFields }
+enum CodingKeys:String,CodingKey{case name;case status;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"; case customFields = "custom_fields"}}
 /// A field omitted from `init` (default `.unchanged`) is left untouched server-side;
 /// `.null` clears the column. `name` and `status` are never nullable, so they stay
 /// plain optionals where `nil` means "don't touch."

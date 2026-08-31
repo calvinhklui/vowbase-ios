@@ -15,6 +15,7 @@ struct VenueFilteringTests {
         phone: String? = nil,
         priceEstimate: Double? = nil,
         venueEstimateText: String? = nil,
+        customFields: JSONValue = .object([:]),
         updated: TimeInterval = 0,
         latitude: Double? = nil,
         longitude: Double? = nil
@@ -45,6 +46,7 @@ struct VenueFilteringTests {
             latitude: latitude,
             longitude: longitude,
             photoURL: nil,
+            customFields: customFields,
             createdAt: .distantPast,
             updatedAt: Date(timeIntervalSince1970: updated)
         )
@@ -128,6 +130,28 @@ struct VenueFilteringTests {
         #expect(VenueQuery.apply(to: venues, searchText: "portland", status: nil, sort: .nameAscending).map(\.name) == ["Cedar Hall"])
         #expect(VenueQuery.apply(to: venues, searchText: "garden way", status: nil, sort: .nameAscending).map(\.name) == ["Aster Estate"])
         #expect(VenueQuery.apply(to: venues, searchText: "555 0100", status: nil, sort: .nameAscending).map(\.name) == ["Birch Barn"])
+    }
+
+    @Test("Search includes stored venue custom-field values")
+    func searchIncludesVenueCustomFields() {
+        let result = VenueQuery.apply(
+            to: [venue("Garden Estate", customFields: .object(["style": .string("Art deco")]))],
+            searchText: "deco",
+            status: nil,
+            sort: .nameAscending
+        )
+        #expect(result.map(\.name) == ["Garden Estate"])
+    }
+
+    @Test("Rank accepts only whole scores from one through five")
+    func rankEncodingAndDisplay() {
+        #expect(VenueCustomFields.encode("1", kind: .rank) == .number(1))
+        #expect(VenueCustomFields.encode("5", kind: .rank) == .number(5))
+        #expect(VenueCustomFields.encode("0", kind: .rank) == nil)
+        #expect(VenueCustomFields.encode("6", kind: .rank) == nil)
+        #expect(VenueCustomFields.encode("2.5", kind: .rank) == nil)
+        #expect(!VenueCustomFields.isUnsupported(.number(3), kind: .rank))
+        #expect(VenueCustomFields.isUnsupported(.number(3.5), kind: .rank))
     }
 
     @Test("Metric-card status filtering combines with search")

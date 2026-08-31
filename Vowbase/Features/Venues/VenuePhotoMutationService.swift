@@ -30,7 +30,7 @@ protocol VenuePhotoMetadataMutating: Sendable {
         weddingID: UUID
     ) async throws -> VenuePhoto
     func deletePhoto(id: UUID) async throws
-    func clearCoverPhoto(venueID: UUID) async throws -> Venue
+    func clearCoverPhoto(venueID: UUID, weddingID: UUID) async throws -> Venue
 }
 
 protocol VenuePhotoStorageAdapter: Sendable {
@@ -69,8 +69,8 @@ final class SupabaseVenuePhotoMetadataAdapter: VenuePhotoMetadataMutating, @unch
         try await repository.deleteVenuePhoto(id: id)
     }
 
-    func clearCoverPhoto(venueID: UUID) async throws -> Venue {
-        try await repository.updateVenue(id: venueID, patch: VenuePatch(photoURL: .null))
+    func clearCoverPhoto(venueID: UUID, weddingID: UUID) async throws -> Venue {
+        try await repository.updateVenue(id: venueID, weddingID: weddingID, patch: VenuePatch(photoURL: .null))
     }
 }
 
@@ -163,7 +163,7 @@ final class VenuePhotoMutationService: VenuePhotoMutationServicing, @unchecked S
             ) {
                 try await storage.remove(path: photoURL)
             }
-            let updated = try await metadata.clearCoverPhoto(venueID: venue.id)
+            let updated = try await metadata.clearCoverPhoto(venueID: venue.id, weddingID: venue.weddingID)
             try Task.checkCancellation()
             return updated
         } catch {
