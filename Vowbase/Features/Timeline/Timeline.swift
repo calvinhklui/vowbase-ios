@@ -983,6 +983,7 @@ struct PlanningTimelineView: View {
     let taskStore: TaskStore
     let timelineStore: TimelineStore
     let allowsVerticalScrolling: Bool
+    let usesOpaqueRequirementBackground: Bool
     let onRequestExpansion: () -> Void
     let onRequestCollapse: () -> Void
     let onOpenMoment: (PlanningMoment) -> Void
@@ -997,6 +998,7 @@ struct PlanningTimelineView: View {
         taskStore: TaskStore,
         timelineStore: TimelineStore,
         allowsVerticalScrolling: Bool = true,
+        usesOpaqueRequirementBackground: Bool = false,
         onRequestExpansion: @escaping () -> Void = {},
         onRequestCollapse: @escaping () -> Void = {},
         onOpenMoment: @escaping (PlanningMoment) -> Void = { _ in },
@@ -1008,6 +1010,7 @@ struct PlanningTimelineView: View {
         self.taskStore = taskStore
         self.timelineStore = timelineStore
         self.allowsVerticalScrolling = allowsVerticalScrolling
+        self.usesOpaqueRequirementBackground = usesOpaqueRequirementBackground
         self.onRequestExpansion = onRequestExpansion
         self.onRequestCollapse = onRequestCollapse
         self.onOpenMoment = onOpenMoment
@@ -1186,6 +1189,7 @@ struct PlanningTimelineView: View {
         if TimelineRequirementPresentation.showsRail(for: selectedItemType), !timelineStore.requirements.isEmpty {
             TimelineRequirementRail(
                 requirements: timelineStore.requirements,
+                usesOpaqueBackground: usesOpaqueRequirementBackground,
                 onOpenRequirement: onOpenRequirement
             )
             .padding(.bottom, VowbaseSpace.medium)
@@ -1246,6 +1250,7 @@ enum TimelineRequirementPresentation {
 
 private struct TimelineRequirementRail: View {
     let requirements: [MoodboardRequirement]
+    let usesOpaqueBackground: Bool
     let onOpenRequirement: (MoodboardRequirement) -> Void
 
     var body: some View {
@@ -1255,14 +1260,17 @@ private struct TimelineRequirementRail: View {
                     TimelineRequirementStickyNote(
                         requirement: requirement,
                         rotation: TimelineRequirementPresentation.rotation(for: index),
+                        usesOpaqueBackground: usesOpaqueBackground,
                         onOpen: { onOpenRequirement(requirement) }
                     )
                 }
             }
             .scrollTargetLayout()
-            .padding(.vertical, VowbaseSpace.small)
+            .padding(.vertical, VowbaseSpace.medium)
+            .padding(.horizontal, VowbaseSpace.xSmall)
         }
         .scrollTargetBehavior(.viewAligned)
+        .scrollClipDisabled()
         .contentMargins(.horizontal, VowbaseControlMetric.screenInset, for: .scrollContent)
         .accessibilityLabel("Requirements")
         .accessibilityHint("Swipe horizontally to browse requirements")
@@ -1272,6 +1280,7 @@ private struct TimelineRequirementRail: View {
 private struct TimelineRequirementStickyNote: View {
     let requirement: MoodboardRequirement
     let rotation: Double
+    let usesOpaqueBackground: Bool
     let onOpen: () -> Void
 
     var body: some View {
@@ -1301,7 +1310,10 @@ private struct TimelineRequirementStickyNote: View {
             .padding(VowbaseSpace.standard)
             .frame(width: 256, alignment: .topLeading)
             .frame(minHeight: 164, alignment: .topLeading)
-            .background(VowbaseTheme.blush.opacity(0.88), in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous))
+            .background(
+                usesOpaqueBackground ? VowbaseTheme.background : VowbaseTheme.blush.opacity(0.88),
+                in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
+            )
             .overlay {
                 RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
                     .stroke(VowbaseTheme.rose.opacity(0.2), lineWidth: 1)

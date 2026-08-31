@@ -651,6 +651,7 @@ struct WeddingAppShell: View {
                 taskStore: taskStore,
                 timelineStore: timelineStore,
                 allowsVerticalScrolling: currentDetent == .full,
+                usesOpaqueRequirementBackground: currentDetent != .full,
                 onRequestExpansion: expandCurrentConsole,
                 onRequestCollapse: collapseCurrentConsole,
                 onOpenMoment: { moment in
