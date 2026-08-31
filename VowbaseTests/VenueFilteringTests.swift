@@ -13,7 +13,6 @@ struct VenueFilteringTests {
         contactName: String? = nil,
         email: String? = nil,
         phone: String? = nil,
-        priceEstimate: Double? = nil,
         venueEstimateText: String? = nil,
         customFields: JSONValue = .object([:]),
         updated: TimeInterval = 0,
@@ -36,7 +35,6 @@ struct VenueFilteringTests {
             capacityMin: nil,
             capacityMax: nil,
             capacityText: nil,
-            priceEstimate: priceEstimate,
             priceNotes: nil,
             venueEstimateText: venueEstimateText,
             allInEstimateText: nil,
@@ -61,17 +59,16 @@ struct VenueFilteringTests {
         ]
     }
 
-    @Test("Venue estimate display ignores a legacy numeric estimate when canonical text is absent")
+    @Test("Venue estimate display uses canonical text only")
     func venueEstimateDisplayUsesCanonicalTextOnly() {
-        let legacyOnly = venue("Legacy estimate", priceEstimate: 160_000)
+        let absent = venue("No estimate")
         let canonical = venue(
             "Canonical estimate",
-            priceEstimate: 160_000,
             venueEstimateText: "  $175k–$190k  "
         )
 
-        #expect(legacyOnly.canonicalVenueEstimateText == nil)
-        #expect(legacyOnly.venueEstimateDisplayText == "Not added")
+        #expect(absent.canonicalVenueEstimateText == nil)
+        #expect(absent.venueEstimateDisplayText == "Not added")
         #expect(canonical.canonicalVenueEstimateText == "$175k–$190k")
         #expect(canonical.venueEstimateDisplayText == "$175k–$190k")
     }

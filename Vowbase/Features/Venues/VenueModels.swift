@@ -152,7 +152,6 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
     let capacityMin: Int?
     let capacityMax: Int?
     let capacityText: String?
-    let priceEstimate: Double?
     let priceNotes: String?
     let venueEstimateText: String?
     let allInEstimateText: String?
@@ -176,7 +175,6 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         case capacityMin = "capacity_min"
         case capacityMax = "capacity_max"
         case capacityText = "capacity_text"
-        case priceEstimate = "price_estimate"
         case priceNotes = "price_notes"
         case venueEstimateText = "venue_est_text"
         case allInEstimateText = "all_in_est_text"
@@ -189,8 +187,6 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
     }
 
     /// The editable venue estimate shared by the native and web venue surfaces.
-    /// `priceEstimate` is a legacy structured value and must not be substituted
-    /// when the canonical `venue_est_text` field is absent.
     var canonicalVenueEstimateText: String? {
         guard let text = venueEstimateText?.trimmingCharacters(in: .whitespacesAndNewlines),
               !text.isEmpty else {
@@ -203,9 +199,9 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         canonicalVenueEstimateText ?? "Not added"
     }
 }
-struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?;let customFields: JSONValue
-init(name: String, status: VenueStatus?, address: String?, city: String?, state: String?, country: String?, contactName: String?, contactEmail: String?, contactPhone: String?, website: String?, capacityMin: Int?, capacityMax: Int?, priceEstimate: Double?, priceNotes: String?, ourNotes: String?, latitude: Double?, longitude: Double?, photoURL: String?, customFields: JSONValue = .object([:])) { self.name=name; self.status=status; self.address=address; self.city=city; self.state=state; self.country=country; self.contactName=contactName; self.contactEmail=contactEmail; self.contactPhone=contactPhone; self.website=website; self.capacityMin=capacityMin; self.capacityMax=capacityMax; self.priceEstimate=priceEstimate; self.priceNotes=priceNotes; self.ourNotes=ourNotes; self.latitude=latitude; self.longitude=longitude; self.photoURL=photoURL; self.customFields=customFields }
-enum CodingKeys:String,CodingKey{case name;case status;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"; case customFields = "custom_fields"}}
+struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?;let customFields: JSONValue
+init(name: String, status: VenueStatus?, address: String?, city: String?, state: String?, country: String?, contactName: String?, contactEmail: String?, contactPhone: String?, website: String?, capacityMin: Int?, capacityMax: Int?, priceNotes: String?, ourNotes: String?, latitude: Double?, longitude: Double?, photoURL: String?, customFields: JSONValue = .object([:])) { self.name=name; self.status=status; self.address=address; self.city=city; self.state=state; self.country=country; self.contactName=contactName; self.contactEmail=contactEmail; self.contactPhone=contactPhone; self.website=website; self.capacityMin=capacityMin; self.capacityMax=capacityMax; self.priceNotes=priceNotes; self.ourNotes=ourNotes; self.latitude=latitude; self.longitude=longitude; self.photoURL=photoURL; self.customFields=customFields }
+enum CodingKeys:String,CodingKey{case name;case status;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"; case customFields = "custom_fields"}}
 /// A field omitted from `init` (default `.unchanged`) is left untouched server-side;
 /// `.null` clears the column. `name` and `status` are never nullable, so they stay
 /// plain optionals where `nil` means "don't touch."
@@ -223,7 +219,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
     let capacityMin: NullablePatch<Int>
     let capacityMax: NullablePatch<Int>
     let capacityText: NullablePatch<String>
-    let priceEstimate: NullablePatch<Double>
     let priceNotes: NullablePatch<String>
     let venueEstimateText: NullablePatch<String>
     let allInEstimateText: NullablePatch<String>
@@ -247,7 +242,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         capacityMin: NullablePatch<Int> = .unchanged,
         capacityMax: NullablePatch<Int> = .unchanged,
         capacityText: NullablePatch<String> = .unchanged,
-        priceEstimate: NullablePatch<Double> = .unchanged,
         priceNotes: NullablePatch<String> = .unchanged,
         venueEstimateText: NullablePatch<String> = .unchanged,
         allInEstimateText: NullablePatch<String> = .unchanged,
@@ -270,7 +264,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         self.capacityMin = capacityMin
         self.capacityMax = capacityMax
         self.capacityText = capacityText
-        self.priceEstimate = priceEstimate
         self.priceNotes = priceNotes
         self.venueEstimateText = venueEstimateText
         self.allInEstimateText = allInEstimateText
@@ -288,7 +281,7 @@ struct VenuePatch: Encodable, Equatable, Sendable {
             && contactName == .unchanged && contactEmail == .unchanged && contactPhone == .unchanged
             && website == .unchanged
             && capacityMin == .unchanged && capacityMax == .unchanged && capacityText == .unchanged
-            && priceEstimate == .unchanged && priceNotes == .unchanged
+            && priceNotes == .unchanged
             && venueEstimateText == .unchanged && allInEstimateText == .unchanged && availableDatesText == .unchanged
             && ourNotes == .unchanged
             && latitude == .unchanged && longitude == .unchanged
@@ -303,7 +296,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         case capacityMin = "capacity_min"
         case capacityMax = "capacity_max"
         case capacityText = "capacity_text"
-        case priceEstimate = "price_estimate"
         case priceNotes = "price_notes"
         case venueEstimateText = "venue_est_text"
         case allInEstimateText = "all_in_est_text"
@@ -327,7 +319,6 @@ struct VenuePatch: Encodable, Equatable, Sendable {
         try container.encode(capacityMin, forKey: .capacityMin)
         try container.encode(capacityMax, forKey: .capacityMax)
         try container.encode(capacityText, forKey: .capacityText)
-        try container.encode(priceEstimate, forKey: .priceEstimate)
         try container.encode(priceNotes, forKey: .priceNotes)
         try container.encode(venueEstimateText, forKey: .venueEstimateText)
         try container.encode(allInEstimateText, forKey: .allInEstimateText)
