@@ -96,7 +96,7 @@ struct VenueFieldListView: View {
         .scrollContentBackground(.hidden)
         .background(VowbaseTheme.groupedBackground)
         .tint(VowbaseTheme.rose)
-        .navigationTitle("Manage fields")
+        .navigationTitle("Manage Fields")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { EditButton().tint(VowbaseTheme.rose) }

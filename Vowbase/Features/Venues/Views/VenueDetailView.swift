@@ -19,6 +19,7 @@ struct VenueDetailView: View {
     let store: VowbaseWorkspaceStore
     @Binding var isNoteEditing: Bool
     let onViewOnMap: () -> Void
+    let onOpenCustomFields: () -> Void
     let allowsVerticalScrolling: Bool
     let onRequestExpansion: () -> Void
     let onRequestCollapse: () -> Void
@@ -78,6 +79,7 @@ struct VenueDetailView: View {
         store: VowbaseWorkspaceStore,
         isNoteEditing: Binding<Bool>,
         onViewOnMap: @escaping () -> Void = {},
+        onOpenCustomFields: @escaping () -> Void = {},
         allowsVerticalScrolling: Bool = true,
         onRequestExpansion: @escaping () -> Void = {},
         onRequestCollapse: @escaping () -> Void = {}
@@ -86,6 +88,7 @@ struct VenueDetailView: View {
         self.store = store
         self._isNoteEditing = isNoteEditing
         self.onViewOnMap = onViewOnMap
+        self.onOpenCustomFields = onOpenCustomFields
         self.allowsVerticalScrolling = allowsVerticalScrolling
         self.onRequestExpansion = onRequestExpansion
         self.onRequestCollapse = onRequestCollapse
@@ -355,7 +358,7 @@ struct VenueDetailView: View {
                 HStack {
                     Text("Custom Fields").font(.title2.weight(.semibold))
                     Spacer()
-                    NavigationLink(value: VenuesRoute.customFields) {
+                    Button(action: onOpenCustomFields) {
                         Image(systemName: "list.bullet.rectangle")
                     }
                     .accessibilityLabel("Manage fields")

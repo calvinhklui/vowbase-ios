@@ -14,6 +14,9 @@ struct VenuesView: View {
     /// console navigation update in one transaction.
     let onSelectVenue: (MVPVenue) -> Void
     let onViewOnMap: (MVPVenue) -> Void
+    /// Elevates the persistent console before a long-form administration
+    /// destination is pushed, matching the Guests tab's full-height route.
+    let onOpenAdministration: () -> Void
     let allowsVerticalScrolling: Bool
     let onRequestExpansion: () -> Void
     let onRequestCollapse: () -> Void
@@ -60,30 +63,7 @@ struct VenuesView: View {
                     toolRow
                         .padding(.top, 10)
 
-                    Group {
-                        if store.venues.isEmpty {
-                            VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
-                        } else if visibleVenues.isEmpty {
-                            noResults
-                        } else {
-                            LazyVStack(spacing: 0) {
-                                ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
-                                    Button {
-                                        onSelectVenue(venue)
-                                    } label: {
-                                        CompactVenueRow(venue: venue)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    if index < visibleVenues.count - 1 {
-                                        Divider()
-                                            .padding(.leading, 86)
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    venueContent
                     .padding(.top, 18)
                 }
                 .padding(.horizontal, 16)
@@ -102,6 +82,10 @@ struct VenuesView: View {
                     store: store,
                     isNoteEditing: $isNoteEditing,
                     onViewOnMap: { onViewOnMap(venue) },
+                    onOpenCustomFields: {
+                        onOpenAdministration()
+                        path.append(VenuesRoute.customFields)
+                    },
                     allowsVerticalScrolling: allowsVerticalScrolling,
                     onRequestExpansion: onRequestExpansion,
                     onRequestCollapse: onRequestCollapse
@@ -151,6 +135,32 @@ struct VenuesView: View {
         }
     }
 
+    @ViewBuilder
+    private var venueContent: some View {
+        if store.venues.isEmpty {
+            VenuesEmptyState(onAddVenue: onAddVenue, onReturnToMap: onReturnToMap)
+        } else if visibleVenues.isEmpty {
+            noResults
+        } else {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(visibleVenues.enumerated()), id: \.element.id) { index, venue in
+                    Button {
+                        onSelectVenue(venue)
+                    } label: {
+                        CompactVenueRow(venue: venue)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if index < visibleVenues.count - 1 {
+                        Divider()
+                            .padding(.leading, 86)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Controls
 
     private var toolRow: some View {
@@ -185,14 +195,16 @@ struct VenuesView: View {
             }
             Divider()
             Button {
+                onOpenAdministration()
                 path.append(VenuesRoute.customFields)
             } label: {
-                Label("Manage fields", systemImage: "list.bullet.rectangle")
+                Label("Manage Fields", systemImage: "list.bullet.rectangle")
             }
             Button {
+                onOpenAdministration()
                 path.append(VenuesRoute.customizeMetrics)
             } label: {
-                Label("Customize metrics", systemImage: "slider.horizontal.3")
+                Label("Customize Metrics", systemImage: "slider.horizontal.3")
             }
         } label: {
             CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")

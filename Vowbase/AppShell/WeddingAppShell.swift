@@ -628,6 +628,7 @@ struct WeddingAppShell: View {
                 onReturnToMap: { navigation.selectedLens = .venues },
                 onSelectVenue: selectVenue,
                 onViewOnMap: showVenueOnMap,
+                onOpenAdministration: openVenueAdministration,
                 allowsVerticalScrolling: currentDetent == .full,
                 onRequestExpansion: expandCurrentConsole,
                 onRequestCollapse: collapseCurrentConsole,
@@ -714,6 +715,16 @@ struct WeddingAppShell: View {
         guard currentDetent == .full else { return }
         withAnimation(.snappy(duration: 0.28)) {
             lensDetents[navigation.selectedLens] = .half
+        }
+    }
+
+    /// Venue field and metric administration are long-form screens. Promote
+    /// the persistent console directly to its full detent before their route
+    /// appears, matching the Guests lens while leaving ordinary venue detail
+    /// presentation unchanged.
+    private func openVenueAdministration() {
+        withAnimation(.snappy(duration: 0.28)) {
+            lensDetents[.venues] = .full
         }
     }
 

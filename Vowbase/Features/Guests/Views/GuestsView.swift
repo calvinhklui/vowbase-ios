@@ -169,12 +169,12 @@ struct GuestsView: View {
             Button {
                 path.append(GuestsRoute.customFields)
             } label: {
-                Label("Manage fields", systemImage: "list.bullet.rectangle")
+                Label("Manage Fields", systemImage: "list.bullet.rectangle")
             }
             Button {
                 path.append(GuestsRoute.customizeMetrics)
             } label: {
-                Label("Customize metrics", systemImage: "slider.horizontal.3")
+                Label("Customize Metrics", systemImage: "slider.horizontal.3")
             }
         } label: {
             CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
@@ -424,12 +424,9 @@ private struct CustomizeGuestMetricsView: View {
         .scrollContentBackground(.hidden)
         .background(VowbaseTheme.groupedBackground)
         .tint(VowbaseTheme.rose)
-        .navigationTitle("Customize metrics")
+        .navigationTitle("Customize Metrics")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
-            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     configuration = draft

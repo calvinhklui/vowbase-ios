@@ -130,12 +130,9 @@ struct CustomizeVenueMetricsView: View {
         .scrollContentBackground(.hidden)
         .background(VowbaseTheme.groupedBackground)
         .tint(VowbaseTheme.rose)
-        .navigationTitle("Customize metrics")
+        .navigationTitle("Customize Metrics")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
-            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     configuration = draft
