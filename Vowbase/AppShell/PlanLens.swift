@@ -36,7 +36,7 @@ enum PlanLens: String, CaseIterable, Identifiable, Hashable {
         case .venues: "mappin"
         case .guests: "person.2"
         case .tasks: "checklist"
-        case .timeline: "clock.arrow.circlepath"
+        case .timeline: "map"
         }
     }
 

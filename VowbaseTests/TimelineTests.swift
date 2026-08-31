@@ -122,6 +122,28 @@ struct TimelineTests {
         #expect(TimelineProgressiveLoading.nextLimit(currentLimit: -10, totalCount: -1) == 0)
     }
 
+    @Test("timeline item filters combine selected types and keep task lifecycle rows together")
+    func filtersTimelineItemsByType() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let entries = [
+            timelineEntry(title: "Moment", kind: .moment(.decision), occurredAt: now),
+            timelineEntry(title: "Requirement", kind: .requirement, occurredAt: now),
+            timelineEntry(title: "Venue", kind: .venueAdded, occurredAt: now),
+            timelineEntry(title: "Guest", kind: .guestAdded, occurredAt: now),
+            timelineEntry(title: "Task added", kind: .taskAdded, occurredAt: now),
+            timelineEntry(title: "Task completed", kind: .completedTask, occurredAt: now),
+        ]
+
+        #expect(TimelineItemType.allCases.map(\.title) == ["Moments", "Requirements", "Venues", "Guests", "Tasks"])
+        #expect(TimelineFiltering.entries(entries, matching: []).map(\.title) == entries.map(\.title))
+        #expect(
+            TimelineFiltering.entries(entries, matching: [.venue, .task]).map(\.title)
+                == ["Venue", "Task added", "Task completed"]
+        )
+        #expect(TimelineFiltering.count(of: .task, in: entries) == 2)
+        #expect(TimelineFiltering.count(of: .guest, in: entries) == 1)
+    }
+
     @Test("on-track state follows conservative information and overdue boundaries")
     func evaluatesPlanningStatusBoundaries() {
         let calendar = Calendar.current
@@ -289,6 +311,7 @@ struct TimelineTests {
     @Test("timeline is the first visible lens")
     func timelineIsFirstVisibleLens() {
         #expect(PlanLens.visibleRailCases == [.timeline, .venues, .guests, .tasks])
+        #expect(PlanLens.timeline.systemImage == "map")
     }
 
     @Test("requirement creation trims fields and appends to the timeline")
@@ -426,10 +449,14 @@ struct TimelineTests {
         )
     }
 
-    private func timelineEntry(title: String, occurredAt: Date) -> TimelineEntry {
+    private func timelineEntry(
+        title: String,
+        kind: TimelineEntryKind = .taskAdded,
+        occurredAt: Date
+    ) -> TimelineEntry {
         TimelineEntry(
             id: title,
-            kind: .taskAdded,
+            kind: kind,
             title: title,
             occurredAt: occurredAt,
             notes: nil,

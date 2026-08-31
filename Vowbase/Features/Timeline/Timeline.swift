@@ -422,6 +422,36 @@ enum TimelineEntryKind: Equatable, Sendable {
         case .requirement: "list.bullet.clipboard"
         }
     }
+
+    var itemType: TimelineItemType {
+        switch self {
+        case .moment: .moment
+        case .completedTask, .taskAdded: .task
+        case .venueAdded: .venue
+        case .guestAdded: .guest
+        case .requirement: .requirement
+        }
+    }
+}
+
+enum TimelineItemType: CaseIterable, Identifiable, Hashable, Sendable {
+    case moment
+    case requirement
+    case venue
+    case guest
+    case task
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .moment: "Moments"
+        case .requirement: "Requirements"
+        case .venue: "Venues"
+        case .guest: "Guests"
+        case .task: "Tasks"
+        }
+    }
 }
 
 enum TimelineEntryDestination: Equatable, Sendable {
@@ -532,6 +562,20 @@ enum TimelineFeed {
             if $0.occurredAt != $1.occurredAt { return $0.occurredAt > $1.occurredAt }
             return $0.id < $1.id
         }
+    }
+}
+
+enum TimelineFiltering {
+    static func entries(
+        _ entries: [TimelineEntry],
+        matching selectedItemTypes: Set<TimelineItemType>
+    ) -> [TimelineEntry] {
+        guard !selectedItemTypes.isEmpty else { return entries }
+        return entries.filter { selectedItemTypes.contains($0.kind.itemType) }
+    }
+
+    static func count(of itemType: TimelineItemType, in entries: [TimelineEntry]) -> Int {
+        entries.count(where: { $0.kind.itemType == itemType })
     }
 }
 
@@ -936,6 +980,7 @@ struct PlanningTimelineView: View {
     let onOpenVenue: (MVPVenue) -> Void
     let onOpenGuest: (MVPGuest) -> Void
     @State private var visibleEntryLimit = TimelineProgressiveLoading.batchSize
+    @State private var selectedItemTypes: Set<TimelineItemType> = []
 
     init(
         store: VowbaseWorkspaceStore,
@@ -961,7 +1006,8 @@ struct PlanningTimelineView: View {
     }
 
     var body: some View {
-        let timelineEntries = entries
+        let allTimelineEntries = entries
+        let timelineEntries = TimelineFiltering.entries(allTimelineEntries, matching: selectedItemTypes)
         let visibleEntries = Array(timelineEntries.prefix(visibleEntryLimit))
         let groupedEntries = TimelineDatePresentation.monthSections(for: visibleEntries)
 
@@ -973,12 +1019,21 @@ struct PlanningTimelineView: View {
             .padding(.horizontal, VowbaseControlMetric.screenInset)
             .padding(.bottom, VowbaseSpace.small)
 
+            if !allTimelineEntries.isEmpty {
+                TimelineFilterPills(
+                    entries: allTimelineEntries,
+                    selectedItemTypes: $selectedItemTypes
+                )
+                .padding(.horizontal, VowbaseControlMetric.screenInset)
+                .padding(.bottom, VowbaseSpace.small)
+            }
+
             Group {
-                if timelineStore.isLoading && timelineEntries.isEmpty {
+                if timelineStore.isLoading && allTimelineEntries.isEmpty {
                     ProgressView("Loading timeline")
                         .tint(VowbaseTheme.rose)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if timelineEntries.isEmpty {
+                } else if allTimelineEntries.isEmpty {
                     ScrollView {
                         VStack(spacing: VowbaseSpace.large) {
                             if let planningStatus {
@@ -989,6 +1044,25 @@ struct PlanningTimelineView: View {
                             } description: {
                                 Text("Add a task, guest, venue, requirement, or planning moment to start your timeline.")
                             }
+                        }
+                        .padding(VowbaseControlMetric.screenInset)
+                    }
+                } else if timelineEntries.isEmpty {
+                    ScrollView {
+                        VStack(spacing: VowbaseSpace.large) {
+                            if let planningStatus {
+                                TimelineStatusRow(status: planningStatus)
+                            }
+                            ContentUnavailableView {
+                                Label("No timeline items match these filters", systemImage: "line.3.horizontal.decrease.circle")
+                            } description: {
+                                Text("Select another item type or clear the filters to show the full timeline.")
+                            }
+                            Button("Clear filters") {
+                                selectedItemTypes.removeAll()
+                            }
+                            .font(.system(size: 16, weight: .semibold))
+                            .tint(VowbaseTheme.rose)
                         }
                         .padding(VowbaseControlMetric.screenInset)
                     }
@@ -1041,8 +1115,12 @@ struct PlanningTimelineView: View {
                     .padding(.horizontal, VowbaseControlMetric.screenInset)
             }
         }
+        .onChange(of: selectedItemTypes) {
+            visibleEntryLimit = TimelineProgressiveLoading.batchSize
+        }
         .task(id: weddingID) {
             visibleEntryLimit = TimelineProgressiveLoading.batchSize
+            selectedItemTypes.removeAll()
             guard let weddingID else { return }
             async let workspace: Bool = store.load(presentsFailure: false)
             async let tasks: Void = taskStore.load(weddingID: weddingID)
@@ -1086,6 +1164,47 @@ struct PlanningTimelineView: View {
         case nil:
             return nil
         }
+    }
+}
+
+private struct TimelineFilterPills: View {
+    let entries: [TimelineEntry]
+    @Binding var selectedItemTypes: Set<TimelineItemType>
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TimelineItemType.allCases) { itemType in
+                    let isSelected = selectedItemTypes.contains(itemType)
+                    let count = TimelineFiltering.count(of: itemType, in: entries)
+
+                    Button {
+                        if isSelected {
+                            selectedItemTypes.remove(itemType)
+                        } else {
+                            selectedItemTypes.insert(itemType)
+                        }
+                    } label: {
+                        CompactMetricFilterPill(
+                            count: count,
+                            title: itemType.title,
+                            isSelected: isSelected
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(itemType.title), \(count) timeline item\(count == 1 ? "" : "s")")
+                    .accessibilityHint(
+                        isSelected
+                            ? "Double tap to remove this item type from the filter"
+                            : "Double tap to add this item type to the filter"
+                    )
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+                }
+            }
+        }
+        .scrollDisabled(false)
+        .contentMargins(.horizontal, 1, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.18), value: selectedItemTypes)
     }
 }
 
