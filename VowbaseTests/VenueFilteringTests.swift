@@ -69,10 +69,39 @@ struct VenueFilteringTests {
         #expect(result.map(\.name) == ["Alder House", "Aster Estate", "Birch Barn", "Cedar Hall"])
     }
 
-    @Test("Status follows the venue lifecycle and then name")
-    func statusSortsByLifecycleThenName() {
-        let result = VenueQuery.apply(to: venues, searchText: "", status: nil, sort: .status)
-        #expect(result.map(\.name) == ["Aster Estate", "Birch Barn", "Alder House", "Cedar Hall"])
+    @Test("Status follows decision priority and then name")
+    func statusSortsByDecisionPriorityThenName() {
+        let result = VenueQuery.apply(
+            to: [
+                venue("Considering", status: .considering),
+                venue("Passed", status: .passed),
+                venue("Zulu Shortlist", status: .shortlisted),
+                venue("Contacted", status: .contacted),
+                venue("Booked", status: .booked),
+                venue("Toured", status: .toured),
+                venue("Negotiating", status: .negotiating),
+                venue("Alpha Shortlist", status: .shortlisted),
+            ],
+            searchText: "",
+            status: nil,
+            sort: .status
+        )
+
+        #expect(result.map(\.name) == [
+            "Booked",
+            "Negotiating",
+            "Alpha Shortlist",
+            "Zulu Shortlist",
+            "Toured",
+            "Contacted",
+            "Considering",
+            "Passed",
+        ])
+    }
+
+    @Test("Venue sort choices omit nearest-first")
+    func sortChoicesOmitNearestFirst() {
+        #expect(VenueSortOrder.allCases == [.lastUpdated, .nameAscending, .status])
     }
 
     @Test("Search covers name, status, location, address, and contacts")
@@ -88,34 +117,6 @@ struct VenueFilteringTests {
     func statusAndSearchCombine() {
         let result = VenueQuery.apply(to: venues, searchText: "house", status: .shortlisted, sort: .lastUpdated)
         #expect(result.map(\.name) == ["Alder House"])
-    }
-
-    @Test("Nearest-first uses only available local distances and keeps unknown venues last")
-    func nearestFirstSortsKnownDistancesBeforeUnknownVenues() {
-        let nearby = venue("Nearby", latitude: 40, longitude: -73)
-        let farther = venue("Farther", latitude: 41, longitude: -73)
-        let unlocated = venue("Unlocated")
-        let origin = Coordinate(latitude: 40, longitude: -74)
-        let distances = [
-            nearby.id: VenueDistance.miles(
-                from: origin,
-                to: Coordinate(latitude: 40, longitude: -73)
-            ),
-            farther.id: VenueDistance.miles(
-                from: origin,
-                to: Coordinate(latitude: 41, longitude: -73)
-            ),
-        ]
-
-        let result = VenueQuery.apply(
-            to: [unlocated, farther, nearby],
-            searchText: "",
-            status: nil,
-            sort: .nearestFirst,
-            distances: distances
-        )
-
-        #expect(result.map(\.name) == ["Nearby", "Farther", "Unlocated"])
     }
 
     @Test("Venue distance coordinates reject malformed persisted values")

@@ -484,8 +484,7 @@ final class VowbaseWorkspaceStore {
                 to: venueRecords,
                 searchText: searchText,
                 status: status,
-                sort: sort,
-                distances: distances
+                sort: sort
             )
             .map { venueDisplay(for: $0, distanceMiles: distances[$0.id]) }
     }

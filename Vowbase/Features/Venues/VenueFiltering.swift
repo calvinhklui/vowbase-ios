@@ -6,7 +6,6 @@ enum VenueSortOrder: String, CaseIterable, Identifiable, Sendable {
     case lastUpdated
     case nameAscending
     case status
-    case nearestFirst
 
     var id: String { rawValue }
 
@@ -15,7 +14,6 @@ enum VenueSortOrder: String, CaseIterable, Identifiable, Sendable {
         case .lastUpdated: "Last updated"
         case .nameAscending: "Name A–Z"
         case .status: "Status"
-        case .nearestFirst: "Nearest first"
         }
     }
 }
@@ -28,8 +26,7 @@ enum VenueQuery {
         to venues: [Venue],
         searchText: String,
         status: VenueStatus?,
-        sort: VenueSortOrder,
-        distances: [UUID: Double] = [:]
+        sort: VenueSortOrder
     ) -> [Venue] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let matched = venues.filter { venue in
@@ -38,7 +35,7 @@ enum VenueQuery {
             return searchHaystack(for: venue)
                 .localizedCaseInsensitiveContains(query)
         }
-        return sorted(matched, by: sort, distances: distances)
+        return sorted(matched, by: sort)
     }
 
     static func searchHaystack(for venue: Venue) -> String {
@@ -61,11 +58,7 @@ enum VenueQuery {
         .joined(separator: " ")
     }
 
-    static func sorted(
-        _ venues: [Venue],
-        by sort: VenueSortOrder,
-        distances: [UUID: Double] = [:]
-    ) -> [Venue] {
+    static func sorted(_ venues: [Venue], by sort: VenueSortOrder) -> [Venue] {
         venues.sorted { left, right in
             switch sort {
             case .lastUpdated:
@@ -78,17 +71,6 @@ enum VenueQuery {
                 let rightRank = lifecycleRank(right.status)
                 if leftRank != rightRank { return leftRank < rightRank }
                 return name(left).localizedCaseInsensitiveCompare(name(right)) == .orderedAscending
-            case .nearestFirst:
-                switch (distances[left.id], distances[right.id]) {
-                case let (leftDistance?, rightDistance?) where leftDistance != rightDistance:
-                    return leftDistance < rightDistance
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                default:
-                    return name(left).localizedCaseInsensitiveCompare(name(right)) == .orderedAscending
-                }
             }
         }
     }
@@ -97,12 +79,12 @@ enum VenueQuery {
 
     private static func lifecycleRank(_ status: VenueStatus) -> Int {
         switch status {
-        case .considering: 0
-        case .contacted: 1
-        case .toured: 2
-        case .shortlisted: 3
-        case .negotiating: 4
-        case .booked: 5
+        case .booked: 0
+        case .negotiating: 1
+        case .shortlisted: 2
+        case .toured: 3
+        case .contacted: 4
+        case .considering: 5
         case .passed: 6
         }
     }
