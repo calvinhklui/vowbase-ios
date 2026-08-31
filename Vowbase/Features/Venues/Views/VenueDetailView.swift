@@ -201,9 +201,9 @@ struct VenueDetailView: View {
                 .padding()
                 .background(VowbaseTheme.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                venueCustomFieldsSection(venue: currentVenue)
                 detailsSection(venue: currentVenue)
                 documentsSection(venue: currentVenue)
+                venueCustomFieldsSection(venue: currentVenue)
                 notesSection(venue: currentVenue)
             }
             .padding(16)
@@ -361,6 +361,8 @@ struct VenueDetailView: View {
                     Button(action: onOpenCustomFields) {
                         Image(systemName: "list.bullet.rectangle")
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(VowbaseTheme.rose)
                     .accessibilityLabel("Manage fields")
                 }
                 ForEach(columns) { column in
@@ -1534,12 +1536,17 @@ private struct VenueCustomFieldDetailRow: View {
                 LabeledContent(column.label) {
                     HStack(spacing: 4) {
                         ForEach(1...5, id: \.self) { score in
-                            Button("\(score)") { commit(.number(Double(score))) }
+                            Button("\(score)") {
+                                commit(rank == score ? nil : .number(Double(score)))
+                            }
                                 .buttonStyle(.bordered)
                                 .tint(rank == score ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
-                                .accessibilityLabel("\(column.label), \(score) of 5")
+                                .accessibilityLabel(
+                                    rank == score
+                                        ? "Clear \(column.label), \(score) of 5"
+                                        : "Set \(column.label), \(score) of 5"
+                                )
                         }
-                        if rank != nil { Button("Clear") { commit(nil) }.font(.caption) }
                     }
                 }
             }

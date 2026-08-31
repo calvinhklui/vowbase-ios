@@ -139,15 +139,16 @@ struct VenueCustomFieldInput: View {
             LabeledContent(column.label) {
                 HStack(spacing: 4) {
                     ForEach(1...5, id: \.self) { score in
-                        Button("\(score)") { values[column.key] = .number(Double(score)) }
+                        Button("\(score)") {
+                            values[column.key] = rank == score ? nil : .number(Double(score))
+                        }
                             .buttonStyle(.bordered)
                             .tint(rank == score ? VowbaseTheme.rose : VowbaseTheme.mutedInk)
-                            .accessibilityLabel("\(column.label), \(score) of 5")
-                    }
-                    if rank != nil {
-                        Button("Clear") { values[column.key] = nil }
-                            .font(.caption)
-                            .accessibilityLabel("Clear \(column.label)")
+                            .accessibilityLabel(
+                                rank == score
+                                    ? "Clear \(column.label), \(score) of 5"
+                                    : "Set \(column.label), \(score) of 5"
+                            )
                     }
                 }
             }
