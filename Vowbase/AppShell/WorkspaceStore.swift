@@ -324,9 +324,10 @@ final class VowbaseWorkspaceStore {
     var venueCustomFieldsUnavailable = false
     private(set) var guestMetricConfigurationRecord: SharedMetricConfiguration?
     private(set) var venueMetricConfigurationRecord: SharedMetricConfiguration?
-    /// A failed metrics read leaves canonical web defaults visible but keeps
-    /// native customization unavailable, so native can never seed migration data.
-    private(set) var metricConfigurationsUnavailable = false
+    /// A missing record is seedable with web canonical defaults; only failed
+    /// reads disable customization for the affected surface.
+    private(set) var guestMetricConfigurationLoadFailed = false
+    private(set) var venueMetricConfigurationLoadFailed = false
 
     /// Per-row save state for inline editing, keyed by guest and field.
     private(set) var fieldSaveStates = [GuestFieldKey: GuestFieldSaveState]()
@@ -648,8 +649,56 @@ final class VowbaseWorkspaceStore {
         )
     }
 
-    var canCustomizeGuestMetrics: Bool { guestMetricConfigurationRecord != nil }
-    var canCustomizeVenueMetrics: Bool { venueMetricConfigurationRecord != nil }
+    var canCustomizeGuestMetrics: Bool {
+        repositories != nil && wedding != nil && !isLoading && !guestMetricConfigurationLoadFailed
+    }
+    var canCustomizeVenueMetrics: Bool {
+        repositories != nil && wedding != nil && !isLoading && !venueMetricConfigurationLoadFailed
+    }
+
+    @discardableResult
+    func prepareGuestMetricCustomization() async -> Bool {
+        await seedGuestMetricConfigurationIfMissing()
+    }
+
+    @discardableResult
+    func prepareVenueMetricCustomization() async -> Bool {
+        await seedVenueMetricConfigurationIfMissing()
+    }
+
+    private func seedGuestMetricConfigurationIfMissing() async -> Bool {
+        guard canCustomizeGuestMetrics, let repositories, let weddingID = wedding?.id else { return false }
+        guard guestMetricConfigurationRecord == nil else { return true }
+        do {
+            guestMetricConfigurationRecord = try await repositories.metrics.seedIfMissing(
+                weddingID: weddingID,
+                surface: .guests,
+                tiles: SharedMetricConfiguration.canonicalDefaults(for: .guests)
+            )
+            return true
+        } catch {
+            guestMetricConfigurationLoadFailed = true
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    private func seedVenueMetricConfigurationIfMissing() async -> Bool {
+        guard canCustomizeVenueMetrics, let repositories, let weddingID = wedding?.id else { return false }
+        guard venueMetricConfigurationRecord == nil else { return true }
+        do {
+            venueMetricConfigurationRecord = try await repositories.metrics.seedIfMissing(
+                weddingID: weddingID,
+                surface: .venues,
+                tiles: SharedMetricConfiguration.canonicalDefaults(for: .venues)
+            )
+            return true
+        } catch {
+            venueMetricConfigurationLoadFailed = true
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
 
     @discardableResult
     func saveGuestMetricConfiguration(_ configuration: GuestMetricConfiguration) async -> Bool {
@@ -796,14 +845,26 @@ final class VowbaseWorkspaceStore {
             // custom fields, never take the guest list down with them.
             async let columns = try? repositories.guests.customColumns(weddingID: membership.weddingId)
             async let venueColumns = try? repositories.venues.customColumns(weddingID: membership.weddingId)
-            async let guestMetrics = try? repositories.metrics.configuration(
-                weddingID: membership.weddingId,
-                surface: .guests
-            )
-            async let venueMetrics = try? repositories.metrics.configuration(
-                weddingID: membership.weddingId,
-                surface: .venues
-            )
+            async let guestMetrics: Result<SharedMetricConfiguration?, Error> = {
+                do {
+                    return .success(try await repositories.metrics.configuration(
+                        weddingID: membership.weddingId,
+                        surface: .guests
+                    ))
+                } catch {
+                    return .failure(error)
+                }
+            }()
+            async let venueMetrics: Result<SharedMetricConfiguration?, Error> = {
+                do {
+                    return .success(try await repositories.metrics.configuration(
+                        weddingID: membership.weddingId,
+                        surface: .venues
+                    ))
+                } catch {
+                    return .failure(error)
+                }
+            }()
             venueRecords = try await venues
             guestRecords = try await guests
             if let loadedColumns = await columns {
@@ -822,13 +883,26 @@ final class VowbaseWorkspaceStore {
             }
             let loadedGuestMetrics = await guestMetrics
             let loadedVenueMetrics = await venueMetrics
-            guestMetricConfigurationRecord = loadedGuestMetrics
-            venueMetricConfigurationRecord = loadedVenueMetrics
-            metricConfigurationsUnavailable = loadedGuestMetrics == nil && loadedVenueMetrics == nil
-            if loadedGuestMetrics != nil {
+            switch loadedGuestMetrics {
+            case let .success(configuration):
+                guestMetricConfigurationRecord = configuration
+                guestMetricConfigurationLoadFailed = false
+            case .failure:
+                guestMetricConfigurationRecord = nil
+                guestMetricConfigurationLoadFailed = true
+            }
+            switch loadedVenueMetrics {
+            case let .success(configuration):
+                venueMetricConfigurationRecord = configuration
+                venueMetricConfigurationLoadFailed = false
+            case .failure:
+                venueMetricConfigurationRecord = nil
+                venueMetricConfigurationLoadFailed = true
+            }
+            if guestMetricConfigurationRecord != nil {
                 UserDefaults.standard.removeObject(forKey: "guestMetricConfiguration.\(membership.weddingId.uuidString.lowercased())")
             }
-            if loadedVenueMetrics != nil {
+            if venueMetricConfigurationRecord != nil {
                 UserDefaults.standard.removeObject(forKey: "venueMetricConfiguration.\(membership.weddingId.uuidString.lowercased())")
             }
             let currentVenueIDs = Set(venueRecords.map(\.id))

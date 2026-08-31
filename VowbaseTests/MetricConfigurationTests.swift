@@ -41,6 +41,32 @@ struct MetricConfigurationTests {
         #expect(tile?.value == "yes")
     }
 
+    @Test("New native count metrics are serializable without dropping web charts")
+    func newNativeMetricsPreserveWebCharts() throws {
+        var configuration = GuestMetricConfiguration.default(columns: [])
+        let addedID = configuration.addCustom(
+            name: "Has email",
+            condition: .email(.present)
+        )
+        let id = try #require(addedID)
+        let metric = try #require(configuration.shownMetrics.first(where: { $0.id == id }))
+        let nativeTile = try #require(MetricConfigurationProjection.tile(from: metric))
+        let existing = [
+            SharedMetricTile(id: "guest-total", type: .count, label: "Total", field: "__total", value: nil),
+            SharedMetricTile(id: "web-pie", type: .pie, label: "RSVP", field: "rsvp_status", value: nil),
+        ]
+
+        let merged = MetricConfigurationProjection.replacingCountTiles(
+            in: existing,
+            with: [nativeTile],
+            replacingCountTileIDs: ["guest-total"]
+        )
+
+        #expect(nativeTile.field == "email")
+        #expect(nativeTile.value == "yes")
+        #expect(merged.map(\.id) == [nativeTile.id, "web-pie"])
+    }
+
     @Test("Configuration decodes web snake case metadata")
     func configurationDecodesWebMetadata() throws {
         let json = """

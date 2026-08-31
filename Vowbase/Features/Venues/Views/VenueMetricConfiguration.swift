@@ -44,6 +44,7 @@ struct CustomizeVenueMetricsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: VenueMetricConfiguration
+    @State private var showsAddMetric = false
 
     init(
         configuration: Binding<VenueMetricConfiguration>,
@@ -85,6 +86,14 @@ struct CustomizeVenueMetricsView: View {
                     metricRow(metric, action: { draft.enable(metric.id) }, actionSymbol: "plus")
                 }
             }
+
+            Section {
+                Button {
+                    showsAddMetric = true
+                } label: {
+                    Label("Add Metric", systemImage: "plus.circle")
+                }
+            }
         }
         .environment(\.editMode, .constant(.active))
         .consoleVerticalScrollHandoff(
@@ -97,6 +106,11 @@ struct CustomizeVenueMetricsView: View {
         .tint(VowbaseTheme.rose)
         .navigationTitle("Customize Metrics")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showsAddMetric) {
+            AddVenueMetricView(columns: columns, venues: venues) { name, condition in
+                _ = draft.addCustom(name: name, condition: condition)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {

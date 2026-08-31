@@ -188,7 +188,11 @@ struct GuestsView: View {
                 Label("Manage Fields", systemImage: "list.bullet.rectangle")
             }
             Button {
-                path.append(GuestsRoute.customizeMetrics)
+                Task { @MainActor in
+                    guard await store.prepareGuestMetricCustomization() else { return }
+                    metricConfiguration = store.guestMetricConfiguration
+                    path.append(GuestsRoute.customizeMetrics)
+                }
             } label: {
                 Label("Customize Metrics", systemImage: "slider.horizontal.3")
             }
@@ -355,6 +359,7 @@ private struct CustomizeGuestMetricsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: GuestMetricConfiguration
+    @State private var showsAddMetric = false
 
     init(
         configuration: Binding<GuestMetricConfiguration>,
@@ -396,6 +401,14 @@ private struct CustomizeGuestMetricsView: View {
                     metricRow(metric, action: { draft.enable(metric.id) }, actionSymbol: "plus")
                 }
             }
+
+            Section {
+                Button {
+                    showsAddMetric = true
+                } label: {
+                    Label("Add Metric", systemImage: "plus.circle")
+                }
+            }
         }
         .environment(\.editMode, .constant(.active))
         .consoleVerticalScrollHandoff(
@@ -408,6 +421,11 @@ private struct CustomizeGuestMetricsView: View {
         .tint(VowbaseTheme.rose)
         .navigationTitle("Customize Metrics")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showsAddMetric) {
+            AddGuestMetricView(columns: columns, guests: guests) { name, condition in
+                _ = draft.addCustom(name: name, condition: condition)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
@@ -458,11 +476,12 @@ private struct AddGuestMetricView: View {
     @State private var fieldID = "rsvp"
     @State private var rsvp = RSVPStatus.accepted
     @State private var addressPresence = GuestPresenceFilter.absent
+    @State private var contactPresence = GuestPresenceFilter.present
     @State private var customValue = ""
     @State private var checkboxValue = true
 
     private var fields: [MetricField] {
-        [.rsvp, .address] + columns.map(MetricField.custom)
+        [.rsvp, .address, .email, .phone] + columns.map(MetricField.custom)
     }
 
     private var field: MetricField {
@@ -489,6 +508,10 @@ private struct AddGuestMetricView: View {
             return .rsvp([rsvp])
         case .address:
             return .address(addressPresence)
+        case .email:
+            return .email(contactPresence)
+        case .phone:
+            return .phone(contactPresence)
         case let .custom(column):
             switch column.kind {
             case .checkbox:
@@ -587,6 +610,11 @@ private struct AddGuestMetricView: View {
                 Text("Has address").tag(GuestPresenceFilter.present)
                 Text("Missing address").tag(GuestPresenceFilter.absent)
             }
+        case .email, .phone:
+            Picker("Value", selection: $contactPresence) {
+                Text("Has a value").tag(GuestPresenceFilter.present)
+                Text("Missing").tag(GuestPresenceFilter.absent)
+            }
         case let .custom(column):
             if column.kind == .checkbox {
                 Picker("Value", selection: $checkboxValue) {
@@ -611,12 +639,16 @@ private struct AddGuestMetricView: View {
     private enum MetricField: Identifiable {
         case rsvp
         case address
+        case email
+        case phone
         case custom(GuestCustomColumn)
 
         var id: String {
             switch self {
             case .rsvp: "rsvp"
             case .address: "address"
+            case .email: "email"
+            case .phone: "phone"
             case let .custom(column): "custom-\(column.key)"
             }
         }
@@ -625,6 +657,8 @@ private struct AddGuestMetricView: View {
             switch self {
             case .rsvp: "RSVP status"
             case .address: "Address"
+            case .email: "Email"
+            case .phone: "Phone"
             case let .custom(column): column.label
             }
         }

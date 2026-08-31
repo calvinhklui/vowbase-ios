@@ -217,8 +217,12 @@ struct VenuesView: View {
                 Label("Manage Fields", systemImage: "list.bullet.rectangle")
             }
             Button {
-                onOpenAdministration()
-                path.append(VenuesRoute.customizeMetrics)
+                Task { @MainActor in
+                    guard await store.prepareVenueMetricCustomization() else { return }
+                    metricConfiguration = store.venueMetricConfiguration
+                    onOpenAdministration()
+                    path.append(VenuesRoute.customizeMetrics)
+                }
             } label: {
                 Label("Customize Metrics", systemImage: "slider.horizontal.3")
             }
