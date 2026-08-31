@@ -1,5 +1,5 @@
 import Foundation
-enum VenueStatus: String, Codable, Equatable, Sendable { case considering, contacted, toured, shortlisted, negotiating, booked, passed }
+enum VenueStatus: String, Codable, Equatable, Hashable, Sendable { case considering, contacted, toured, shortlisted, negotiating, booked, passed }
 enum VenueCustomColumnKind: String, Codable, Equatable, Sendable, CaseIterable {
     case text, number, select, checkbox, rank
 }
@@ -351,8 +351,6 @@ struct VenuePhotoPatch:Codable,Equatable,Sendable{let url:String?;let source:Str
 
 
 // MARK: - Display helpers moved from ContentView.swift's split (Phase 0)
-extension VenueStatus: Hashable {}
-
 extension VenueStatus {
     var title: String {
         switch self {

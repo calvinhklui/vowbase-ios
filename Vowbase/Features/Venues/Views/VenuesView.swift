@@ -25,9 +25,21 @@ struct VenuesView: View {
     @State private var selectedStatus: VenueStatus?
     @State private var query = ""
     @State private var sort: VenueSortOrder = .lastUpdated
+    @State private var metricConfiguration = VenueMetricConfiguration.default(columns: [])
+    @State private var selectedMetricID: String?
+
+    private var records: [Venue] { store.allVenueRecords }
+    private var selectedMetric: VenueMetric? {
+        metricConfiguration.metrics.first(where: { $0.id == selectedMetricID })
+    }
 
     private var visibleVenues: [MVPVenue] {
-        store.filteredVenues(searchText: query, status: selectedStatus, sort: sort)
+        store.filteredVenues(
+            searchText: query,
+            status: selectedStatus,
+            sort: sort,
+            metric: selectedMetric
+        )
     }
 
     var body: some View {
@@ -38,7 +50,11 @@ struct VenuesView: View {
                         .padding(.bottom, VowbaseSpace.small)
 
                     if !store.venues.isEmpty {
-                        VenueMetricPills(venues: store.venues, selectedStatus: $selectedStatus)
+                        VenueMetricPills(
+                            configuration: metricConfiguration,
+                            venues: records,
+                            selectedMetricID: $selectedMetricID
+                        )
                     }
 
                     toolRow
@@ -93,6 +109,15 @@ struct VenuesView: View {
             }
             .navigationDestination(for: VenuesRoute.self) { route in
                 switch route {
+                case .customizeMetrics:
+                    CustomizeVenueMetricsView(
+                        configuration: $metricConfiguration,
+                        columns: store.visibleVenueCustomColumns,
+                        venues: records,
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onRequestExpansion: onRequestExpansion,
+                        onRequestCollapse: onRequestCollapse
+                    )
                 case .customFields:
                     VenueFieldListView(
                         store: store,
@@ -101,6 +126,27 @@ struct VenuesView: View {
                         onRequestCollapse: onRequestCollapse
                     )
                 }
+            }
+            .task(id: store.wedding?.id) {
+                let configuration = VenueMetricConfigurationStorage.load(
+                    weddingID: store.wedding?.id,
+                    columns: store.visibleVenueCustomColumns
+                )
+                metricConfiguration = configuration
+                if let selectedMetricID,
+                   !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
+            }
+            .onChange(of: metricConfiguration) { _, configuration in
+                if let selectedMetricID,
+                   !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
+                VenueMetricConfigurationStorage.save(configuration, weddingID: store.wedding?.id)
+            }
+            .onChange(of: store.visibleVenueCustomColumns) { _, columns in
+                metricConfiguration = metricConfiguration.normalized(columns: columns)
             }
         }
     }
@@ -114,7 +160,7 @@ struct VenuesView: View {
             Menu {
                 Picker("Filter by status", selection: $selectedStatus) {
                     Text("All statuses").tag(VenueStatus?.none)
-                    ForEach(VenueStatus.compactLifecycleOrder, id: \.self) { status in
+                    ForEach(VenueStatus.metricOrder, id: \.self) { status in
                         Text(status.title).tag(Optional(status))
                     }
                 }
@@ -126,34 +172,45 @@ struct VenuesView: View {
             }
             .accessibilityLabel(selectedStatus.map { "Filter, \($0.title)" } ?? "Filter")
 
-            Menu {
-                Picker("Sort", selection: $sort) {
-                    ForEach(VenueSortOrder.allCases) { order in
-                        Text(order.title).tag(order)
-                    }
-                }
-            } label: {
-                CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
-            }
-            .accessibilityLabel("Sort")
-
-            NavigationLink(value: VenuesRoute.customFields) {
-                CompactConsoleCircleControl(systemImage: "slider.horizontal.3")
-            }
-            .accessibilityLabel("Manage venue fields")
+            overflowMenu
         }
+    }
+
+    private var overflowMenu: some View {
+        Menu {
+            Picker("Sort", selection: $sort) {
+                ForEach(VenueSortOrder.allCases) { order in
+                    Text(order.title).tag(order)
+                }
+            }
+            Divider()
+            Button {
+                path.append(VenuesRoute.customFields)
+            } label: {
+                Label("Manage fields", systemImage: "list.bullet.rectangle")
+            }
+            Button {
+                path.append(VenuesRoute.customizeMetrics)
+            } label: {
+                Label("Customize metrics", systemImage: "slider.horizontal.3")
+            }
+        } label: {
+            CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
+        }
+        .accessibilityLabel("Sort and options")
     }
 
     private var noResults: some View {
         VStack(spacing: 12) {
             ContentUnavailableView(
-                selectedStatus == nil ? "No venues match \u{201c}\(query)\u{201d}" : "No venues match these filters",
-                systemImage: selectedStatus == nil ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
+                hasActiveFilter ? "No venues match these filters" : "No venues match \u{201c}\(query)\u{201d}",
+                systemImage: hasActiveFilter ? "line.3.horizontal.decrease.circle" : "magnifyingglass",
                 description: Text(noResultsDescription)
             )
             Button("Clear filters") {
                 query = ""
                 selectedStatus = nil
+                selectedMetricID = nil
             }
             .font(.system(size: 16, weight: .semibold))
             .tint(VowbaseTheme.rose)
@@ -163,54 +220,20 @@ struct VenuesView: View {
     }
 
     private var noResultsDescription: String {
-        if selectedStatus != nil {
-            return "Try a different lifecycle status or search."
+        if hasActiveFilter {
+            return "Try a different lifecycle status, metric, or search."
         }
         return "Search covers venue names, status, locations, and contact details."
+    }
+
+    private var hasActiveFilter: Bool {
+        selectedStatus != nil || selectedMetric != nil
     }
 }
 
 enum VenuesRoute: Hashable {
+    case customizeMetrics
     case customFields
-}
-
-private extension VenueStatus {
-    static let compactLifecycleOrder: [VenueStatus] = [
-        .considering, .contacted, .toured,
-        .shortlisted, .negotiating, .booked, .passed
-    ]
-}
-
-private struct VenueMetricPills: View {
-    let venues: [MVPVenue]
-    @Binding var selectedStatus: VenueStatus?
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(VenueStatus.compactLifecycleOrder, id: \.self) { status in
-                    let isSelected = selectedStatus == status
-                    let count = venues.count(where: { $0.status == status })
-
-                    Button {
-                        selectedStatus = isSelected ? nil : status
-                    } label: {
-                        CompactMetricFilterPill(
-                            count: count,
-                            title: status.title,
-                            isSelected: isSelected
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(status.title), \(count) venue\(count == 1 ? "" : "s")")
-                    .accessibilityHint(isSelected ? "Double tap to show all venues" : "Double tap to filter the venue list")
-                }
-            }
-        }
-        .scrollDisabled(false)
-        .contentMargins(.horizontal, 1, for: .scrollContent)
-        .animation(.easeInOut(duration: 0.18), value: selectedStatus)
-    }
 }
 
 private struct CompactVenueRow: View {
@@ -307,135 +330,4 @@ private struct VenuesEmptyState: View {
         .padding(.vertical, 44)
         .frame(maxWidth: .infinity)
     }
-}
-
-@MainActor
-struct VenueFieldListView: View {
-    let store: VowbaseWorkspaceStore
-    let allowsVerticalScrolling: Bool
-    let onRequestExpansion: () -> Void
-    let onRequestCollapse: () -> Void
-    @State private var editor: VenueCustomColumn?
-    @State private var isCreating = false
-    @State private var pendingDeletion: VenueCustomColumn?
-
-    private var columns: [VenueCustomColumn] { store.allVenueCustomColumns }
-
-    var body: some View {
-        List {
-            Section {
-                if columns.isEmpty {
-                    Text("No custom fields yet. Track independent venue details like Reception, Catering, or Parking.")
-                        .foregroundStyle(VowbaseTheme.mutedInk)
-                } else {
-                    ForEach(columns) { column in
-                        Button { editor = column } label: {
-                            HStack {
-                                Image(systemName: column.kind.symbol).frame(width: 28)
-                                    .foregroundStyle(VowbaseTheme.rose)
-                                VStack(alignment: .leading) {
-                                    Text(column.label).foregroundStyle(VowbaseTheme.ink)
-                                    Text(column.key).font(.caption.monospaced()).foregroundStyle(VowbaseTheme.mutedInk)
-                                }
-                                Spacer()
-                                Text("\(store.venueUsageCount(for: column))").monospacedDigit().foregroundStyle(VowbaseTheme.mutedInk)
-                                if column.hidden { Image(systemName: "eye.slash").foregroundStyle(VowbaseTheme.mutedInk) }
-                            }
-                        }
-                        .swipeActions(edge: .leading) {
-                            Button(column.hidden ? "Show" : "Hide") { Task { await store.updateVenueCustomColumn(column, hidden: !column.hidden) } }
-                                .tint(VowbaseTheme.mutedInk)
-                        }
-                        .swipeActions { Button("Delete", role: .destructive) { pendingDeletion = column } }
-                    }
-                    .onMove { source, destination in Task { await store.reorderVenueCustomColumns(from: source, to: destination) } }
-                }
-            } header: { Text("\(columns.count) field\(columns.count == 1 ? "" : "s")") } footer: {
-                Text("Drag to reorder. Hidden fields keep their values. A rank is a separate 1–5 score, not the venue shortlist order.")
-            }
-            Section { Button { isCreating = true } label: { Label("Add a field", systemImage: "plus") }.tint(VowbaseTheme.rose) }
-        }
-        .consoleVerticalScrollHandoff(allowsVerticalScrolling: allowsVerticalScrolling, onExpand: onRequestExpansion, onCollapse: onRequestCollapse)
-        .navigationTitle("Manage fields").navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { EditButton().tint(VowbaseTheme.rose) } }
-        .sheet(item: $editor) { VenueFieldEditorView(store: store, column: $0) }
-        .sheet(isPresented: $isCreating) { VenueFieldEditorView(store: store, column: nil) }
-        .alert("Delete “\(pendingDeletion?.label ?? "")”?", isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }), presenting: pendingDeletion) { column in
-            Button("Delete field", role: .destructive) { Task { await store.deleteVenueCustomColumn(column) } }
-            Button("Cancel", role: .cancel) {}
-        } message: { column in
-            let count = store.venueUsageCount(for: column)
-            Text(count == 0 ? "No venues hold a value for this field." : "This permanently removes the value stored for \(count) venue\(count == 1 ? "" : "s").")
-        }
-    }
-}
-
-private struct VenueFieldEditorView: View {
-    let store: VowbaseWorkspaceStore
-    let column: VenueCustomColumn?
-    @Environment(\.dismiss) private var dismiss
-    @State private var label: String
-    @State private var kind: VenueCustomColumnKind
-    @State private var options: [String]
-    @State private var hidden: Bool
-    @State private var newOption = ""
-    @State private var isSaving = false
-
-    init(store: VowbaseWorkspaceStore, column: VenueCustomColumn?) {
-        self.store = store; self.column = column
-        _label = State(initialValue: column?.label ?? "")
-        _kind = State(initialValue: column?.kind ?? .text)
-        _options = State(initialValue: column.map(VenueCustomFields.options(in:)) ?? [])
-        _hidden = State(initialValue: column?.hidden ?? false)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Label", text: $label).textInputAutocapitalization(.words)
-                    LabeledContent("Key", value: column?.key ?? store.proposedVenueCustomKey(for: label))
-                        .font(.callout.monospaced()).foregroundStyle(VowbaseTheme.mutedInk)
-                }
-                Section {
-                    ForEach(VenueCustomColumnKind.allCases, id: \.self) { option in
-                        Button { if column == nil || option == kind || store.venueUsageCount(for: column!) == 0 { kind = option } } label: {
-                            HStack { Image(systemName: option.symbol).frame(width: 24); Text(option.title); Spacer(); if option == kind { Image(systemName: "checkmark") } }
-                        }.foregroundStyle(VowbaseTheme.ink)
-                    }
-                } header: { Text("Kind") } footer: { if let column, store.venueUsageCount(for: column) > 0 { Text("Kind cannot change once a venue holds a value.") } }
-                if kind == .select { optionsSection }
-                Section { Toggle("Hidden", isOn: $hidden).tint(VowbaseTheme.rose) }
-            }
-            .navigationTitle(column == nil ? "Add field" : "Edit field").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button(column == nil ? "Add" : "Save") { save() }.disabled(label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving) }
-            }
-        }
-    }
-
-    private var optionsSection: some View {
-        Section("Options") {
-            ForEach(options, id: \.self) { option in
-                HStack { Text(option); Spacer(); Button(role: .destructive) { options.removeAll { $0 == option } } label: { Image(systemName: "trash") } }
-            }.onMove { options.move(fromOffsets: $0, toOffset: $1) }
-            HStack { TextField("Add an option", text: $newOption); Button("Add") { let value = newOption.trimmingCharacters(in: .whitespacesAndNewlines); guard !value.isEmpty, !options.contains(value) else { return }; options.append(value); newOption = "" } }
-        }
-    }
-
-    private func save() {
-        isSaving = true
-        Task {
-            let ok: Bool
-            if let column { ok = await store.updateVenueCustomColumn(column, label: label, kind: kind, options: kind == .select ? options : [], hidden: hidden) }
-            else { ok = await store.createVenueCustomColumn(label: label, kind: kind, options: kind == .select ? options : []) }
-            isSaving = false; if ok { dismiss() }
-        }
-    }
-}
-
-extension VenueCustomColumnKind {
-    var title: String { switch self { case .text: "Text"; case .number: "Number"; case .select: "Select"; case .checkbox: "Checkbox"; case .rank: "Rank (1–5)" } }
-    var symbol: String { switch self { case .text: "textformat"; case .number: "number"; case .select: "list.bullet"; case .checkbox: "checkmark.square"; case .rank: "5.circle" } }
 }

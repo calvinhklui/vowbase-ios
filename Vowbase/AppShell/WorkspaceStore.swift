@@ -481,6 +481,8 @@ final class VowbaseWorkspaceStore {
         venueDisplays(for: venueRecords)
     }
 
+    var allVenueRecords: [Venue] { venueRecords }
+
     func venueRecord(id: UUID) -> Venue? {
         venueRecords.first { $0.id == id }
     }
@@ -491,7 +493,8 @@ final class VowbaseWorkspaceStore {
     func filteredVenues(
         searchText: String,
         status: VenueStatus?,
-        sort: VenueSortOrder
+        sort: VenueSortOrder,
+        metric: VenueMetric? = nil
     ) -> [MVPVenue] {
         let distances = venueDistances
         return VenueQuery
@@ -499,7 +502,8 @@ final class VowbaseWorkspaceStore {
                 to: venueRecords,
                 searchText: searchText,
                 status: status,
-                sort: sort
+                sort: sort,
+                metric: metric
             )
             .map { venueDisplay(for: $0, distanceMiles: distances[$0.id]) }
     }
@@ -1053,6 +1057,13 @@ final class VowbaseWorkspaceStore {
         venueRecords.count { VenueCustomFields.value(in: $0.customFields, for: column.key) != nil }
     }
 
+    func venueUsageCount(for column: VenueCustomColumn, option: String) -> Int {
+        venueRecords.count { venue in
+            let stored = VenueCustomFields.value(in: venue.customFields, for: column.key)
+            return VenueCustomFields.displayText(stored, kind: column.kind) == option
+        }
+    }
+
     func proposedVenueCustomKey(for label: String) -> String {
         let slug = label.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : "_" }.joined()
             .split(separator: "_", omittingEmptySubsequences: true).joined(separator: "_")
@@ -1111,6 +1122,42 @@ final class VowbaseWorkspaceStore {
             } catch { errorMessage = userMessage(for: error); await load(); return }
         }
         venueCustomColumnRecords = VenueDisplayResolver.orderedColumns(venueCustomColumnRecords)
+    }
+
+    @discardableResult
+    func renameVenueOption(
+        _ column: VenueCustomColumn,
+        from oldValue: String,
+        to newValue: String,
+        rewritingVenues: Bool
+    ) async -> Bool {
+        guard let repositories, let weddingID = wedding?.id else { return unavailable() }
+        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != oldValue else { return false }
+
+        var options = VenueCustomFields.options(in: column)
+        guard let index = options.firstIndex(of: oldValue) else { return false }
+        options[index] = trimmed
+
+        guard await updateVenueCustomColumn(column, options: options) else { return false }
+        guard rewritingVenues else { return true }
+
+        for venue in venueRecords {
+            let stored = VenueCustomFields.value(in: venue.customFields, for: column.key)
+            guard VenueCustomFields.displayText(stored, kind: column.kind) == oldValue else { continue }
+            do {
+                let updated = try await repositories.venues.patchCustomFields(
+                    venueID: venue.id,
+                    weddingID: weddingID,
+                    updates: [column.key: .string(trimmed)]
+                )
+                replace(updated, in: &venueRecords)
+            } catch {
+                errorMessage = userMessage(for: error)
+                return false
+            }
+        }
+        return true
     }
 
     @discardableResult

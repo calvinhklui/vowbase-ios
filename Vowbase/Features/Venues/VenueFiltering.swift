@@ -26,11 +26,13 @@ enum VenueQuery {
         to venues: [Venue],
         searchText: String,
         status: VenueStatus?,
-        sort: VenueSortOrder
+        sort: VenueSortOrder,
+        metric: VenueMetric? = nil
     ) -> [Venue] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let matched = venues.filter { venue in
             guard status == nil || venue.status == status else { return false }
+            guard metric?.condition.matches(venue) ?? true else { return false }
             guard !query.isEmpty else { return true }
             return searchHaystack(for: venue)
                 .localizedCaseInsensitiveContains(query)
@@ -95,6 +97,209 @@ enum VenueQuery {
         case .considering: 5
         case .passed: 6
         }
+    }
+}
+
+// MARK: - Configurable venue metrics
+
+extension VenueStatus {
+    static let metricOrder: [VenueStatus] = [
+        .considering, .contacted, .toured,
+        .shortlisted, .negotiating, .booked, .passed,
+    ]
+}
+
+enum VenueMetricPresence: String, Codable, Equatable, Sendable {
+    case present
+    case absent
+
+    func matches(_ value: String?) -> Bool {
+        let hasValue = !(value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        return self == .present ? hasValue : !hasValue
+    }
+
+    func matches<T>(_ value: T?) -> Bool {
+        self == .present ? value != nil : value == nil
+    }
+}
+
+enum VenueMetricCondition: Codable, Equatable, Sendable {
+    case allVenues
+    case status(Set<VenueStatus>)
+    case location(VenueMetricPresence)
+    case capacity(VenueMetricPresence)
+    case estimate(VenueMetricPresence)
+    case customValue(key: String, value: String)
+    case customHasValue(key: String)
+    case customCheckbox(key: String, expected: Bool)
+
+    func matches(_ venue: Venue) -> Bool {
+        switch self {
+        case .allVenues:
+            return true
+        case let .status(statuses):
+            return statuses.contains(venue.status)
+        case let .location(presence):
+            let hasLocation = [venue.address, venue.city]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .contains { !$0.isEmpty }
+            return (presence == .present) == hasLocation
+        case let .capacity(presence):
+            return presence.matches(venue.capacityMin ?? venue.capacityMax)
+        case let .estimate(presence):
+            return presence.matches(venue.canonicalVenueEstimateText)
+        case let .customValue(key, value):
+            return Self.normalizedValue(Self.comparableValue(
+                VenueCustomFields.value(in: venue.customFields, for: key)
+            )) == Self.normalizedValue(value)
+        case let .customHasValue(key):
+            return Self.normalizedValue(Self.comparableValue(
+                VenueCustomFields.value(in: venue.customFields, for: key)
+            )) != nil
+        case let .customCheckbox(key, expected):
+            return (VenueCustomFields.value(in: venue.customFields, for: key) == .bool(true)) == expected
+        }
+    }
+
+    func summary(columns: [VenueCustomColumn]) -> String {
+        switch self {
+        case .allVenues:
+            return "All venues"
+        case let .status(statuses):
+            let names = VenueStatus.metricOrder.filter(statuses.contains).map(\.title)
+            return "Status is " + names.joined(separator: " or ")
+        case let .location(presence):
+            return presence == .present ? "Has a location" : "Location is missing"
+        case let .capacity(presence):
+            return presence == .present ? "Has a capacity" : "Capacity is missing"
+        case let .estimate(presence):
+            return presence == .present ? "Has an estimate" : "Estimate is missing"
+        case let .customValue(key, value):
+            return "\(Self.columnLabel(for: key, columns: columns)) is \(value)"
+        case let .customHasValue(key):
+            return "Has \(Self.columnLabel(for: key, columns: columns))"
+        case let .customCheckbox(key, expected):
+            return "\(Self.columnLabel(for: key, columns: columns)) is \(expected ? "Yes" : "No")"
+        }
+    }
+
+    private static func columnLabel(for key: String, columns: [VenueCustomColumn]) -> String {
+        columns.first(where: { $0.key == key })?.label ?? key
+    }
+
+    private static func comparableValue(_ value: JSONValue?) -> String? {
+        guard let value else { return nil }
+        switch value {
+        case let .string(text): return text.isEmpty ? nil : text
+        case let .number(number): return VenueCustomFields.displayText(.number(number), kind: .number)
+        case let .bool(flag): return flag ? "Yes" : "No"
+        case .array, .object, .null: return nil
+        }
+    }
+
+    private static func normalizedValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.isEmpty ? nil : normalized
+    }
+}
+
+struct VenueMetric: Codable, Equatable, Identifiable, Sendable {
+    let id: String
+    var name: String
+    var condition: VenueMetricCondition
+    var isEnabled: Bool
+    let isCustom: Bool
+
+    var cardTitle: String { id == "total-venues" ? "Total" : name }
+
+    func count(in venues: [Venue]) -> Int {
+        venues.count(where: condition.matches)
+    }
+}
+
+struct VenueMetricConfiguration: Codable, Equatable, Sendable {
+    static let maximumShownMetrics = 8
+
+    var metrics: [VenueMetric]
+
+    static func `default`(columns: [VenueCustomColumn]) -> VenueMetricConfiguration {
+        VenueMetricConfiguration(metrics: systemMetrics(columns: columns))
+    }
+
+    var shownMetrics: [VenueMetric] { metrics.filter(\.isEnabled) }
+    var availableMetrics: [VenueMetric] { metrics.filter { !$0.isEnabled } }
+
+    func normalized(columns: [VenueCustomColumn]) -> VenueMetricConfiguration {
+        let defaults = Self.systemMetrics(columns: columns)
+        var normalized = metrics
+        for metric in defaults where !normalized.contains(where: { $0.id == metric.id }) {
+            normalized.append(metric)
+        }
+        return VenueMetricConfiguration(metrics: normalized)
+    }
+
+    mutating func enable(_ id: String) {
+        guard shownMetrics.count < Self.maximumShownMetrics,
+              let index = metrics.firstIndex(where: { $0.id == id }) else { return }
+        metrics[index].isEnabled = true
+    }
+
+    mutating func disable(_ id: String) {
+        guard let index = metrics.firstIndex(where: { $0.id == id }) else { return }
+        metrics[index].isEnabled = false
+    }
+
+    mutating func moveShown(from source: IndexSet, to destination: Int) {
+        var shown = shownMetrics
+        shown.move(fromOffsets: source, toOffset: destination)
+        let shownIDs = Set(shown.map(\.id))
+        metrics = shown + metrics.filter { !shownIDs.contains($0.id) }
+    }
+
+    mutating func addCustom(name: String, condition: VenueMetricCondition) -> String? {
+        guard shownMetrics.count < Self.maximumShownMetrics else { return nil }
+        let id = "custom-\(UUID().uuidString.lowercased())"
+        metrics.append(VenueMetric(
+            id: id,
+            name: name,
+            condition: condition,
+            isEnabled: true,
+            isCustom: true
+        ))
+        return id
+    }
+
+    private static func systemMetrics(columns: [VenueCustomColumn]) -> [VenueMetric] {
+        var metrics = [
+            VenueMetric(id: "total-venues", name: "Total venues", condition: .allVenues, isEnabled: false, isCustom: false),
+        ]
+        metrics += VenueStatus.metricOrder.map { status in
+            VenueMetric(
+                id: "status-\(status.rawValue)",
+                name: status.title,
+                condition: .status([status]),
+                isEnabled: true,
+                isCustom: false
+            )
+        }
+        metrics += [
+            VenueMetric(id: "missing-location", name: "Missing location", condition: .location(.absent), isEnabled: false, isCustom: false),
+            VenueMetric(id: "missing-capacity", name: "Missing capacity", condition: .capacity(.absent), isEnabled: false, isCustom: false),
+            VenueMetric(id: "missing-estimate", name: "Missing estimate", condition: .estimate(.absent), isEnabled: false, isCustom: false),
+        ]
+        metrics += columns.map { column in
+            VenueMetric(
+                id: "field-\(column.key)",
+                name: column.label,
+                condition: column.kind == .checkbox
+                    ? .customCheckbox(key: column.key, expected: true)
+                    : .customHasValue(key: column.key),
+                isEnabled: false,
+                isCustom: false
+            )
+        }
+        return metrics
     }
 }
 
