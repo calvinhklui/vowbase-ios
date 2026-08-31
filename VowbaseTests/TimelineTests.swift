@@ -145,6 +145,14 @@ struct TimelineTests {
         #expect(TimelineFiltering.count(of: .guest, in: entries) == 1)
     }
 
+    @Test("requirement cards preserve the shared importance labels")
+    func formatsRequirementCardImportance() {
+        #expect(TimelineRequirementPresentation.importanceLabel(for: "core") == "Must Have")
+        #expect(TimelineRequirementPresentation.importanceLabel(for: "preference") == "Nice to Have")
+        #expect(TimelineRequirementPresentation.importanceLabel(for: "must_have") == "Must Have")
+        #expect(TimelineRequirementPresentation.rotation(for: 0) != TimelineRequirementPresentation.rotation(for: 1))
+    }
+
     @Test("on-track state follows conservative information and overdue boundaries")
     func evaluatesPlanningStatusBoundaries() {
         let calendar = Calendar.current

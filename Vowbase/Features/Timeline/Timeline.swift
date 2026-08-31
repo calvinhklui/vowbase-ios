@@ -986,6 +986,7 @@ struct PlanningTimelineView: View {
     let onRequestExpansion: () -> Void
     let onRequestCollapse: () -> Void
     let onOpenMoment: (PlanningMoment) -> Void
+    let onAddRequirement: () -> Void
     let onOpenRequirement: (MoodboardRequirement) -> Void
     let onOpenVenue: (MVPVenue) -> Void
     let onOpenGuest: (MVPGuest) -> Void
@@ -1000,6 +1001,7 @@ struct PlanningTimelineView: View {
         onRequestExpansion: @escaping () -> Void = {},
         onRequestCollapse: @escaping () -> Void = {},
         onOpenMoment: @escaping (PlanningMoment) -> Void = { _ in },
+        onAddRequirement: @escaping () -> Void = {},
         onOpenRequirement: @escaping (MoodboardRequirement) -> Void = { _ in },
         onOpenVenue: @escaping (MVPVenue) -> Void = { _ in },
         onOpenGuest: @escaping (MVPGuest) -> Void = { _ in }
@@ -1011,6 +1013,7 @@ struct PlanningTimelineView: View {
         self.onRequestExpansion = onRequestExpansion
         self.onRequestCollapse = onRequestCollapse
         self.onOpenMoment = onOpenMoment
+        self.onAddRequirement = onAddRequirement
         self.onOpenRequirement = onOpenRequirement
         self.onOpenVenue = onOpenVenue
         self.onOpenGuest = onOpenGuest
@@ -1046,22 +1049,37 @@ struct PlanningTimelineView: View {
 
             Group {
                 if timelineStore.isLoading && allTimelineEntries.isEmpty {
-                    ProgressView("Loading timeline")
-                        .tint(VowbaseTheme.rose)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            requirementsSection
+                            ProgressView("Loading timeline")
+                                .tint(VowbaseTheme.rose)
+                                .frame(maxWidth: .infinity, minHeight: 180)
+                        }
+                        .padding(.bottom, VowbaseControlMetric.quickAddClearance + VowbaseSpace.medium)
+                    }
+                    .consoleVerticalScrollHandoff(
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onExpand: onRequestExpansion,
+                        onCollapse: onRequestCollapse
+                    )
                 } else if allTimelineEntries.isEmpty {
                     ScrollView {
-                        VStack(spacing: VowbaseSpace.large) {
-                            if let planningStatus {
-                                TimelineStatusRow(status: planningStatus)
+                        VStack(spacing: 0) {
+                            requirementsSection
+                            VStack(spacing: VowbaseSpace.large) {
+                                if let planningStatus {
+                                    TimelineStatusRow(status: planningStatus)
+                                }
+                                ContentUnavailableView {
+                                    Label("No timeline activity yet", systemImage: "clock.arrow.circlepath")
+                                } description: {
+                                    Text("Add a task, guest, venue, requirement, or planning moment to start your timeline.")
+                                }
                             }
-                            ContentUnavailableView {
-                                Label("No timeline activity yet", systemImage: "clock.arrow.circlepath")
-                            } description: {
-                                Text("Add a task, guest, venue, requirement, or planning moment to start your timeline.")
-                            }
+                            .padding(.horizontal, VowbaseControlMetric.screenInset)
+                            .padding(.bottom, VowbaseControlMetric.quickAddClearance + VowbaseSpace.medium)
                         }
-                        .padding(VowbaseControlMetric.screenInset)
                     }
                     .consoleVerticalScrollHandoff(
                         allowsVerticalScrolling: allowsVerticalScrolling,
@@ -1070,22 +1088,26 @@ struct PlanningTimelineView: View {
                     )
                 } else if timelineEntries.isEmpty {
                     ScrollView {
-                        VStack(spacing: VowbaseSpace.large) {
-                            if let planningStatus {
-                                TimelineStatusRow(status: planningStatus)
+                        VStack(spacing: 0) {
+                            requirementsSection
+                            VStack(spacing: VowbaseSpace.large) {
+                                if let planningStatus {
+                                    TimelineStatusRow(status: planningStatus)
+                                }
+                                ContentUnavailableView {
+                                    Label("No timeline items match this filter", systemImage: "line.3.horizontal.decrease.circle")
+                                } description: {
+                                    Text("Select another item type or clear the filter to show the full timeline.")
+                                }
+                                Button("Clear filter") {
+                                    selectedItemType = nil
+                                }
+                                .font(.system(size: 16, weight: .semibold))
+                                .tint(VowbaseTheme.rose)
                             }
-                            ContentUnavailableView {
-                                Label("No timeline items match this filter", systemImage: "line.3.horizontal.decrease.circle")
-                            } description: {
-                                Text("Select another item type or clear the filter to show the full timeline.")
-                            }
-                            Button("Clear filter") {
-                                selectedItemType = nil
-                            }
-                            .font(.system(size: 16, weight: .semibold))
-                            .tint(VowbaseTheme.rose)
+                            .padding(.horizontal, VowbaseControlMetric.screenInset)
+                            .padding(.bottom, VowbaseControlMetric.quickAddClearance + VowbaseSpace.medium)
                         }
-                        .padding(VowbaseControlMetric.screenInset)
                     }
                     .consoleVerticalScrollHandoff(
                         allowsVerticalScrolling: allowsVerticalScrolling,
@@ -1094,42 +1116,45 @@ struct PlanningTimelineView: View {
                     )
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-                            if let planningStatus {
-                                TimelineStatusRow(status: planningStatus)
-                                    .padding(.bottom, VowbaseSpace.medium)
-                            }
+                        VStack(spacing: 0) {
+                            requirementsSection
+                            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
+                                if let planningStatus {
+                                    TimelineStatusRow(status: planningStatus)
+                                        .padding(.bottom, VowbaseSpace.medium)
+                                }
 
-                            ForEach(groupedEntries) { group in
-                                Text(TimelineDatePresentation.monthHeader(for: group.month))
-                                    .font(VowbaseType.eyebrow)
-                                    .foregroundStyle(VowbaseTheme.mutedInk)
-                                    .padding(.top, VowbaseSpace.medium)
-                                    .padding(.bottom, VowbaseSpace.small)
-                                    .accessibilityAddTraits(.isHeader)
+                                ForEach(groupedEntries) { group in
+                                    Text(TimelineDatePresentation.monthHeader(for: group.month))
+                                        .font(VowbaseType.eyebrow)
+                                        .foregroundStyle(VowbaseTheme.mutedInk)
+                                        .padding(.top, VowbaseSpace.medium)
+                                        .padding(.bottom, VowbaseSpace.small)
+                                        .accessibilityAddTraits(.isHeader)
 
-                                ForEach(group.entries) { entry in
-                                    TimelineEntryRow(entry: entry, onOpen: openAction(for: entry))
-                                    Divider()
+                                    ForEach(group.entries) { entry in
+                                        TimelineEntryRow(entry: entry, onOpen: openAction(for: entry))
+                                        Divider()
+                                    }
+                                }
+
+                                if visibleEntries.count < timelineEntries.count {
+                                    ProgressView("Loading earlier activity")
+                                        .tint(VowbaseTheme.rose)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, VowbaseSpace.large)
+                                        .id(visibleEntryLimit)
+                                        .onAppear {
+                                            visibleEntryLimit = TimelineProgressiveLoading.nextLimit(
+                                                currentLimit: visibleEntryLimit,
+                                                totalCount: timelineEntries.count
+                                            )
+                                        }
                                 }
                             }
-
-                            if visibleEntries.count < timelineEntries.count {
-                                ProgressView("Loading earlier activity")
-                                    .tint(VowbaseTheme.rose)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, VowbaseSpace.large)
-                                    .id(visibleEntryLimit)
-                                    .onAppear {
-                                        visibleEntryLimit = TimelineProgressiveLoading.nextLimit(
-                                            currentLimit: visibleEntryLimit,
-                                            totalCount: timelineEntries.count
-                                        )
-                                    }
-                            }
+                            .padding(.horizontal, VowbaseControlMetric.screenInset)
+                            .padding(.bottom, VowbaseControlMetric.quickAddClearance + VowbaseSpace.medium)
                         }
-                        .padding(.horizontal, VowbaseControlMetric.screenInset)
-                        .padding(.bottom, VowbaseControlMetric.quickAddClearance + VowbaseSpace.medium)
                     }
                     .consoleVerticalScrollHandoff(
                         allowsVerticalScrolling: allowsVerticalScrolling,
@@ -1157,6 +1182,15 @@ struct PlanningTimelineView: View {
             async let timeline: Void = timelineStore.load(weddingID: weddingID)
             _ = await (workspace, tasks, timeline)
         }
+    }
+
+    private var requirementsSection: some View {
+        TimelineRequirementRail(
+            requirements: timelineStore.requirements,
+            onAddRequirement: onAddRequirement,
+            onOpenRequirement: onOpenRequirement
+        )
+        .padding(.bottom, VowbaseSpace.medium)
     }
 
     private var planningStatus: TimelineOnTrackStatus? {
@@ -1194,6 +1228,147 @@ struct PlanningTimelineView: View {
         case nil:
             return nil
         }
+    }
+}
+
+enum TimelineRequirementPresentation {
+    static func importanceLabel(for importance: String) -> String {
+        importance == "preference" ? "Nice to Have" : "Must Have"
+    }
+
+    static func rotation(for index: Int) -> Double {
+        [-0.7, 0.5, -0.35][index % 3]
+    }
+}
+
+private struct TimelineRequirementRail: View {
+    let requirements: [MoodboardRequirement]
+    let onAddRequirement: () -> Void
+    let onOpenRequirement: (MoodboardRequirement) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: VowbaseSpace.small) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Planning notes")
+                        .font(VowbaseType.eyebrow)
+                        .tracking(1.2)
+                        .foregroundStyle(VowbaseTheme.rose)
+                    Text("Requirements")
+                        .font(VowbaseType.cardTitle)
+                        .foregroundStyle(VowbaseTheme.ink)
+                        .accessibilityAddTraits(.isHeader)
+                }
+                Spacer(minLength: VowbaseSpace.small)
+                Button(action: onAddRequirement) {
+                    Label("Add", systemImage: "plus")
+                        .font(VowbaseType.badge)
+                }
+                .buttonStyle(.bordered)
+                .tint(VowbaseTheme.rose)
+                .accessibilityLabel("Add requirement")
+            }
+            .padding(.horizontal, VowbaseControlMetric.screenInset)
+
+            if requirements.isEmpty {
+                Button(action: onAddRequirement) {
+                    Text("Add the details that will make a place feel like yours.")
+                        .font(VowbaseType.secondary)
+                        .foregroundStyle(VowbaseTheme.mutedInk)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(VowbaseSpace.medium)
+                        .background(VowbaseTheme.blush.opacity(0.68), in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
+                                .stroke(VowbaseTheme.rose.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens the add requirement form")
+                .padding(.horizontal, VowbaseControlMetric.screenInset)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: VowbaseSpace.medium) {
+                        ForEach(Array(requirements.enumerated()), id: \.element.id) { index, requirement in
+                            TimelineRequirementStickyNote(
+                                requirement: requirement,
+                                rotation: TimelineRequirementPresentation.rotation(for: index),
+                                onOpen: { onOpenRequirement(requirement) }
+                            )
+                        }
+                    }
+                    .scrollTargetLayout()
+                    .padding(.vertical, VowbaseSpace.small)
+                }
+                .scrollTargetBehavior(.viewAligned)
+                .contentMargins(.horizontal, VowbaseControlMetric.screenInset, for: .scrollContent)
+                .accessibilityLabel("Requirements")
+                .accessibilityHint("Swipe horizontally to browse requirements")
+            }
+        }
+    }
+}
+
+private struct TimelineRequirementStickyNote: View {
+    let requirement: MoodboardRequirement
+    let rotation: Double
+    let onOpen: () -> Void
+
+    var body: some View {
+        Button(action: onOpen) {
+            ZStack(alignment: .topTrailing) {
+                VStack(alignment: .leading, spacing: VowbaseSpace.small) {
+                    Text(TimelineRequirementPresentation.importanceLabel(for: requirement.importance))
+                        .font(VowbaseType.eyebrow)
+                        .tracking(1.1)
+                        .foregroundStyle(VowbaseTheme.rose)
+                        .padding(.horizontal, VowbaseSpace.small)
+                        .padding(.vertical, VowbaseSpace.xSmall)
+                        .background(VowbaseDesign.surface.opacity(0.78), in: Capsule())
+                    Text(requirement.title)
+                        .font(VowbaseType.cardTitle)
+                        .foregroundStyle(VowbaseTheme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
+                    if let description = requirement.description {
+                        Text(description)
+                            .font(VowbaseType.secondary)
+                            .foregroundStyle(VowbaseTheme.mutedInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(3)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(VowbaseSpace.standard)
+                .frame(width: 256, alignment: .topLeading)
+                .frame(minHeight: 164, alignment: .topLeading)
+                .background(VowbaseTheme.blush.opacity(0.88), in: RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: VowbaseRadius.small, style: .continuous)
+                        .stroke(VowbaseTheme.rose.opacity(0.2), lineWidth: 1)
+                }
+
+                Rectangle()
+                    .fill(VowbaseDesign.elevatedSurface.opacity(0.9))
+                    .frame(width: 28, height: 28)
+                    .rotationEffect(.degrees(45))
+                    .offset(x: 11, y: -11)
+                    .accessibilityHidden(true)
+
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(VowbaseDesign.elevatedSurface.opacity(0.9))
+                    .frame(width: 52, height: 11)
+                    .rotationEffect(.degrees(1))
+                    .offset(x: -102, y: -5)
+                    .accessibilityHidden(true)
+            }
+            .rotationEffect(.degrees(rotation))
+            .shadow(color: VowbaseTheme.rose.opacity(0.13), radius: 8, y: 4)
+            .padding(.horizontal, 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Edit requirement: \(requirement.title), \(TimelineRequirementPresentation.importanceLabel(for: requirement.importance))")
+        .accessibilityHint("Opens the requirement editor")
     }
 }
 
