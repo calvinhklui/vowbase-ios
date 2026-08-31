@@ -96,10 +96,7 @@ struct GuestsView: View {
                 GuestFilterSheet(store: store, searchText: query, filters: $filters)
             }
             .task(id: store.wedding?.id) {
-                let configuration = GuestMetricConfigurationStorage.load(
-                    weddingID: store.wedding?.id,
-                    columns: store.visibleCustomColumns
-                )
+                let configuration = store.guestMetricConfiguration
                 metricConfiguration = configuration
                 if let selectedMetricID,
                    !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
@@ -111,10 +108,29 @@ struct GuestsView: View {
                    !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
                     self.selectedMetricID = nil
                 }
-                GuestMetricConfigurationStorage.save(configuration, weddingID: store.wedding?.id)
+                guard configuration != store.guestMetricConfiguration,
+                      store.canCustomizeGuestMetrics else { return }
+                Task { @MainActor in
+                    guard await store.saveGuestMetricConfiguration(configuration) else {
+                        metricConfiguration = store.guestMetricConfiguration
+                        return
+                    }
+                    metricConfiguration = store.guestMetricConfiguration
+                }
             }
             .onChange(of: store.visibleCustomColumns) { _, columns in
-                metricConfiguration = metricConfiguration.normalized(columns: columns)
+                metricConfiguration = store.guestMetricConfiguration
+                if let selectedMetricID,
+                   !metricConfiguration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
+            }
+            .onChange(of: store.guestMetricConfigurationRecord) { _, configuration in
+                metricConfiguration = store.guestMetricConfiguration
+                if let selectedMetricID,
+                   !metricConfiguration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
             }
         }
     }
@@ -176,6 +192,7 @@ struct GuestsView: View {
             } label: {
                 Label("Customize Metrics", systemImage: "slider.horizontal.3")
             }
+            .disabled(!store.canCustomizeGuestMetrics)
         } label: {
             CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
         }
@@ -292,31 +309,6 @@ enum GuestsRoute: Hashable {
     case customFields
 }
 
-enum GuestMetricConfigurationStorage {
-    private static let keyPrefix = "guestMetricConfiguration."
-
-    static func load(weddingID: UUID?, columns: [GuestCustomColumn]) -> GuestMetricConfiguration {
-        let fallback = GuestMetricConfiguration.default(columns: columns)
-        guard let weddingID,
-              let data = UserDefaults.standard.data(forKey: key(for: weddingID)),
-              let stored = try? JSONDecoder().decode(GuestMetricConfiguration.self, from: data)
-        else {
-            return fallback
-        }
-        return stored.normalized(columns: columns)
-    }
-
-    static func save(_ configuration: GuestMetricConfiguration, weddingID: UUID?) {
-        guard let weddingID,
-              let data = try? JSONEncoder().encode(configuration) else { return }
-        UserDefaults.standard.set(data, forKey: key(for: weddingID))
-    }
-
-    private static func key(for weddingID: UUID) -> String {
-        keyPrefix + weddingID.uuidString.lowercased()
-    }
-}
-
 /// Shared metric filter control for the full Guests list and the console's
 /// compact guest rail. Its selection is intentionally binding-driven so each
 /// host decides how the selected metric filters or orders its own guest list.
@@ -363,7 +355,6 @@ private struct CustomizeGuestMetricsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: GuestMetricConfiguration
-    @State private var showsAddMetric = false
 
     init(
         configuration: Binding<GuestMetricConfiguration>,
@@ -385,7 +376,7 @@ private struct CustomizeGuestMetricsView: View {
     var body: some View {
         Form {
             Section {
-                Text("Choose up to \(GuestMetricConfiguration.maximumShownMetrics) cards. Drag to reorder. Cards filter the guest list when tapped.")
+                Text("Drag to reorder. Cards filter the guest list when tapped. Metrics are shared with the web app.")
                     .font(.footnote)
                     .foregroundStyle(VowbaseTheme.mutedInk)
                     .listRowBackground(Color.clear)
@@ -401,17 +392,8 @@ private struct CustomizeGuestMetricsView: View {
             }
 
             Section("Available Metrics") {
-                Button {
-                    showsAddMetric = true
-                } label: {
-                    Label("Add Metric", systemImage: "plus.circle")
-                        .foregroundStyle(VowbaseTheme.rose)
-                }
-                .disabled(draft.shownMetrics.count >= GuestMetricConfiguration.maximumShownMetrics)
-
                 ForEach(draft.availableMetrics) { metric in
                     metricRow(metric, action: { draft.enable(metric.id) }, actionSymbol: "plus")
-                        .disabled(draft.shownMetrics.count >= GuestMetricConfiguration.maximumShownMetrics)
                 }
             }
         }
@@ -432,11 +414,6 @@ private struct CustomizeGuestMetricsView: View {
                     configuration = draft
                     dismiss()
                 }
-            }
-        }
-        .sheet(isPresented: $showsAddMetric) {
-            AddGuestMetricView(columns: columns, guests: guests) { name, condition in
-                _ = draft.addCustom(name: name, condition: condition)
             }
         }
     }

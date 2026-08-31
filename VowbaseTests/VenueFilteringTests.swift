@@ -226,12 +226,12 @@ struct VenueFilteringTests {
         )
         var configuration = VenueMetricConfiguration.default(columns: [column])
 
-        #expect(configuration.shownMetrics.map(\.id) == VenueStatus.metricOrder.map { "status-\($0.rawValue)" })
-        #expect(configuration.availableMetrics.contains(where: { $0.id == "total-venues" }))
+        #expect(configuration.shownMetrics.map(\.id) == [
+            "venue-total", "venue-considering", "venue-contacted", "venue-toured", "venue-shortlisted", "venue-booked"
+        ])
         #expect(configuration.availableMetrics.contains(where: { $0.id == "field-parking" }))
 
-        configuration.disable("status-passed")
-        configuration.enable("total-venues")
+        configuration.disable("venue-booked")
         let addedID = configuration.addCustom(
             name: "Top reception",
             condition: .customValue(key: "reception", value: "5")
@@ -243,25 +243,6 @@ struct VenueFilteringTests {
         let data = try JSONEncoder().encode(configuration)
         let decoded = try JSONDecoder().decode(VenueMetricConfiguration.self, from: data)
         #expect(decoded == configuration)
-    }
-
-    @Test("Venue metric storage is scoped by wedding")
-    func venueMetricStorageIsWeddingScoped() {
-        let firstWedding = UUID()
-        let secondWedding = UUID()
-        let firstKey = "venueMetricConfiguration.\(firstWedding.uuidString.lowercased())"
-        let secondKey = "venueMetricConfiguration.\(secondWedding.uuidString.lowercased())"
-        defer {
-            UserDefaults.standard.removeObject(forKey: firstKey)
-            UserDefaults.standard.removeObject(forKey: secondKey)
-        }
-
-        var configuration = VenueMetricConfiguration.default(columns: [])
-        configuration.disable("status-passed")
-        VenueMetricConfigurationStorage.save(configuration, weddingID: firstWedding)
-
-        #expect(VenueMetricConfigurationStorage.load(weddingID: firstWedding, columns: []) == configuration)
-        #expect(VenueMetricConfigurationStorage.load(weddingID: secondWedding, columns: []) == .default(columns: []))
     }
 
     @Test("Venue distance coordinates reject malformed persisted values")

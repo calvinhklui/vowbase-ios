@@ -6,6 +6,7 @@ import Testing
         let configuration = try AppConfiguration(values:["SUPABASE_URL":"https://supabase.example.invalid","SUPABASE_PUBLISHABLE_KEY":"key","VOWBASE_API_URL":"https://api.example.invalid","CONFIGURATION":"Release"])
         let provider = SupabaseProvider(configuration: configuration)
         let container = RepositoryContainer(supabase: provider, api: ContainerAPI())
+        #expect(container.metrics is SupabaseMetricConfigurationRepository)
         #expect(container.schedule is SupabaseScheduleRepository)
         #expect(container.inspiration is SupabaseInspirationRepository)
         #expect(container.timeline is SupabaseTimelineRepository)

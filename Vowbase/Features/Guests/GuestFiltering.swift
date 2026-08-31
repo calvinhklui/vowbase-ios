@@ -305,6 +305,8 @@ enum GuestMetricCondition: Codable, Equatable, Sendable {
     case allGuests
     case rsvp(Set<RSVPStatus>)
     case address(GuestPresenceFilter)
+    case email(GuestPresenceFilter)
+    case phone(GuestPresenceFilter)
     case customValue(key: String, value: String)
     case customHasValue(key: String)
     case customCheckbox(key: String, expected: Bool)
@@ -317,6 +319,10 @@ enum GuestMetricCondition: Codable, Equatable, Sendable {
             return statuses.contains(guest.rsvpStatus ?? .notInvited)
         case let .address(presence):
             return presence.matches(guest.address)
+        case let .email(presence):
+            return presence.matches(guest.email)
+        case let .phone(presence):
+            return presence.matches(guest.phone)
         case let .customValue(key, value):
             return GuestMetricCondition.normalizedValue(
                 GuestMetricCondition.comparableValue(
@@ -343,6 +349,10 @@ enum GuestMetricCondition: Codable, Equatable, Sendable {
             return "RSVP is " + names.joined(separator: " or ")
         case let .address(presence):
             return presence == .absent ? "Address is missing" : "Has an address"
+        case let .email(presence):
+            return presence == .absent ? "Email is missing" : "Has an email"
+        case let .phone(presence):
+            return presence == .absent ? "Phone is missing" : "Has a phone"
         case let .customValue(key, value):
             return "\(Self.columnLabel(for: key, columns: columns)) is \(value)"
         case let .customHasValue(key):
@@ -391,10 +401,9 @@ struct GuestMetric: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// Device-local MVP configuration. Guest data remains server-backed; this is
-/// only each planner's preferred compact dashboard arrangement.
+/// Native projection of the remote web-authored metric configuration.
 struct GuestMetricConfiguration: Codable, Equatable, Sendable {
-    static let maximumShownMetrics = 8
+    static let maximumShownMetrics = Int.max
 
     var metrics: [GuestMetric]
 
@@ -406,12 +415,7 @@ struct GuestMetricConfiguration: Codable, Equatable, Sendable {
     var availableMetrics: [GuestMetric] { metrics.filter { !$0.isEnabled } }
 
     func normalized(columns: [GuestCustomColumn]) -> GuestMetricConfiguration {
-        let defaults = Self.systemMetrics(columns: columns)
-        var normalized = metrics
-        for metric in defaults where !normalized.contains(where: { $0.id == metric.id }) {
-            normalized.append(metric)
-        }
-        return GuestMetricConfiguration(metrics: normalized)
+        self
     }
 
     mutating func enable(_ id: String) {
@@ -442,10 +446,12 @@ struct GuestMetricConfiguration: Codable, Equatable, Sendable {
 
     private static func systemMetrics(columns: [GuestCustomColumn]) -> [GuestMetric] {
         var metrics = [
-            GuestMetric(id: "total-guests", name: "Total guests", condition: .allGuests, isEnabled: true, isCustom: false),
-            GuestMetric(id: "needs-response", name: "Needs response", condition: .rsvp([.pending, .maybe]), isEnabled: true, isCustom: false),
-            GuestMetric(id: "accepted", name: "Accepted", condition: .rsvp([.accepted]), isEnabled: false, isCustom: false),
-            GuestMetric(id: "missing-address", name: "Missing address", condition: .address(.absent), isEnabled: false, isCustom: false)
+            GuestMetric(id: "guest-total", name: "Total", condition: .allGuests, isEnabled: true, isCustom: false),
+            GuestMetric(id: "guest-not-invited", name: "Not invited", condition: .rsvp([.notInvited]), isEnabled: true, isCustom: false),
+            GuestMetric(id: "guest-pending", name: "Pending", condition: .rsvp([.pending]), isEnabled: true, isCustom: false),
+            GuestMetric(id: "guest-maybe", name: "Maybe", condition: .rsvp([.maybe]), isEnabled: true, isCustom: false),
+            GuestMetric(id: "guest-accepted", name: "Accepted", condition: .rsvp([.accepted]), isEnabled: true, isCustom: false),
+            GuestMetric(id: "guest-declined", name: "Declined", condition: .rsvp([.declined]), isEnabled: true, isCustom: false)
         ]
         metrics += columns.map { column in
             GuestMetric(

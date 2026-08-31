@@ -112,10 +112,7 @@ struct VenuesView: View {
                 }
             }
             .task(id: store.wedding?.id) {
-                let configuration = VenueMetricConfigurationStorage.load(
-                    weddingID: store.wedding?.id,
-                    columns: store.visibleVenueCustomColumns
-                )
+                let configuration = store.venueMetricConfiguration
                 metricConfiguration = configuration
                 if let selectedMetricID,
                    !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
@@ -127,10 +124,29 @@ struct VenuesView: View {
                    !configuration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
                     self.selectedMetricID = nil
                 }
-                VenueMetricConfigurationStorage.save(configuration, weddingID: store.wedding?.id)
+                guard configuration != store.venueMetricConfiguration,
+                      store.canCustomizeVenueMetrics else { return }
+                Task { @MainActor in
+                    guard await store.saveVenueMetricConfiguration(configuration) else {
+                        metricConfiguration = store.venueMetricConfiguration
+                        return
+                    }
+                    metricConfiguration = store.venueMetricConfiguration
+                }
             }
             .onChange(of: store.visibleVenueCustomColumns) { _, columns in
-                metricConfiguration = metricConfiguration.normalized(columns: columns)
+                metricConfiguration = store.venueMetricConfiguration
+                if let selectedMetricID,
+                   !metricConfiguration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
+            }
+            .onChange(of: store.venueMetricConfigurationRecord) { _, configuration in
+                metricConfiguration = store.venueMetricConfiguration
+                if let selectedMetricID,
+                   !metricConfiguration.shownMetrics.contains(where: { $0.id == selectedMetricID }) {
+                    self.selectedMetricID = nil
+                }
             }
         }
     }
@@ -206,6 +222,7 @@ struct VenuesView: View {
             } label: {
                 Label("Customize Metrics", systemImage: "slider.horizontal.3")
             }
+            .disabled(!store.canCustomizeVenueMetrics)
         } label: {
             CompactConsoleCircleControl(systemImage: "arrow.up.arrow.down")
         }

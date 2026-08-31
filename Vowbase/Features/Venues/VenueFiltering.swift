@@ -140,14 +140,16 @@ enum VenueMetricCondition: Codable, Equatable, Sendable {
         case let .status(statuses):
             return statuses.contains(venue.status)
         case let .location(presence):
-            let hasLocation = [venue.address, venue.city]
-                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .contains { !$0.isEmpty }
+            let hasLocation = [venue.address, venue.city, venue.state, venue.country].contains(where: Self.hasText)
             return (presence == .present) == hasLocation
         case let .capacity(presence):
-            return presence.matches(venue.capacityMin ?? venue.capacityMax)
+            let hasCapacity = Self.hasText(venue.capacityText)
+                || Self.hasText(venue.capacityMin)
+                || Self.hasText(venue.capacityMax)
+            return (presence == .present) == hasCapacity
         case let .estimate(presence):
-            return presence.matches(venue.canonicalVenueEstimateText)
+            let hasEstimate = [venue.venueEstimateText, venue.allInEstimateText].contains(where: Self.hasText)
+            return (presence == .present) == hasEstimate
         case let .customValue(key, value):
             return Self.normalizedValue(Self.comparableValue(
                 VenueCustomFields.value(in: venue.customFields, for: key)
@@ -202,6 +204,14 @@ enum VenueMetricCondition: Codable, Equatable, Sendable {
         let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return normalized.isEmpty ? nil : normalized
     }
+
+    private static func hasText(_ value: String?) -> Bool {
+        !(value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
+
+    private static func hasText<T>(_ value: T?) -> Bool {
+        value != nil
+    }
 }
 
 struct VenueMetric: Codable, Equatable, Identifiable, Sendable {
@@ -219,7 +229,7 @@ struct VenueMetric: Codable, Equatable, Identifiable, Sendable {
 }
 
 struct VenueMetricConfiguration: Codable, Equatable, Sendable {
-    static let maximumShownMetrics = 8
+    static let maximumShownMetrics = Int.max
 
     var metrics: [VenueMetric]
 
@@ -231,12 +241,7 @@ struct VenueMetricConfiguration: Codable, Equatable, Sendable {
     var availableMetrics: [VenueMetric] { metrics.filter { !$0.isEnabled } }
 
     func normalized(columns: [VenueCustomColumn]) -> VenueMetricConfiguration {
-        let defaults = Self.systemMetrics(columns: columns)
-        var normalized = metrics
-        for metric in defaults where !normalized.contains(where: { $0.id == metric.id }) {
-            normalized.append(metric)
-        }
-        return VenueMetricConfiguration(metrics: normalized)
+        self
     }
 
     mutating func enable(_ id: String) {
@@ -272,21 +277,12 @@ struct VenueMetricConfiguration: Codable, Equatable, Sendable {
 
     private static func systemMetrics(columns: [VenueCustomColumn]) -> [VenueMetric] {
         var metrics = [
-            VenueMetric(id: "total-venues", name: "Total venues", condition: .allVenues, isEnabled: false, isCustom: false),
-        ]
-        metrics += VenueStatus.metricOrder.map { status in
-            VenueMetric(
-                id: "status-\(status.rawValue)",
-                name: status.title,
-                condition: .status([status]),
-                isEnabled: true,
-                isCustom: false
-            )
-        }
-        metrics += [
-            VenueMetric(id: "missing-location", name: "Missing location", condition: .location(.absent), isEnabled: false, isCustom: false),
-            VenueMetric(id: "missing-capacity", name: "Missing capacity", condition: .capacity(.absent), isEnabled: false, isCustom: false),
-            VenueMetric(id: "missing-estimate", name: "Missing estimate", condition: .estimate(.absent), isEnabled: false, isCustom: false),
+            VenueMetric(id: "venue-total", name: "Total", condition: .allVenues, isEnabled: true, isCustom: false),
+            VenueMetric(id: "venue-considering", name: "Considering", condition: .status([.considering]), isEnabled: true, isCustom: false),
+            VenueMetric(id: "venue-contacted", name: "Contacted", condition: .status([.contacted]), isEnabled: true, isCustom: false),
+            VenueMetric(id: "venue-toured", name: "Toured", condition: .status([.toured]), isEnabled: true, isCustom: false),
+            VenueMetric(id: "venue-shortlisted", name: "Shortlisted", condition: .status([.shortlisted]), isEnabled: true, isCustom: false),
+            VenueMetric(id: "venue-booked", name: "Booked", condition: .status([.booked]), isEnabled: true, isCustom: false),
         ]
         metrics += columns.map { column in
             VenueMetric(

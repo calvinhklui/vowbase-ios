@@ -347,20 +347,21 @@ struct GuestFilteringTests {
         #expect(roster.count(where: plusOne.matches) == 1)
     }
 
-    @Test("Metric configuration preserves shown ordering and caps cards at eight")
+    @Test("Metric configuration preserves shown ordering without an eight-card cap")
     func metricConfigurationOrderingAndLimit() {
         var configuration = GuestMetricConfiguration.default(columns: [selectColumn("meal", options: ["Fish", "Vegan"])])
-        #expect(configuration.shownMetrics.map(\.id) == ["total-guests", "needs-response"])
+        #expect(configuration.shownMetrics.map(\.id) == [
+            "guest-total", "guest-not-invited", "guest-pending", "guest-maybe", "guest-accepted", "guest-declined"
+        ])
 
-        configuration.enable("accepted")
-        configuration.moveShown(from: IndexSet(integer: 2), to: 0)
-        #expect(configuration.shownMetrics.map(\.id) == ["accepted", "total-guests", "needs-response"])
+        configuration.moveShown(from: IndexSet(integer: 4), to: 0)
+        #expect(configuration.shownMetrics.prefix(3).map(\.id) == ["guest-accepted", "guest-total", "guest-not-invited"])
 
         for index in 0..<6 {
             _ = configuration.addCustom(name: "Metric \(index)", condition: .allGuests)
         }
-        #expect(configuration.shownMetrics.count == GuestMetricConfiguration.maximumShownMetrics)
-        #expect(configuration.addCustom(name: "Too many", condition: .allGuests) == nil)
+        #expect(configuration.shownMetrics.count == 12)
+        #expect(configuration.addCustom(name: "More", condition: .allGuests) != nil)
     }
 
     @Test("Metric configuration round-trips its user-created condition")

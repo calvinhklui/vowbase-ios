@@ -322,6 +322,11 @@ final class VowbaseWorkspaceStore {
     /// Venue definitions load independently of venue rows and guest fields.
     /// A failure hides only venue custom controls, leaving the venue lens usable.
     var venueCustomFieldsUnavailable = false
+    private(set) var guestMetricConfigurationRecord: SharedMetricConfiguration?
+    private(set) var venueMetricConfigurationRecord: SharedMetricConfiguration?
+    /// A failed metrics read leaves canonical web defaults visible but keeps
+    /// native customization unavailable, so native can never seed migration data.
+    private(set) var metricConfigurationsUnavailable = false
 
     /// Per-row save state for inline editing, keyed by guest and field.
     private(set) var fieldSaveStates = [GuestFieldKey: GuestFieldSaveState]()
@@ -621,6 +626,97 @@ final class VowbaseWorkspaceStore {
     /// Raw records, for the counts the filter sheet shows before applying.
     var allGuestRecords: [Guest] { guestRecords }
 
+    var guestMetricConfiguration: GuestMetricConfiguration {
+        let tiles = guestMetricConfigurationRecord?.tiles
+            ?? SharedMetricConfiguration.canonicalDefaults(for: .guests)
+        return GuestMetricConfiguration(
+            metrics: MetricConfigurationProjection.guestMetrics(
+                from: tiles,
+                columns: customColumnRecords
+            )
+        )
+    }
+
+    var venueMetricConfiguration: VenueMetricConfiguration {
+        let tiles = venueMetricConfigurationRecord?.tiles
+            ?? SharedMetricConfiguration.canonicalDefaults(for: .venues)
+        return VenueMetricConfiguration(
+            metrics: MetricConfigurationProjection.venueMetrics(
+                from: tiles,
+                columns: venueCustomColumnRecords
+            )
+        )
+    }
+
+    var canCustomizeGuestMetrics: Bool { guestMetricConfigurationRecord != nil }
+    var canCustomizeVenueMetrics: Bool { venueMetricConfigurationRecord != nil }
+
+    @discardableResult
+    func saveGuestMetricConfiguration(_ configuration: GuestMetricConfiguration) async -> Bool {
+        guard let repositories, let current = guestMetricConfigurationRecord else { return false }
+        let replacement = configuration.shownMetrics.compactMap { metric in
+            current.tiles.first(where: { $0.id == metric.id && $0.type == .count })
+                ?? MetricConfigurationProjection.tile(from: metric)
+        }
+        guard replacement.count == configuration.shownMetrics.count else {
+            errorMessage = "This metric cannot be represented in the shared web configuration."
+            return false
+        }
+        let projectableCountTileIDs = Set(
+            MetricConfigurationProjection.guestMetrics(
+                from: current.tiles,
+                columns: customColumnRecords
+            ).map(\.id)
+        )
+        do {
+            guestMetricConfigurationRecord = try await repositories.metrics.update(
+                current,
+                tiles: MetricConfigurationProjection.replacingCountTiles(
+                    in: current.tiles,
+                    with: replacement,
+                    replacingCountTileIDs: projectableCountTileIDs
+                )
+            )
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func saveVenueMetricConfiguration(_ configuration: VenueMetricConfiguration) async -> Bool {
+        guard let repositories, let current = venueMetricConfigurationRecord else { return false }
+        let replacement = configuration.shownMetrics.compactMap { metric in
+            current.tiles.first(where: { $0.id == metric.id && $0.type == .count })
+                ?? MetricConfigurationProjection.tile(from: metric)
+        }
+        guard replacement.count == configuration.shownMetrics.count else {
+            errorMessage = "This metric cannot be represented in the shared web configuration."
+            return false
+        }
+        let projectableCountTileIDs = Set(
+            MetricConfigurationProjection.venueMetrics(
+                from: current.tiles,
+                columns: venueCustomColumnRecords
+            ).map(\.id)
+        )
+        do {
+            venueMetricConfigurationRecord = try await repositories.metrics.update(
+                current,
+                tiles: MetricConfigurationProjection.replacingCountTiles(
+                    in: current.tiles,
+                    with: replacement,
+                    replacingCountTileIDs: projectableCountTileIDs
+                )
+            )
+            return true
+        } catch {
+            errorMessage = userMessage(for: error)
+            return false
+        }
+    }
+
     func filteredGuests(
         searchText: String,
         filters: GuestFilterSet,
@@ -700,6 +796,14 @@ final class VowbaseWorkspaceStore {
             // custom fields, never take the guest list down with them.
             async let columns = try? repositories.guests.customColumns(weddingID: membership.weddingId)
             async let venueColumns = try? repositories.venues.customColumns(weddingID: membership.weddingId)
+            async let guestMetrics = try? repositories.metrics.configuration(
+                weddingID: membership.weddingId,
+                surface: .guests
+            )
+            async let venueMetrics = try? repositories.metrics.configuration(
+                weddingID: membership.weddingId,
+                surface: .venues
+            )
             venueRecords = try await venues
             guestRecords = try await guests
             if let loadedColumns = await columns {
@@ -715,6 +819,17 @@ final class VowbaseWorkspaceStore {
             } else {
                 venueCustomColumnRecords = []
                 venueCustomFieldsUnavailable = true
+            }
+            let loadedGuestMetrics = await guestMetrics
+            let loadedVenueMetrics = await venueMetrics
+            guestMetricConfigurationRecord = loadedGuestMetrics
+            venueMetricConfigurationRecord = loadedVenueMetrics
+            metricConfigurationsUnavailable = loadedGuestMetrics == nil && loadedVenueMetrics == nil
+            if loadedGuestMetrics != nil {
+                UserDefaults.standard.removeObject(forKey: "guestMetricConfiguration.\(membership.weddingId.uuidString.lowercased())")
+            }
+            if loadedVenueMetrics != nil {
+                UserDefaults.standard.removeObject(forKey: "venueMetricConfiguration.\(membership.weddingId.uuidString.lowercased())")
             }
             let currentVenueIDs = Set(venueRecords.map(\.id))
             venueGalleries = venueGalleries.filter { currentVenueIDs.contains($0.key) }

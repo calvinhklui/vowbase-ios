@@ -1,30 +1,5 @@
 import SwiftUI
 
-enum VenueMetricConfigurationStorage {
-    private static let keyPrefix = "venueMetricConfiguration."
-
-    static func load(weddingID: UUID?, columns: [VenueCustomColumn]) -> VenueMetricConfiguration {
-        let fallback = VenueMetricConfiguration.default(columns: columns)
-        guard let weddingID,
-              let data = UserDefaults.standard.data(forKey: key(for: weddingID)),
-              let stored = try? JSONDecoder().decode(VenueMetricConfiguration.self, from: data)
-        else {
-            return fallback
-        }
-        return stored.normalized(columns: columns)
-    }
-
-    static func save(_ configuration: VenueMetricConfiguration, weddingID: UUID?) {
-        guard let weddingID,
-              let data = try? JSONEncoder().encode(configuration) else { return }
-        UserDefaults.standard.set(data, forKey: key(for: weddingID))
-    }
-
-    private static func key(for weddingID: UUID) -> String {
-        keyPrefix + weddingID.uuidString.lowercased()
-    }
-}
-
 struct VenueMetricPills: View {
     let configuration: VenueMetricConfiguration
     let venues: [Venue]
@@ -69,7 +44,6 @@ struct CustomizeVenueMetricsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: VenueMetricConfiguration
-    @State private var showsAddMetric = false
 
     init(
         configuration: Binding<VenueMetricConfiguration>,
@@ -91,7 +65,7 @@ struct CustomizeVenueMetricsView: View {
     var body: some View {
         Form {
             Section {
-                Text("Choose up to \(VenueMetricConfiguration.maximumShownMetrics) cards. Drag to reorder. Cards filter the venue list when tapped.")
+                Text("Drag to reorder. Cards filter the venue list when tapped. Metrics are shared with the web app.")
                     .font(.footnote)
                     .foregroundStyle(VowbaseTheme.mutedInk)
                     .listRowBackground(Color.clear)
@@ -107,17 +81,8 @@ struct CustomizeVenueMetricsView: View {
             }
 
             Section("Available Metrics") {
-                Button {
-                    showsAddMetric = true
-                } label: {
-                    Label("Add Metric", systemImage: "plus.circle")
-                        .foregroundStyle(VowbaseTheme.rose)
-                }
-                .disabled(draft.shownMetrics.count >= VenueMetricConfiguration.maximumShownMetrics)
-
                 ForEach(draft.availableMetrics) { metric in
                     metricRow(metric, action: { draft.enable(metric.id) }, actionSymbol: "plus")
-                        .disabled(draft.shownMetrics.count >= VenueMetricConfiguration.maximumShownMetrics)
                 }
             }
         }
@@ -138,11 +103,6 @@ struct CustomizeVenueMetricsView: View {
                     configuration = draft
                     dismiss()
                 }
-            }
-        }
-        .sheet(isPresented: $showsAddMetric) {
-            AddVenueMetricView(columns: columns, venues: venues) { name, condition in
-                _ = draft.addCustom(name: name, condition: condition)
             }
         }
     }

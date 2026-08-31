@@ -19,6 +19,7 @@ struct RepositoryContainer: Sendable {
     let venuePhotos: any VenuePhotoServicing
     let venuePhotoMutations: any VenuePhotoMutationServicing
     let venueDocuments: any VenueDocumentRepository
+    let metrics: any MetricConfigurationRepository
 
     init(supabase: SupabaseProvider, api: any VowbaseAPIClientProtocol) {
         workspace = SupabaseWorkspaceRepository(provider: supabase, api: api)
@@ -48,5 +49,6 @@ struct RepositoryContainer: Sendable {
             storage: SupabaseVenuePhotoStorageAdapter(provider: supabase)
         )
         venueDocuments = APIVenueDocumentRepository(api: api)
+        metrics = SupabaseMetricConfigurationRepository(provider: supabase)
     }
 }

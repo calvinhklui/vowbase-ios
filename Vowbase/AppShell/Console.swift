@@ -545,8 +545,9 @@ struct GuestRailContent: View {
     let selectedGuestID: UUID?
     let onSelect: (MVPGuest) -> Void
 
-    @State private var metricConfiguration = GuestMetricConfiguration.default(columns: [])
     @State private var selectedMetricID: String?
+
+    private var metricConfiguration: GuestMetricConfiguration { store.guestMetricConfiguration }
 
     private var selectedMetric: GuestMetric? {
         metricConfiguration.metrics.first(where: { $0.id == selectedMetricID })
@@ -598,18 +599,11 @@ struct GuestRailContent: View {
                 }
             }
         }
-        .task(id: store.wedding?.id) {
-            let configuration = GuestMetricConfigurationStorage.load(
-                weddingID: store.wedding?.id,
-                columns: store.visibleCustomColumns
-            )
-            metricConfiguration = configuration
-            clearUnavailableMetric(in: configuration)
+        .onChange(of: store.guestMetricConfigurationRecord) { _, _ in
+            clearUnavailableMetric(in: metricConfiguration)
         }
-        .onChange(of: store.visibleCustomColumns) { _, columns in
-            let configuration = metricConfiguration.normalized(columns: columns)
-            metricConfiguration = configuration
-            clearUnavailableMetric(in: configuration)
+        .onChange(of: store.visibleCustomColumns) { _, _ in
+            clearUnavailableMetric(in: metricConfiguration)
         }
     }
 
