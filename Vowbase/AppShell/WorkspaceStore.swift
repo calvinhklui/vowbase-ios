@@ -165,8 +165,8 @@ struct MVPVenue: Identifiable, Hashable {
     let capacityMax: Int?
     let capacityTextOverride: String?
     let estimate: String
-    /// The raw `venue_est_text` value, independent of `estimate`'s `priceEstimate` display
-    /// fallback — inline editing reads/writes this, never the derived display string.
+    /// The normalized `venue_est_text` value used by inline editing. `estimate`
+    /// is the same canonical value with a list-friendly placeholder when absent.
     let venueEstimateTextRaw: String?
     /// `nil` when this venue's guest travel hasn't been computed — a real
     /// absence, so each surface can decide whether to omit the stat or show a
@@ -1984,8 +1984,8 @@ private extension MVPVenue {
         capacityMin = venue.capacityMin
         capacityMax = venue.capacityMax
         capacityTextOverride = venue.capacityText?.nilIfBlank
-        estimate = venue.venueEstimateText?.nilIfBlank ?? venue.priceEstimate.map(VenuePriceFormatter.string) ?? "Not added"
-        venueEstimateTextRaw = venue.venueEstimateText?.nilIfBlank
+        estimate = venue.venueEstimateDisplayText
+        venueEstimateTextRaw = venue.canonicalVenueEstimateText
         travel = travelText
         allInEstimate = venue.allInEstimateText?.nilIfBlank ?? "Not added"
         availableDates = venue.availableDatesText?.nilIfBlank ?? "Not added"

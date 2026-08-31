@@ -13,6 +13,8 @@ struct VenueFilteringTests {
         contactName: String? = nil,
         email: String? = nil,
         phone: String? = nil,
+        priceEstimate: Double? = nil,
+        venueEstimateText: String? = nil,
         updated: TimeInterval = 0,
         latitude: Double? = nil,
         longitude: Double? = nil
@@ -33,9 +35,9 @@ struct VenueFilteringTests {
             capacityMin: nil,
             capacityMax: nil,
             capacityText: nil,
-            priceEstimate: nil,
+            priceEstimate: priceEstimate,
             priceNotes: nil,
-            venueEstimateText: nil,
+            venueEstimateText: venueEstimateText,
             allInEstimateText: nil,
             availableDatesText: nil,
             ourNotes: nil,
@@ -55,6 +57,21 @@ struct VenueFilteringTests {
             venue("Birch Barn", status: .contacted, phone: "+1 555 0100", updated: 20),
             venue("Alder House", status: .shortlisted, updated: 40)
         ]
+    }
+
+    @Test("Venue estimate display ignores a legacy numeric estimate when canonical text is absent")
+    func venueEstimateDisplayUsesCanonicalTextOnly() {
+        let legacyOnly = venue("Legacy estimate", priceEstimate: 160_000)
+        let canonical = venue(
+            "Canonical estimate",
+            priceEstimate: 160_000,
+            venueEstimateText: "  $175k–$190k  "
+        )
+
+        #expect(legacyOnly.canonicalVenueEstimateText == nil)
+        #expect(legacyOnly.venueEstimateDisplayText == "Not added")
+        #expect(canonical.canonicalVenueEstimateText == "$175k–$190k")
+        #expect(canonical.venueEstimateDisplayText == "$175k–$190k")
     }
 
     @Test("Last updated is the default descending order")

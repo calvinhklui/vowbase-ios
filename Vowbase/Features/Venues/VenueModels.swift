@@ -49,6 +49,21 @@ struct Venue: Codable, Equatable, Sendable, Identifiable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
+
+    /// The editable venue estimate shared by the native and web venue surfaces.
+    /// `priceEstimate` is a legacy structured value and must not be substituted
+    /// when the canonical `venue_est_text` field is absent.
+    var canonicalVenueEstimateText: String? {
+        guard let text = venueEstimateText?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty else {
+            return nil
+        }
+        return text
+    }
+
+    var venueEstimateDisplayText: String {
+        canonicalVenueEstimateText ?? "Not added"
+    }
 }
 struct VenueDraft:Codable,Equatable,Sendable{let name:String;let status:VenueStatus?;let address:String?;let city:String?;let state:String?;let country:String?;let contactName:String?;let contactEmail:String?;let contactPhone:String?;let website:String?;let capacityMin:Int?;let capacityMax:Int?;let priceEstimate:Double?;let priceNotes:String?;let ourNotes:String?;let latitude:Double?;let longitude:Double?;let photoURL:String?
 enum CodingKeys:String,CodingKey{case name;case status;case address;case city;case state;case country;case contactName="contact_name";case contactEmail="contact_email";case contactPhone="contact_phone";case website;case capacityMin="capacity_min";case capacityMax="capacity_max";case priceEstimate="price_estimate";case priceNotes="price_notes";case ourNotes="our_notes";case latitude;case longitude;case photoURL="photo_url"}}
@@ -230,11 +245,5 @@ enum VenueCapacityFormatter {
         case let (nil, maximum?): "Up to \(maximum)"
         case (nil, nil): "Not added"
         }
-    }
-}
-
-enum VenuePriceFormatter {
-    static func string(_ value: Double) -> String {
-        value.formatted(.currency(code: "USD").precision(.fractionLength(0)))
     }
 }
