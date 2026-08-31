@@ -649,6 +649,9 @@ struct WeddingAppShell: View {
                 store: store,
                 taskStore: taskStore,
                 timelineStore: timelineStore,
+                allowsVerticalScrolling: currentDetent == .full,
+                onRequestExpansion: expandCurrentConsole,
+                onRequestCollapse: collapseCurrentConsole,
                 onOpenMoment: { moment in
                     presentQuickAdd(.moment(weddingID: moment.weddingID, moment: moment))
                 },

@@ -122,7 +122,7 @@ struct TimelineTests {
         #expect(TimelineProgressiveLoading.nextLimit(currentLimit: -10, totalCount: -1) == 0)
     }
 
-    @Test("timeline item filters combine selected types and keep task lifecycle rows together")
+    @Test("timeline item filters select one type at a time and keep task lifecycle rows together")
     func filtersTimelineItemsByType() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let entries = [
@@ -135,11 +135,12 @@ struct TimelineTests {
         ]
 
         #expect(TimelineItemType.allCases.map(\.title) == ["Moments", "Requirements", "Venues", "Guests", "Tasks"])
-        #expect(TimelineFiltering.entries(entries, matching: []).map(\.title) == entries.map(\.title))
-        #expect(
-            TimelineFiltering.entries(entries, matching: [.venue, .task]).map(\.title)
-                == ["Venue", "Task added", "Task completed"]
-        )
+        #expect(TimelineFiltering.entries(entries, matching: nil).map(\.title) == entries.map(\.title))
+        #expect(TimelineFiltering.entries(entries, matching: .venue).map(\.title) == ["Venue"])
+        #expect(TimelineFiltering.entries(entries, matching: .task).map(\.title) == ["Task added", "Task completed"])
+        #expect(TimelineFiltering.selection(afterTapping: .venue, current: nil) == .venue)
+        #expect(TimelineFiltering.selection(afterTapping: .guest, current: .venue) == .guest)
+        #expect(TimelineFiltering.selection(afterTapping: .guest, current: .guest) == nil)
         #expect(TimelineFiltering.count(of: .task, in: entries) == 2)
         #expect(TimelineFiltering.count(of: .guest, in: entries) == 1)
     }

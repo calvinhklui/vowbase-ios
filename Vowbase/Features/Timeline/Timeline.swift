@@ -568,10 +568,17 @@ enum TimelineFeed {
 enum TimelineFiltering {
     static func entries(
         _ entries: [TimelineEntry],
-        matching selectedItemTypes: Set<TimelineItemType>
+        matching selectedItemType: TimelineItemType?
     ) -> [TimelineEntry] {
-        guard !selectedItemTypes.isEmpty else { return entries }
-        return entries.filter { selectedItemTypes.contains($0.kind.itemType) }
+        guard let selectedItemType else { return entries }
+        return entries.filter { $0.kind.itemType == selectedItemType }
+    }
+
+    static func selection(
+        afterTapping itemType: TimelineItemType,
+        current selectedItemType: TimelineItemType?
+    ) -> TimelineItemType? {
+        selectedItemType == itemType ? nil : itemType
     }
 
     static func count(of itemType: TimelineItemType, in entries: [TimelineEntry]) -> Int {
@@ -975,17 +982,23 @@ struct PlanningTimelineView: View {
     let store: VowbaseWorkspaceStore
     let taskStore: TaskStore
     let timelineStore: TimelineStore
+    let allowsVerticalScrolling: Bool
+    let onRequestExpansion: () -> Void
+    let onRequestCollapse: () -> Void
     let onOpenMoment: (PlanningMoment) -> Void
     let onOpenRequirement: (MoodboardRequirement) -> Void
     let onOpenVenue: (MVPVenue) -> Void
     let onOpenGuest: (MVPGuest) -> Void
     @State private var visibleEntryLimit = TimelineProgressiveLoading.batchSize
-    @State private var selectedItemTypes: Set<TimelineItemType> = []
+    @State private var selectedItemType: TimelineItemType?
 
     init(
         store: VowbaseWorkspaceStore,
         taskStore: TaskStore,
         timelineStore: TimelineStore,
+        allowsVerticalScrolling: Bool = true,
+        onRequestExpansion: @escaping () -> Void = {},
+        onRequestCollapse: @escaping () -> Void = {},
         onOpenMoment: @escaping (PlanningMoment) -> Void = { _ in },
         onOpenRequirement: @escaping (MoodboardRequirement) -> Void = { _ in },
         onOpenVenue: @escaping (MVPVenue) -> Void = { _ in },
@@ -994,6 +1007,9 @@ struct PlanningTimelineView: View {
         self.store = store
         self.taskStore = taskStore
         self.timelineStore = timelineStore
+        self.allowsVerticalScrolling = allowsVerticalScrolling
+        self.onRequestExpansion = onRequestExpansion
+        self.onRequestCollapse = onRequestCollapse
         self.onOpenMoment = onOpenMoment
         self.onOpenRequirement = onOpenRequirement
         self.onOpenVenue = onOpenVenue
@@ -1007,7 +1023,7 @@ struct PlanningTimelineView: View {
 
     var body: some View {
         let allTimelineEntries = entries
-        let timelineEntries = TimelineFiltering.entries(allTimelineEntries, matching: selectedItemTypes)
+        let timelineEntries = TimelineFiltering.entries(allTimelineEntries, matching: selectedItemType)
         let visibleEntries = Array(timelineEntries.prefix(visibleEntryLimit))
         let groupedEntries = TimelineDatePresentation.monthSections(for: visibleEntries)
 
@@ -1022,7 +1038,7 @@ struct PlanningTimelineView: View {
             if !allTimelineEntries.isEmpty {
                 TimelineFilterPills(
                     entries: allTimelineEntries,
-                    selectedItemTypes: $selectedItemTypes
+                    selectedItemType: $selectedItemType
                 )
                 .padding(.horizontal, VowbaseControlMetric.screenInset)
                 .padding(.bottom, VowbaseSpace.small)
@@ -1047,6 +1063,11 @@ struct PlanningTimelineView: View {
                         }
                         .padding(VowbaseControlMetric.screenInset)
                     }
+                    .consoleVerticalScrollHandoff(
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onExpand: onRequestExpansion,
+                        onCollapse: onRequestCollapse
+                    )
                 } else if timelineEntries.isEmpty {
                     ScrollView {
                         VStack(spacing: VowbaseSpace.large) {
@@ -1054,18 +1075,23 @@ struct PlanningTimelineView: View {
                                 TimelineStatusRow(status: planningStatus)
                             }
                             ContentUnavailableView {
-                                Label("No timeline items match these filters", systemImage: "line.3.horizontal.decrease.circle")
+                                Label("No timeline items match this filter", systemImage: "line.3.horizontal.decrease.circle")
                             } description: {
-                                Text("Select another item type or clear the filters to show the full timeline.")
+                                Text("Select another item type or clear the filter to show the full timeline.")
                             }
-                            Button("Clear filters") {
-                                selectedItemTypes.removeAll()
+                            Button("Clear filter") {
+                                selectedItemType = nil
                             }
                             .font(.system(size: 16, weight: .semibold))
                             .tint(VowbaseTheme.rose)
                         }
                         .padding(VowbaseControlMetric.screenInset)
                     }
+                    .consoleVerticalScrollHandoff(
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onExpand: onRequestExpansion,
+                        onCollapse: onRequestCollapse
+                    )
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
@@ -1105,7 +1131,11 @@ struct PlanningTimelineView: View {
                         .padding(.horizontal, VowbaseControlMetric.screenInset)
                         .padding(.bottom, VowbaseControlMetric.quickAddClearance + VowbaseSpace.medium)
                     }
-                    .refreshable { await refresh() }
+                    .consoleVerticalScrollHandoff(
+                        allowsVerticalScrolling: allowsVerticalScrolling,
+                        onExpand: onRequestExpansion,
+                        onCollapse: onRequestCollapse
+                    )
                 }
             }
         }
@@ -1115,12 +1145,12 @@ struct PlanningTimelineView: View {
                     .padding(.horizontal, VowbaseControlMetric.screenInset)
             }
         }
-        .onChange(of: selectedItemTypes) {
+        .onChange(of: selectedItemType) {
             visibleEntryLimit = TimelineProgressiveLoading.batchSize
         }
         .task(id: weddingID) {
             visibleEntryLimit = TimelineProgressiveLoading.batchSize
-            selectedItemTypes.removeAll()
+            selectedItemType = nil
             guard let weddingID else { return }
             async let workspace: Bool = store.load(presentsFailure: false)
             async let tasks: Void = taskStore.load(weddingID: weddingID)
@@ -1169,21 +1199,20 @@ struct PlanningTimelineView: View {
 
 private struct TimelineFilterPills: View {
     let entries: [TimelineEntry]
-    @Binding var selectedItemTypes: Set<TimelineItemType>
+    @Binding var selectedItemType: TimelineItemType?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(TimelineItemType.allCases) { itemType in
-                    let isSelected = selectedItemTypes.contains(itemType)
+                    let isSelected = selectedItemType == itemType
                     let count = TimelineFiltering.count(of: itemType, in: entries)
 
                     Button {
-                        if isSelected {
-                            selectedItemTypes.remove(itemType)
-                        } else {
-                            selectedItemTypes.insert(itemType)
-                        }
+                        selectedItemType = TimelineFiltering.selection(
+                            afterTapping: itemType,
+                            current: selectedItemType
+                        )
                     } label: {
                         CompactMetricFilterPill(
                             count: count,
@@ -1195,8 +1224,8 @@ private struct TimelineFilterPills: View {
                     .accessibilityLabel("\(itemType.title), \(count) timeline item\(count == 1 ? "" : "s")")
                     .accessibilityHint(
                         isSelected
-                            ? "Double tap to remove this item type from the filter"
-                            : "Double tap to add this item type to the filter"
+                            ? "Double tap to clear this filter"
+                            : "Double tap to filter by this item type"
                     )
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
@@ -1204,7 +1233,7 @@ private struct TimelineFilterPills: View {
         }
         .scrollDisabled(false)
         .contentMargins(.horizontal, 1, for: .scrollContent)
-        .animation(.easeInOut(duration: 0.18), value: selectedItemTypes)
+        .animation(.easeInOut(duration: 0.18), value: selectedItemType)
     }
 }
 
