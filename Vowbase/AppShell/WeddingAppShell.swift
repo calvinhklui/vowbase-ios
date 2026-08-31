@@ -656,10 +656,6 @@ struct WeddingAppShell: View {
                 onOpenMoment: { moment in
                     presentQuickAdd(.moment(weddingID: moment.weddingID, moment: moment))
                 },
-                onAddRequirement: {
-                    guard let weddingID = store.wedding?.id else { return }
-                    presentQuickAdd(.requirement(weddingID: weddingID, requirement: nil))
-                },
                 onOpenRequirement: { requirement in
                     presentQuickAdd(.requirement(weddingID: requirement.weddingID, requirement: requirement))
                 },

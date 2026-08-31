@@ -151,6 +151,9 @@ struct TimelineTests {
         #expect(TimelineRequirementPresentation.importanceLabel(for: "preference") == "Nice to Have")
         #expect(TimelineRequirementPresentation.importanceLabel(for: "must_have") == "Must Have")
         #expect(TimelineRequirementPresentation.rotation(for: 0) != TimelineRequirementPresentation.rotation(for: 1))
+        #expect(TimelineRequirementPresentation.showsRail(for: nil))
+        #expect(TimelineRequirementPresentation.showsRail(for: .requirement))
+        #expect(!TimelineRequirementPresentation.showsRail(for: .task))
     }
 
     @Test("on-track state follows conservative information and overdue boundaries")
